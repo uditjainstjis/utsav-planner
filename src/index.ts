@@ -8,7 +8,7 @@ import { InputError, LIMITS, validatePlanRequest } from './lib/validate';
 /**
  * Utsav Planner — Worker entry point.
  *
- * Two API routes, deliberately split by cost:
+ * The API, split by cost:
  *
  *   POST /api/plan         budget, timeline, vendor checklist, calendar export.
  *                          Pure computation; answers in milliseconds.

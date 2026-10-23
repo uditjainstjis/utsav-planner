@@ -658,13 +658,25 @@ els.refineForm.addEventListener('submit', async (ev) => {
   announce('Updating your plan.');
   try {
     const body = { ...current.plan.request, refine: text };
-    const { request, changes, plan, ics } = await postJson('/api/refine', body);
+    let refined;
+    try {
+      refined = await postJson('/api/refine', body);
+    } catch (err) {
+      // Any rejection of the change itself belongs next to the change field.
+      showRefineError(err.message || 'That change could not be applied.');
+      announce('The change could not be applied.');
+      return;
+    }
+    const { request, changes, plan, ics } = refined;
     current = { plan, ics, personalisation: null };
     renderPlan(plan);
     renderChanges(changes);
-    // Keep the form truthful about the numbers now in force.
+    // Keep the form truthful about the brief now in force, so rebuilding from
+    // the form carries every refinement rather than silently dropping them.
     els.guests.value = String(request.guests);
     els.budget.value = String(request.budget);
+    els.preferences.value = request.preferences ?? '';
+    updateCount();
     els.refine.value = '';
     els.ideasStatus.textContent = 'Rewriting ideas for the change…';
     els.ideasStatus.dataset.state = 'busy';
@@ -688,14 +700,9 @@ els.refineForm.addEventListener('submit', async (ev) => {
         : 'The AI was unavailable — showing general ideas instead.';
     els.ideasStatus.dataset.state = p.source === 'model' ? 'ok' : 'degraded';
     announce(`${p.ideas.length} ideas rewritten.`);
-  } catch (err) {
-    if (err.field === 'refine' || !current) {
-      showRefineError(err.message || 'That change could not be applied.');
-    } else {
-      els.ideasStatus.textContent =
-        'Ideas could not be rewritten just now. The updated plan stands.';
-      els.ideasStatus.dataset.state = 'degraded';
-    }
+  } catch {
+    els.ideasStatus.textContent = 'Ideas could not be rewritten just now. The updated plan stands.';
+    els.ideasStatus.dataset.state = 'degraded';
   } finally {
     els.refineBtn.removeAttribute('aria-disabled');
     els.refineBtn.textContent = 'Update the plan';

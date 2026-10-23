@@ -91,6 +91,18 @@ visitor's words reach a model.
 
 Nothing a model writes is ever executed, templated, or interpreted as markup.
 
+### The refine step
+
+`POST /api/refine` accepts one more free-text field, the change (≤200
+characters). It is read by two anchored regular expressions for an amount and a
+headcount — fixed alternations, no nested quantifiers, no backtracking blow-up —
+and the parsed numbers go through the same range limits as the form. The
+sentence is then appended to the wishes as a labelled "Adjustment requested"
+line and re-bounded to the wishes limit (older adjustments are dropped first),
+so the brief that reaches the model on the next `/api/personalise` call is
+subject to exactly the same screen, fence and validation as a fresh one. The
+refine route itself never calls a model, and `test/api.test.ts` asserts it.
+
 ## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/app.js`)
 
 Every response, API or asset, carries the same policy. `test/api.test.ts`

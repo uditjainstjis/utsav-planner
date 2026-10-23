@@ -328,4 +328,16 @@ describe('POST /api/refine', () => {
     await post('/api/refine', { ...GOOD, refine: 'simpler decor' }, env);
     expect((env.AI as unknown as { run: ReturnType<typeof vi.fn> }).run).not.toHaveBeenCalled();
   });
+
+  it('keeps working turn after turn, and the brief it returns always re-validates', async () => {
+    let req: Record<string, unknown> = { ...GOOD, preferences: 'v'.repeat(590) };
+    for (let turn = 1; turn <= 5; turn++) {
+      const res = await post('/api/refine', { ...req, refine: `turn ${turn}: ${'z'.repeat(120)}` });
+      expect(res.status, `turn ${turn}`).toBe(200);
+      const body = await res.json<{ request: Record<string, unknown> }>();
+      req = body.request;
+      const again = await post('/api/plan', req);
+      expect(again.status, `re-validate after turn ${turn}`).toBe(200);
+    }
+  });
 });

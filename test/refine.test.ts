@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyRefinement, MAX_REFINE_CHARS } from '../src/lib/refine';
+import { applyRefinement, assembleWishes, MAX_REFINE_CHARS, splitWishes } from '../src/lib/refine';
+import { LIMITS } from '../src/lib/validate';
 import { InputError } from '../src/lib/validate';
 import type { PlanRequest } from '../src/lib/types';
 
@@ -22,6 +23,9 @@ describe('applyRefinement', () => {
     ['budget of 50k', 50_000],
     ['total 2 million', 2_000_000],
     ['INR 800000', 800_000],
+    ['12 lakh', 1_200_000],
+    ['make it 1.2 crore', 12_000_000],
+    ['50k is all we have', 50_000],
   ])('reads a budget from "%s"', (text, expected) => {
     const { request, changes } = applyRefinement(REQ, text);
     expect(request.budget).toBe(expected);
@@ -50,8 +54,23 @@ describe('applyRefinement', () => {
   });
 
   it('does not confuse a headcount with a budget', () => {
-    const { request } = applyRefinement(REQ, '300 guests');
-    expect(request.budget).toBe(REQ.budget);
+    expect(applyRefinement(REQ, '300 guests').request.budget).toBe(REQ.budget);
+    const total = applyRefinement(REQ, 'total 300 guests');
+    expect(total.request.guests).toBe(300);
+    expect(total.request.budget).toBe(REQ.budget);
+    expect(applyRefinement(REQ, 'about 300 people').request.budget).toBe(REQ.budget);
+  });
+
+  it('keeps the brief within the form limit across many turns, newest adjustment always present', () => {
+    let req: PlanRequest = { ...REQ, preferences: 'x'.repeat(LIMITS.preferences) };
+    for (let turn = 1; turn <= 6; turn++) {
+      const text = `turn ${turn} ${'y'.repeat(150)}`;
+      req = applyRefinement(req, text).request;
+      expect(req.preferences!.length).toBeLessThanOrEqual(LIMITS.preferences);
+      expect(req.preferences).toContain(`Adjustment requested: turn ${turn}`);
+    }
+    // Only the most recent adjustments are carried, oldest dropped first.
+    expect(req.preferences).not.toContain('turn 1 ');
   });
 
   it('does not mistake wishes for numbers', () => {
@@ -88,5 +107,27 @@ describe('applyRefinement', () => {
     const before = { ...REQ };
     applyRefinement(REQ, 'budget 12 lakh, 300 guests');
     expect(REQ).toEqual(before);
+  });
+});
+
+describe('splitWishes / assembleWishes', () => {
+  it('round-trips a brief with adjustments', () => {
+    const s = splitWishes('Vegetarian.\nAdjustment requested: a\nAdjustment requested: b');
+    expect(s).toEqual({ base: 'Vegetarian.', adjustments: ['a', 'b'] });
+    expect(assembleWishes(s.base, s.adjustments)).toBe(
+      'Vegetarian.\nAdjustment requested: a\nAdjustment requested: b',
+    );
+  });
+
+  it('handles no wishes at all', () => {
+    expect(splitWishes(null)).toEqual({ base: null, adjustments: [] });
+    expect(assembleWishes(null, ['only'])).toBe('Adjustment requested: only');
+  });
+
+  it('shortens the original wishes only after older adjustments are gone', () => {
+    const out = assembleWishes('w'.repeat(590), ['first', 'second', 'third'], 600);
+    expect(out.length).toBeLessThanOrEqual(600);
+    expect(out).toContain('Adjustment requested: third');
+    expect(out).not.toContain('first');
   });
 });

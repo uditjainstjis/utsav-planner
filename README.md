@@ -143,9 +143,9 @@ npm run check     # typecheck (strict + noUncheckedIndexedAccess), lint, format,
 npm run coverage  # istanbul report
 ```
 
-224 tests across 13 files, run inside **workerd** (the deployed runtime) for
+232 tests across 13 files, run inside **workerd** (the deployed runtime) for
 everything but the DOM-only axe and contrast suites, which run in jsdom.
-Coverage of `src/`: 98% statements, 100% functions, 86% branches (the uncovered
+Coverage of `src/`: 99% statements, 100% functions, 86% branches (the uncovered
 branches are defensive arms of the model-reply coercion). The suite is hermetic:
 the AI binding is a stub, so it runs identically on a laptop and on a CI runner
 holding no credentials.
