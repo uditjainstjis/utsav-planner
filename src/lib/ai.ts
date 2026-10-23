@@ -50,6 +50,14 @@ const CATEGORIES: readonly IdeaCategory[] = [
 ];
 const TIERS: readonly CostTier[] = ['low', 'medium', 'high'];
 
+/**
+ * Upper bound on one model call. Measured p95 for a part is well under 15 s
+ * (docs/EVALUATION.md); a call still running after this is treated as failed
+ * so the fallback model — and then deterministic guidance — can answer. The
+ * user never waits on a hung binding.
+ */
+export const MODEL_TIMEOUT_MS = 20_000;
+
 export const LIMITS = {
   ideas: 8,
   questionsPerVendor: 3,
@@ -209,16 +217,38 @@ interface PartResult {
   model: string;
 }
 
+/** Reject after `ms` so a hung call cannot hold a response open. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`model call exceeded ${ms}ms`));
+    }, ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e: unknown) => {
+        clearTimeout(timer);
+        reject(e instanceof Error ? e : new Error(String(e)));
+      },
+    );
+  });
+}
+
 /** One part: primary model, then fallback model, else null. Never throws. */
 async function askPart(
   env: Env,
   part: Part,
   plan: Plan,
   nonce: string,
+  timeoutMs: number,
 ): Promise<PartResult | null> {
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const obj = extractJson(await callModel(env, model, part, plan, nonce));
+      const obj = extractJson(
+        await withTimeout(callModel(env, model, part, plan, nonce), timeoutMs),
+      );
       if (obj && PART_KEYS[part] in obj) return { obj, model };
     } catch {
       /* try the next model */
@@ -255,7 +285,12 @@ function pick<T>(part: PartResult | null, key: string, generic: T): T {
  * own fallback model), then deterministic guidance for any part still
  * missing. Never throws; never returns an empty section.
  */
-export async function personalise(env: Env, plan: Plan): Promise<Personalisation> {
+export async function personalise(
+  env: Env,
+  plan: Plan,
+  options: { timeoutMs?: number } = {},
+): Promise<Personalisation> {
+  const timeoutMs = options.timeoutMs ?? MODEL_TIMEOUT_MS;
   const key = await contentKey(cacheParts(plan));
   const hit = await cacheGet<Record<string, unknown>>(key);
   if (hit) {
@@ -265,10 +300,10 @@ export async function personalise(env: Env, plan: Plan): Promise<Personalisation
 
   const nonce = makeNonce();
   const [ideasA, ideasB, vendors, notes] = await Promise.all([
-    askPart(env, 'ideasA', plan, nonce),
-    askPart(env, 'ideasB', plan, nonce),
-    askPart(env, 'vendors', plan, nonce),
-    askPart(env, 'notes', plan, nonce),
+    askPart(env, 'ideasA', plan, nonce, timeoutMs),
+    askPart(env, 'ideasB', plan, nonce, timeoutMs),
+    askPart(env, 'vendors', plan, nonce, timeoutMs),
+    askPart(env, 'notes', plan, nonce, timeoutMs),
   ]);
   // Either half alone is still a personalisation; both together is the aim.
   const ideas = mergeIdeas(ideasA, ideasB);

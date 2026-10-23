@@ -32,7 +32,7 @@ Both `POST` routes run the same three checks, in this order:
    and page script cannot forge it. It is absent for `curl`, which is allowed: a
    direct API call carries no ambient authority, so there is nothing to protect
    it from. What must not happen is a _browser_ being used as a confused deputy.
-3. **Per-IP rate limit** (20 requests a minute, Cloudflare's rate-limit binding),
+3. **Per-IP rate limit** (60 requests a minute, Cloudflare's rate-limit binding),
    applied last so a rejected cross-site request never spends the victim's budget.
 
 ## 2. Validation (`src/lib/validate.ts`)

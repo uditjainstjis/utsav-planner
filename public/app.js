@@ -288,12 +288,27 @@ function clientValidate(body) {
 
 // ---------------------------------------------------------------- fetch
 
+/** Server-side the model is capped at 20 s per call; the client allows a little more. */
+const TIMEOUT_MS = { '/api/plan': 10_000, '/api/personalise': 45_000 };
+
 async function postJson(path, body) {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS[path] ?? 15_000),
+    });
+  } catch (err) {
+    const timedOut = err && err.name === 'TimeoutError';
+    throw new Error(
+      timedOut
+        ? 'That took too long. Please try again.'
+        : 'Could not reach the planner. Check your connection and try again.',
+      { cause: err },
+    );
+  }
   let data = null;
   try {
     data = await res.json();

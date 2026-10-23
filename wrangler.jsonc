@@ -19,13 +19,13 @@
     "binding": "AI"
   },
 
-  // Per-IP request cap. Analysis is the expensive path, so it is the one that
-  // is limited; static assets are unaffected.
+  // Per-IP request cap on the API. Sixty a minute is far above a person
+  // planning an event and far below a flood; static assets are unaffected.
   "ratelimits": [
     {
       "name": "RATE_LIMITER",
       "namespace_id": "1001",
-      "simple": { "limit": 20, "period": 60 }
+      "simple": { "limit": 60, "period": 60 }
     }
   ],
 

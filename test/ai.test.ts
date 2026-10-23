@@ -237,6 +237,24 @@ describe('personalise', () => {
     expect(p.summary).toMatch(/unavailable/);
   });
 
+  it('gives up on a hung primary and uses the fallback within the timeout', async () => {
+    const run = vi.fn(async (model: string) => {
+      if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined); // never settles
+      return { response: REPLY };
+    });
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    expect(p.source).toBe('model');
+    expect(p.model).toBe(FALLBACK_MODEL);
+  });
+
+  it('ships deterministic guidance when every model hangs', async () => {
+    const run = vi.fn(() => new Promise<never>(() => undefined));
+    const started = Date.now();
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    expect(p.source).toBe('fallback');
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it('serves a repeat request from cache without a model call', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
     const req = request();
