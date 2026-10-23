@@ -6,12 +6,13 @@ A GenAI-powered planning assistant for **weddings, birthdays and community
 events**. Tell it the occasion, date, headcount and budget — and in your own
 words what you want — and it returns the four things every celebration needs:
 
-| Deliverable                                                                                                                                  | How it is produced                                                                             | Where                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                           | Pure arithmetic from occasion-specific shares; lines always sum to the exact total             | `src/lib/budget.ts`                    |
-| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                       | Pure date arithmetic; RFC 5545 `.ics` export                                                   | `src/lib/timeline.ts`                  |
-| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                 | Deterministic template tied to the timeline; the model adds questions specific to your wishes  | `src/lib/vendors.ts`                   |
-| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback | `src/lib/ai.ts`, `src/prompts/plan.ts` |
+| Deliverable                                                                                                                                                                                                                 | How it is produced                                                                             | Where                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                                                                                                          | Pure arithmetic from occasion-specific shares; lines always sum to the exact total             | `src/lib/budget.ts`                    |
+| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                      | Pure date arithmetic; RFC 5545 `.ics` export                                                   | `src/lib/timeline.ts`                  |
+| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                | Deterministic template tied to the timeline; the model adds questions specific to your wishes  | `src/lib/vendors.ts`                   |
+| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback | `src/lib/ai.ts`, `src/prompts/plan.ts` |
+| **Refine in words** — "budget 12 lakh, 300 guests, add a mehndi night": numbers are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts and headcount; the rest is a labelled adjustment to the brief | `src/lib/refine.ts`                    |
 
 Built for **PromptWars Virtual, Challenge 5: Celebration & Event Planner**.
 
@@ -53,10 +54,19 @@ cannot change the budget. See [SECURITY.md](SECURITY.md).
    validated and merged; any part that fails falls back to deterministic
    guidance. Ideas, budget notes and AI-written vendor questions fill in.
 3. Repeat briefs are served from the Workers Cache API and say so.
+4. Under the plan, **"Change something"** takes a sentence. `POST /api/refine`
+   reads any budget or headcount in it ("12 lakh", "₹9,50,000", "300 guests"),
+   recomputes budget, timeline and checklist in code, and returns the exact
+   changes it applied. The sentence is appended to the brief as a labelled
+   adjustment and the page calls `/api/personalise` again, so the ideas,
+   questions and notes are rewritten around it. Nothing is silently
+   reinterpreted: what changed is listed, and a number the parser could not read
+   is simply not changed.
 
-Measured end to end: the first build took **65.8 s** with one large
-schema-constrained reply; the same content as parallel parts arrives in a few
-seconds. The measurements and the model comparison are in
+Measured end to end in the browser against the live deployment: the first build
+took **65.8 s** with one large schema-constrained reply; the same content as
+four parallel parts arrives in **8.5 s** on a fresh brief (and instantly on a
+repeat). The measurements and the model comparison are in
 [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Try it
@@ -90,12 +100,13 @@ the deployed bundle.
 
 ```
 public/            static single-page app: index.html, app.js, styles.css
-src/index.ts       Hono router: /api/health, /api/plan, /api/personalise, assets
+src/index.ts       Hono router: /api/health, /api/plan, /api/refine, /api/personalise, assets
 src/lib/validate   field-level validation, named errors
 src/lib/budget     shares → whole-rupee lines that sum exactly; warnings
 src/lib/timeline   milestones counted back from the date; compression; .ics
 src/lib/vendors    checklist tied to timeline milestones and budget lines
 src/lib/plan       assembles the deterministic plan; injection screen
+src/lib/refine     reads amounts and headcount from a sentence; applies them
 src/lib/guard      deterministic prompt-injection screen + nonce fence
 src/prompts/plan   the facts block and the four schema-constrained asks
 src/lib/ai         Workers AI client: concurrency, fallback, validation, cache
@@ -114,9 +125,9 @@ Threat model and controls in [SECURITY.md](SECURITY.md). In short: content-type
 and `Sec-Fetch-Site` gate (CSRF), per-IP rate limit, bounded and typed inputs,
 deterministic prompt-injection screening that is _shown_ to the user, a nonce
 fence around the only free text, a CSP with no `unsafe-*`, Trusted Types
-enforced by the browser, `no-store` on every API response, no storage, no
-third-party origin, SHA-pinned Actions, CodeQL, dependency review and Dependabot
-in CI, and `/.well-known/security.txt`.
+enforced by the browser, `no-store` on every API response, no server-side
+storage, no third-party origin, SHA-pinned Actions, CodeQL, dependency review
+and Dependabot in CI, and `/.well-known/security.txt`.
 
 ## Accessibility
 
@@ -132,10 +143,11 @@ npm run check     # typecheck (strict + noUncheckedIndexedAccess), lint, format,
 npm run coverage  # istanbul report
 ```
 
-199 tests across 12 files, run inside **workerd** (the deployed runtime) for
+224 tests across 13 files, run inside **workerd** (the deployed runtime) for
 everything but the DOM-only axe and contrast suites, which run in jsdom.
-Coverage of `src/` is 98% statements, 100% functions. The suite is hermetic: the
-AI binding is a stub, so it runs identically on a laptop and on a CI runner
+Coverage of `src/`: 98% statements, 100% functions, 86% branches (the uncovered
+branches are defensive arms of the model-reply coercion). The suite is hermetic:
+the AI binding is a stub, so it runs identically on a laptop and on a CI runner
 holding no credentials.
 
 What is covered, and the property each test holds:
@@ -158,6 +170,9 @@ What is covered, and the property each test holds:
   not spent on rejected requests), identical security headers on API and assets,
   no configuration leaked by `/api/health`, fenced wishes in the actual prompt
   sent, 404 under `/api`.
+- **refine** — Indian and Western magnitudes (lakh, crore, k, million),
+  headcount phrasings, both at once, a sentence with no numbers, unchanged
+  numbers reported as no change, out-of-range values named by field.
 - **guard** — each injection rule, the finding cap, document order, fence
   defanging, nonce forgery.
 - **a11y / axe / contrast** — see above.
@@ -177,6 +192,7 @@ npm run deploy
 - [ADR 0002 — The AI suggests, the code decides](docs/adr/0002-ai-suggests-code-decides.md)
 - [ADR 0003 — Four concurrent asks instead of one](docs/adr/0003-four-concurrent-asks.md)
 - [ADR 0004 — The plan never waits for the model](docs/adr/0004-plan-never-waits.md)
+- [ADR 0005 — Refining in words, with the numbers parsed in code](docs/adr/0005-refine-in-words.md)
 
 ## Licence
 
