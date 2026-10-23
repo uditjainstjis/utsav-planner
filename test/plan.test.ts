@@ -118,6 +118,19 @@ describe('the prompts', () => {
     expect(facts.indexOf('<<<CC_nonce123')).toBeLessThan(facts.indexOf('Ignore previous'));
   });
 
+  it('state missing city and occasion plainly, and flag a rush', () => {
+    const bare = buildPlan({ ...REQ, city: null, occasion: null, eventDate: '2026-11-10' }, TODAY);
+    const f = buildFacts(bare, 'n');
+    expect(f).toContain('Where: not stated.');
+    expect(f).toContain('Occasion: community event.');
+    expect(f).toContain('(this is a rush)');
+  });
+
+  it('ask the second ideas half only for a one-line mood', () => {
+    expect(ideasB).toContain('one short sentence on the mood');
+    expect(ideas).toContain('two sentences to the user');
+  });
+
   it('say so when there are no wishes', () => {
     expect(buildFacts(buildPlan({ ...REQ, preferences: null }, TODAY), 'n')).toContain(
       'no specific wishes',

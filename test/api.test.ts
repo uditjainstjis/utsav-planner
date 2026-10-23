@@ -329,6 +329,12 @@ describe('POST /api/refine', () => {
     expect((env.AI as unknown as { run: ReturnType<typeof vi.fn> }).run).not.toHaveBeenCalled();
   });
 
+  it('rejects a body that is not JSON', async () => {
+    const res = await post('/api/refine', '{not json');
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ code: 'bad_json', field: 'body' });
+  });
+
   it('moves the date and recomputes the timeline, in code', async () => {
     const res = await post('/api/refine', { ...GOOD, refine: 'move it to 2027-06-05' });
     expect(res.status).toBe(200);

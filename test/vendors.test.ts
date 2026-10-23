@@ -52,4 +52,10 @@ describe('buildVendors', () => {
     const second = buildVendors('birthday', t);
     expect(second[0]!.questions).not.toContain('mutated?');
   });
+
+  it('refuses to build a checklist from a timeline that cannot book a vendor', () => {
+    const t = buildTimeline('wedding', '2027-04-01', TODAY);
+    const broken = { ...t, milestones: t.milestones.filter((m) => m.vendorId !== 'caterer') };
+    expect(() => buildVendors('wedding', broken)).toThrow(/no milestone books vendor "caterer"/);
+  });
 });

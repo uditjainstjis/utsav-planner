@@ -48,8 +48,10 @@ Every field is checked for type, bounds and shape, and the error names the field
 - Guests 1–5,000; budget ₹1,000–₹10,00,00,000; whole numbers after rounding.
 - Text fields are capped (60 / 80 / 600 characters) and stripped of C0/C1
   control characters.
-- The JSON body itself is bounded by the Worker's request limits and parsed
-  once; a non-object body is a 400, never an exception.
+- The JSON body is parsed once; a non-object body is a 400, never an exception.
+  Every field inside it is bounded (600-character wishes, 200-character change,
+  80/60-character names), so the largest useful body is about a kilobyte;
+  anything beyond Cloudflare's request limit never reaches the Worker.
 
 There is no regular expression in the validation path that can backtrack
 polynomially: the date pattern is anchored and fixed-width, and the control
@@ -94,14 +96,17 @@ Nothing a model writes is ever executed, templated, or interpreted as markup.
 ### The refine step
 
 `POST /api/refine` accepts one more free-text field, the change (≤200
-characters). It is read by two anchored regular expressions for an amount and a
-headcount — fixed alternations, no nested quantifiers, no backtracking blow-up —
-and the parsed numbers go through the same range limits as the form. The
-sentence is then appended to the wishes as a labelled "Adjustment requested"
-line and re-bounded to the wishes limit (older adjustments are dropped first),
-so the brief that reaches the model on the next `/api/personalise` call is
-subject to exactly the same screen, fence and validation as a fresh one. The
-refine route itself never calls a model, and `test/api.test.ts` asserts it.
+characters). It is read by anchored regular expressions for an amount, a
+headcount and a date — fixed alternations and bounded repeats, no nested
+quantifiers, so no input can make them backtrack polynomially — and the parsed
+values go through the same range limits as the form (`validateDate` for the
+date, the guest and budget bounds for the numbers). The sentence is then
+appended to the wishes as a labelled "Adjustment requested" line and re-bounded
+to the wishes limit: at most the three most recent adjustments are kept, older
+ones are dropped first, and the result can never exceed 600 characters, so the
+brief that reaches the model on the next `/api/personalise` call is subject to
+exactly the same screen, fence and validation as a fresh one. The refine route
+itself never calls a model, and `test/api.test.ts` asserts it.
 
 ## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/app.js`)
 
