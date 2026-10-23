@@ -8,26 +8,26 @@ hand and is recorded here.
 
 ## What is enforced in CI
 
-| Claim | Where it is enforced |
-| --- | --- |
-| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail |
-| Every text colour reaches **4.5:1** on every surface, in both themes; body text reaches 7:1 | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
-| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main` | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser |
-| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend | `test/a11y.test.ts` |
-| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers | `test/a11y.test.ts` |
-| Progress is announced through exactly one polite `role="status"` region; errors through `role="alert"`; the result lists themselves are not live | `test/a11y.test.ts` |
+| Claim                                                                                                                                                   | Where it is enforced                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes    | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                               |
+| Every text colour reaches **4.5:1** on every surface, in both themes; body text reaches 7:1                                                             | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
+| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                         | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
+| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend | `test/a11y.test.ts`                                                                                                                                  |
+| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                             | `test/a11y.test.ts`                                                                                                                                  |
+| Progress is announced through exactly one polite `role="status"` region; errors through `role="alert"`; the result lists themselves are not live        | `test/a11y.test.ts`                                                                                                                                  |
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
-| Token | Light theme | Dark theme | Used for |
-| --- | --- | --- | --- |
-| `ink` | 14.36 | 14.78 | body text, headings, values |
-| `ink-soft` | 11.80 | 6.15 | supporting copy, table notes |
-| `ink-faint` | 10.80 | 4.72 | labels, metadata, counters |
-| `accent` | 11.63 | 6.26 | links, focus, the AI badge border |
-| `risk-high` | 8.67 | 5.94 | budget warnings |
-| `risk-low` | 11.53 | 5.31 | "generous budget" note |
-| page colour on `accent` (the **AI** badge) | 13.74 | 6.34 | AI-authored markers |
+| Token                                      | Light theme | Dark theme | Used for                          |
+| ------------------------------------------ | ----------- | ---------- | --------------------------------- |
+| `ink`                                      | 14.36       | 14.78      | body text, headings, values       |
+| `ink-soft`                                 | 11.80       | 6.15       | supporting copy, table notes      |
+| `ink-faint`                                | 10.80       | 4.72       | labels, metadata, counters        |
+| `accent`                                   | 11.63       | 6.26       | links, focus, the AI badge border |
+| `risk-high`                                | 8.67        | 5.94       | budget warnings                   |
+| `risk-low`                                 | 11.53       | 5.31       | "generous budget" note            |
+| page colour on `accent` (the **AI** badge) | 13.74       | 6.34       | AI-authored markers               |
 
 The dark theme's `ink-soft` and `ink-faint` were originally 4.20 and 2.90 —
 below AA for the small labels they are used on. They were lifted to 82% and 78%
@@ -35,16 +35,16 @@ lightness and the test above now holds them there.
 
 ## Design decisions, and why
 
-**Colour never carries meaning alone.** Budget warnings have a glyph (▲ ● ○)
-and words; cost tiers are "● Low cost" / "●● Mid cost" / "●●● Higher cost";
-AI-written text carries a visible "AI" badge, not just a tint; a booked vendor is
-struck through as well as faded (WCAG 1.4.1).
+**Colour never carries meaning alone.** Budget warnings have a glyph (▲ ● ○) and
+words; cost tiers are "● Low cost" / "●● Mid cost" / "●●● Higher cost";
+AI-written text carries a visible "AI" badge, not just a tint; a booked vendor
+is struck through as well as faded (WCAG 1.4.1).
 
 **Native controls over ARIA widgets.** The occasion picker is three radio
 buttons in a fieldset, so arrow-key movement, group semantics and "2 of 3" are
 free. The date is `<input type="date">` with `min`/`max`, the numbers are
-`type="number"` with `inputmode="numeric"`. Nothing is rebuilt that the
-platform already does accessibly.
+`type="number"` with `inputmode="numeric"`. Nothing is rebuilt that the platform
+already does accessibly.
 
 **Errors are attached to the control that failed.** The server returns the
 failing `field`; the client sets `aria-invalid="true"` on that control, adds the
@@ -52,16 +52,16 @@ error to its `aria-describedby`, moves focus to it, and announces the message
 once through `role="alert"`. Navigating back to the field later re-reads the
 error (WCAG 3.3.1, 3.3.3).
 
-**Busy state never steals focus.** The build button uses `aria-disabled`
-rather than `disabled`, because disabling the element the user just activated
-drops focus to `<body>` and loses their place.
+**Busy state never steals focus.** The build button uses `aria-disabled` rather
+than `disabled`, because disabling the element the user just activated drops
+focus to `<body>` and loses their place.
 
 **Announcements are rationed.** Building a plan produces exactly three polite
 announcements — "building", "plan ready (with counts)", "ideas added (with
 timing)" — through one `role="status"` region. Fourteen milestones and eight
-vendors are ordinary content the user navigates at their own pace, not
-fourteen interruptions. The ideas status and the vendor "n of m booked" counter
-are their own small polite regions because they change on user action.
+vendors are ordinary content the user navigates at their own pace, not fourteen
+interruptions. The ideas status and the vendor "n of m booked" counter are their
+own small polite regions because they change on user action.
 
 **Focus moves to the result.** After a successful build, focus is placed on the
 "Your plan" heading (`tabindex="-1"`), so a screen-reader user lands at the top
@@ -69,20 +69,20 @@ of what just appeared rather than remaining on the button three screens up.
 
 **Structure is real.** The budget is a `<table>` with a caption, column and row
 headers and a `<tfoot>` total, so a screen reader can read a cell as "Catering,
-Amount, ₹4,95,000". The timeline and checklists are ordered and unordered
-lists. Section headings go h1 → h2 → h3 → h4 without skipping; template
-content uses h4 because it is cloned under an h3.
+Amount, ₹4,95,000". The timeline and checklists are ordered and unordered lists.
+Section headings go h1 → h2 → h3 → h4 without skipping; template content uses h4
+because it is cloned under an h3.
 
 **The vendor checkboxes persist.** Ticks are stored per plan in `localStorage`
-so a user who returns to confirm a booking does not have to remember which
-ones they had ticked.
+so a user who returns to confirm a booking does not have to remember which ones
+they had ticked.
 
 **Motion is optional.** The only animation is the small "writing ideas" spinner,
 and it is disabled under `prefers-reduced-motion: reduce`.
 
 **Print is a first-class output.** A print stylesheet hides the form and the
-chrome and keeps every section on its own page where possible, so "save as
-PDF" produces a plan that can be handed to a parent or a committee.
+chrome and keeps every section on its own page where possible, so "save as PDF"
+produces a plan that can be handed to a parent or a committee.
 
 **Type and zoom.** Body text is 17–18px; the page reflows to a single column
 below 760px with no horizontal scroll; the budget table scrolls within its own
@@ -91,14 +91,14 @@ container at narrow widths rather than breaking the page.
 ## Checked by hand
 
 With VoiceOver on Safari and Chrome (macOS), the full flow — fill the form,
-build, read the budget table, tick a vendor, download the calendar — reads in
-a sensible order with no unlabelled control, no silent state change and no
-double announcement. Keyboard-only use reaches every control with a visible
-focus ring (`:focus-visible` outline in the accent colour, 2px offset).
+build, read the budget table, tick a vendor, download the calendar — reads in a
+sensible order with no unlabelled control, no silent state change and no double
+announcement. Keyboard-only use reaches every control with a visible focus ring
+(`:focus-visible` outline in the accent colour, 2px offset).
 
 ## Known limits
 
 - The date picker's pop-up calendar is the browser's own; its accessibility
   varies by browser. Typing the date works everywhere.
-- The ICS and CSV downloads are produced by the browser's download mechanism;
-  a screen reader announces them as the browser announces any download.
+- The ICS and CSV downloads are produced by the browser's download mechanism; a
+  screen reader announces them as the browser announces any download.
