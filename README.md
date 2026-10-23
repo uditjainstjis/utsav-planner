@@ -6,13 +6,13 @@ A GenAI-powered planning assistant for **weddings, birthdays and community
 events**. Tell it the occasion, date, headcount and budget — and in your own
 words what you want — and it returns the four things every celebration needs:
 
-| Deliverable                                                                                                                                                                                                                 | How it is produced                                                                             | Where                                  |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                                                                                                          | Pure arithmetic from occasion-specific shares; lines always sum to the exact total             | `src/lib/budget.ts`                    |
-| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                      | Pure date arithmetic; RFC 5545 `.ics` export                                                   | `src/lib/timeline.ts`                  |
-| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                | Deterministic template tied to the timeline; the model adds questions specific to your wishes  | `src/lib/vendors.ts`                   |
-| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback | `src/lib/ai.ts`, `src/prompts/plan.ts` |
-| **Refine in words** — "budget 12 lakh, 300 guests, add a mehndi night": numbers are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts and headcount; the rest is a labelled adjustment to the brief | `src/lib/refine.ts`                    |
+| Deliverable                                                                                                                                                                                                                                                        | How it is produced                                                                             | Where                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                                                                                                                                                 | Pure arithmetic from occasion-specific shares; lines always sum to the exact total             | `src/lib/budget.ts`                    |
+| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                                                             | Pure date arithmetic; RFC 5545 `.ics` export                                                   | `src/lib/timeline.ts`                  |
+| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                                                       | Deterministic template tied to the timeline; the model adds questions specific to your wishes  | `src/lib/vendors.ts`                   |
+| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                                                       | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback | `src/lib/ai.ts`, `src/prompts/plan.ts` |
+| **Refine in words** — "budget 12 lakh, 300 guests, move it to March, add a mehndi night": amounts, headcount and dates are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts and headcount; the rest is a labelled adjustment to the brief | `src/lib/refine.ts`                    |
 
 Built for **PromptWars Virtual, Challenge 5: Celebration & Event Planner**.
 
@@ -55,13 +55,13 @@ cannot change the budget. See [SECURITY.md](SECURITY.md).
    guidance. Ideas, budget notes and AI-written vendor questions fill in.
 3. Repeat briefs are served from the Workers Cache API and say so.
 4. Under the plan, **"Change something"** takes a sentence. `POST /api/refine`
-   reads any budget or headcount in it ("12 lakh", "₹9,50,000", "300 guests"),
-   recomputes budget, timeline and checklist in code, and returns the exact
-   changes it applied. The sentence is appended to the brief as a labelled
-   adjustment and the page calls `/api/personalise` again, so the ideas,
-   questions and notes are rewritten around it. Nothing is silently
-   reinterpreted: what changed is listed, and a number the parser could not read
-   is simply not changed.
+   reads any budget, headcount or date in it ("12 lakh", "₹9,50,000", "300
+   guests", "15 March 2027", "in 3 weeks", "move it to March"), recomputes
+   budget, timeline and checklist in code, and returns the exact changes it
+   applied. The sentence is appended to the brief as a labelled adjustment and
+   the page calls `/api/personalise` again, so the ideas, questions and notes
+   are rewritten around it. Nothing is silently reinterpreted: what changed is
+   listed, and a number the parser could not read is simply not changed.
 
 Measured end to end in the browser against the live deployment: the first build
 took **65.8 s** with one large schema-constrained reply; the same content as
@@ -171,8 +171,9 @@ What is covered, and the property each test holds:
   no configuration leaked by `/api/health`, fenced wishes in the actual prompt
   sent, 404 under `/api`.
 - **refine** — Indian and Western magnitudes (lakh, crore, k, million),
-  headcount phrasings, both at once, a sentence with no numbers, unchanged
-  numbers reported as no change, out-of-range values named by field.
+  headcount phrasings, explicit/relative/month-only dates, all three at once, a
+  sentence with no numbers, unchanged values reported as no change, out-of-range
+  or past values named by field, the brief re-bounded across six turns.
 - **guard** — each injection rule, the finding cap, document order, fence
   defanging, nonce forgery.
 - **a11y / axe / contrast** — see above.

@@ -20,7 +20,7 @@ Add one more turn, `POST /api/refine`, with the same split as everything else:
 - **Numbers are parsed deterministically** (`src/lib/refine.ts`): rupee amounts
   in Indian and Western magnitudes (`12 lakh`, `₹9,50,000`, `1.2 crore`, `50k`,
   `2 million`) and headcounts in the ways people say them (`300 guests`,
-  `for 120 people`, `headcount 80`, `15 kids`). The parsed values are
+  `for 120 people`, `headcount 80`, `15 kids`), and dates. The parsed values are
   range-checked with the same limits as the form and applied to the validated
   request; the budget, timeline and checklist are rebuilt in code.
 - **The sentence is appended to the brief** as a labelled adjustment
@@ -37,10 +37,11 @@ Add one more turn, `POST /api/refine`, with the same split as everything else:
 - The interaction loop is: plan → say what to change → see exactly what changed
   → new ideas. That is the assistant the brief describes, without ever letting
   the model touch a number.
-- The parser is small and conservative by design. It reads two quantities and
-  nothing else; dates and city changes are made in the form, where the controls
-  validate them. Extending it is a matter of adding a pattern and a test, not of
-  prompting.
+- The parser is small and conservative by design. It reads an amount, a
+  headcount and a date — explicit (`15 March 2027`, `2027-03-15`), relative
+  (`in 3 weeks`) or a month alone (`move it to March`, keeping the day) — and
+  nothing else; a city or occasion change is made in the form. Extending it is a
+  matter of adding a pattern and a test, not of prompting.
 - Adjustments accumulate in the brief across turns, bounded in length, so the
   model always sees the history of what the user asked for.
 - Refining never calls the model itself (`test/api.test.ts` asserts it), so the

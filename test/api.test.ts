@@ -329,6 +329,19 @@ describe('POST /api/refine', () => {
     expect((env.AI as unknown as { run: ReturnType<typeof vi.fn> }).run).not.toHaveBeenCalled();
   });
 
+  it('moves the date and recomputes the timeline, in code', async () => {
+    const res = await post('/api/refine', { ...GOOD, refine: 'move it to 2027-06-05' });
+    expect(res.status).toBe(200);
+    const body = await res.json<{
+      request: { eventDate: string };
+      changes: { field: string }[];
+      plan: Plan;
+    }>();
+    expect(body.request.eventDate).toBe('2027-06-05');
+    expect(body.changes.map((c) => c.field)).toEqual(['date', 'wishes']);
+    expect(body.plan.timeline.milestones.at(-1)?.dueDate).toBe('2027-06-05');
+  });
+
   it('keeps working turn after turn, and the brief it returns always re-validates', async () => {
     let req: Record<string, unknown> = { ...GOOD, preferences: 'v'.repeat(590) };
     for (let turn = 1; turn <= 5; turn++) {

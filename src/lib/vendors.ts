@@ -216,15 +216,18 @@ const VENDORS: Readonly<Record<EventType, readonly VendorTemplate[]>> = {
 
 /** Build the vendor checklist with book-by dates taken from the timeline. */
 export function buildVendors(eventType: EventType, timeline: Timeline): VendorItem[] {
-  const first = timeline.milestones[0];
   return VENDORS[eventType].map((v) => {
     const m = bookByFor(timeline, v.id);
+    // Every vendor template has a booking milestone in the timeline template
+    // (test/vendors.test.ts holds this for all three occasions), so a missing
+    // one is a programming error, not a runtime condition to paper over.
+    if (!m) throw new Error(`no milestone books vendor "${v.id}" for ${eventType}`);
     return {
       id: v.id,
       label: v.label,
       budgetLineId: v.budgetLineId,
-      bookBy: m?.dueDate ?? first?.dueDate ?? '',
-      daysBefore: m?.daysBefore ?? first?.daysBefore ?? 0,
+      bookBy: m.dueDate,
+      daysBefore: m.daysBefore,
       questions: [...v.questions],
     };
   });

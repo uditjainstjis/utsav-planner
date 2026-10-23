@@ -144,7 +144,7 @@ app.post('/api/refine', guardApi, async (c) => {
     const today = todayIso();
     const original = validatePlanRequest(body, today);
     const refine = (body as { refine?: unknown }).refine;
-    const { request, changes } = applyRefinement(original, refine);
+    const { request, changes } = applyRefinement(original, refine, today);
     const plan = buildPlan(request, today);
     return c.json({ request, changes, plan, ics: planIcs(plan, new Date().toISOString()) });
   } catch (err) {

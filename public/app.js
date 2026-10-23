@@ -612,7 +612,12 @@ els.form.addEventListener('submit', async (ev) => {
 
 // ---------------------------------------------------------------- refine
 
-const CHANGE_LABEL = { budget: 'Budget', guests: 'Guests', wishes: 'Ideas rewritten for' };
+const CHANGE_LABEL = {
+  budget: 'Budget',
+  guests: 'Guests',
+  date: 'Date',
+  wishes: 'Ideas rewritten for',
+};
 
 function renderChanges(changes) {
   els.changes.replaceChildren();
@@ -620,6 +625,8 @@ function renderChanges(changes) {
     const li = document.createElement('li');
     li.className = `change change--${c.field}`;
     if (c.field === 'wishes') li.textContent = `${CHANGE_LABEL.wishes}: “${c.to}”`;
+    else if (c.field === 'date')
+      li.textContent = `${CHANGE_LABEL.date}: ${fmtDate(c.from)} → ${fmtDate(c.to)}`;
     else li.textContent = `${CHANGE_LABEL[c.field]}: ${c.from} → ${c.to}`;
     els.changes.append(li);
   }
@@ -675,6 +682,7 @@ els.refineForm.addEventListener('submit', async (ev) => {
     // the form carries every refinement rather than silently dropping them.
     els.guests.value = String(request.guests);
     els.budget.value = String(request.budget);
+    els.date.value = request.eventDate;
     els.preferences.value = request.preferences ?? '';
     updateCount();
     els.refine.value = '';
@@ -684,7 +692,7 @@ els.refineForm.addEventListener('submit', async (ev) => {
     els.ideasList.replaceChildren();
     const applied = changes
       .filter((c) => c.field !== 'wishes')
-      .map((c) => `${CHANGE_LABEL[c.field]} ${c.to}`)
+      .map((c) => `${CHANGE_LABEL[c.field]} ${c.field === 'date' ? fmtDate(c.to) : c.to}`)
       .join(', ');
     announce(`Plan updated${applied ? `: ${applied}` : ''}. Ideas are being rewritten.`);
     els.resultsTitle.focus();

@@ -1,4 +1,5 @@
-import { InputError, LIMITS } from './validate';
+import { dateToMs, daysBetween, msToDate } from './timeline';
+import { InputError, LIMITS, validateDate } from './validate';
 import type { PlanRequest } from './types';
 
 /**
@@ -14,7 +15,7 @@ import type { PlanRequest } from './types';
  */
 
 export interface Change {
-  field: 'budget' | 'guests' | 'wishes';
+  field: 'budget' | 'guests' | 'date' | 'wishes';
   from: string;
   to: string;
 }
@@ -55,6 +56,119 @@ function toNumber(raw: string, magnitude: string | undefined): number {
 }
 
 const inr = (n: number): string => `₹${n.toLocaleString('en-IN')}`;
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const MONTH = '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
+/** 2027-03-15 */
+const DATE_ISO_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
+/** 15 March 2027 · 15th Mar · 15 march */
+const DATE_DMY_RE = new RegExp(
+  `\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH},?(?:\\s+(\\d{4}))?\\b`,
+  'i',
+);
+/** March 15, 2027 · Mar 15 */
+const DATE_MDY_RE = new RegExp(
+  `\\b${MONTH}\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`,
+  'i',
+);
+/** "move it to March", "in April" — month only, keep the current day of month */
+const MONTH_ONLY_RE = new RegExp(`\\b(?:to|in|for|on)\\s+${MONTH}\\b(?!\\s*\\d)`, 'i');
+/** "in 3 weeks", "in 10 days", "in 2 months" */
+const RELATIVE_RE = /\bin\s+(\d{1,2})\s+(days?|weeks?|months?)\b/i;
+
+function monthIndex(word: string): number {
+  return MONTHS.indexOf(word.slice(0, 3).toLowerCase());
+}
+
+function daysInMonth(year: number, month0: number): number {
+  return new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate();
+}
+
+/** The next occurrence of a month/day on or after `today`, unless a year is given. */
+function nextOccurrence(
+  month0: number,
+  day: number,
+  year: number | undefined,
+  today: string,
+): string {
+  const build = (y: number): string =>
+    msToDate(Date.UTC(y, month0, Math.min(day, daysInMonth(y, month0))));
+  if (year !== undefined) return build(year);
+  const thisYear = Number(today.slice(0, 4));
+  const candidate = build(thisYear);
+  return daysBetween(today, candidate) >= 0 ? candidate : build(thisYear + 1);
+}
+
+/**
+ * Read a date from the sentence. Conservative by design: an explicit date,
+ * a month with the day kept from the current date, or "in N days/weeks/months".
+ * Returns the ISO date and the matched span (so it is removed before the
+ * number parsers run), or null.
+ */
+export function parseDate(
+  text: string,
+  current: string,
+  today: string,
+): { iso: string; span: [number, number] } | null {
+  let m = DATE_ISO_RE.exec(text);
+  if (m) return { iso: m[1] ?? '', span: [m.index, m.index + m[0].length] };
+
+  m = DATE_DMY_RE.exec(text);
+  if (m) {
+    const day = Number(m[1]);
+    const month0 = monthIndex(m[2] ?? '');
+    if (month0 >= 0 && day >= 1 && day <= 31) {
+      const year = m[3] ? Number(m[3]) : undefined;
+      return {
+        iso: nextOccurrence(month0, day, year, today),
+        span: [m.index, m.index + m[0].length],
+      };
+    }
+  }
+
+  m = DATE_MDY_RE.exec(text);
+  if (m) {
+    const month0 = monthIndex(m[1] ?? '');
+    const day = Number(m[2]);
+    if (month0 >= 0 && day >= 1 && day <= 31) {
+      const year = m[3] ? Number(m[3]) : undefined;
+      return {
+        iso: nextOccurrence(month0, day, year, today),
+        span: [m.index, m.index + m[0].length],
+      };
+    }
+  }
+
+  m = RELATIVE_RE.exec(text);
+  if (m) {
+    const n = Number(m[1]);
+    const unit = (m[2] ?? '').toLowerCase();
+    let iso: string;
+    if (unit.startsWith('month')) {
+      const [y, mo, d] = today.split('-').map(Number) as [number, number, number];
+      const month0 = mo - 1 + n;
+      const year = y + Math.floor(month0 / 12);
+      iso = nextOccurrence(month0 % 12, d, year, today);
+    } else {
+      const days = unit.startsWith('week') ? n * 7 : n;
+      iso = msToDate(dateToMs(today) + days * 86_400_000);
+    }
+    return { iso, span: [m.index, m.index + m[0].length] };
+  }
+
+  m = MONTH_ONLY_RE.exec(text);
+  if (m) {
+    const month0 = monthIndex(m[1] ?? '');
+    const day = Number(current.slice(8, 10));
+    if (month0 >= 0) {
+      return {
+        iso: nextOccurrence(month0, day, undefined, today),
+        span: [m.index, m.index + m[0].length],
+      };
+    }
+  }
+  return null;
+}
 
 const ADJUSTMENT = 'Adjustment requested: ';
 /** How many past adjustments travel with the brief. Enough for context, few enough to fit. */
@@ -106,12 +220,11 @@ export function assembleWishes(
 /**
  * Parse the free-text adjustment and apply it to a validated request.
  *
- * Only budget and headcount are read as numbers — they are the two inputs a
- * user changes most and the two that re-shape the whole plan. Everything else
- * is wording for the model. Out-of-range numbers raise the same field-named
+ * Budget, headcount and the date are read deterministically — the three inputs
+ * that re-shape the whole plan. Everything else is wording for the model. Out-of-range numbers raise the same field-named
  * `InputError` the main form would.
  */
-export function applyRefinement(request: PlanRequest, textRaw: unknown): Refinement {
+export function applyRefinement(request: PlanRequest, textRaw: unknown, today: string): Refinement {
   if (typeof textRaw !== 'string') {
     throw new InputError('Say what you would like to change.', 'type', 'refine');
   }
@@ -128,10 +241,28 @@ export function applyRefinement(request: PlanRequest, textRaw: unknown): Refinem
   const changes: Change[] = [];
   let next: PlanRequest = { ...request };
 
-  // Headcount first, and removed from the text before the budget is read, so
+  // The date first, and its span removed, so "15 March 2027" can never be read
+  // as a headcount of 15 or a budget of 2027.
+  let remainder = text;
+  const d = parseDate(text, request.eventDate, today);
+  if (d) {
+    let eventDate: string;
+    try {
+      eventDate = validateDate(d.iso, today);
+    } catch (err) {
+      throw new InputError((err as Error).message, (err as InputError).code, 'refine');
+    }
+    if (eventDate !== request.eventDate) {
+      changes.push({ field: 'date', from: request.eventDate, to: eventDate });
+      next = { ...next, eventDate };
+    }
+    remainder = text.slice(0, d.span[0]) + ' ' + text.slice(d.span[1]);
+  }
+
+  // Headcount next, and removed from the text before the budget is read, so
   // "total 300 guests" is a headcount and never a ₹300 budget.
-  let forBudget = text;
-  const g = GUESTS_RE.exec(text);
+  let forBudget = remainder;
+  const g = GUESTS_RE.exec(remainder);
   if (g) {
     const guests = toNumber(g[1] ?? g[2] ?? '0', undefined);
     if (guests < LIMITS.guests.min || guests > LIMITS.guests.max) {
@@ -145,7 +276,7 @@ export function applyRefinement(request: PlanRequest, textRaw: unknown): Refinem
       changes.push({ field: 'guests', from: String(request.guests), to: String(guests) });
       next = { ...next, guests };
     }
-    forBudget = text.slice(0, g.index) + ' ' + text.slice(g.index + g[0].length);
+    forBudget = remainder.slice(0, g.index) + ' ' + remainder.slice(g.index + g[0].length);
   }
 
   const b = BUDGET_RE.exec(forBudget) ?? BARE_BUDGET_RE.exec(forBudget);
@@ -172,7 +303,7 @@ export function applyRefinement(request: PlanRequest, textRaw: unknown): Refinem
   next = { ...next, preferences: assembleWishes(base, [...adjustments, text]) };
   changes.push({ field: 'wishes', from: request.preferences ?? '', to: text });
   // A stable order for the UI: money, people, then words.
-  const rank: Record<Change['field'], number> = { budget: 0, guests: 1, wishes: 2 };
+  const rank: Record<Change['field'], number> = { budget: 0, guests: 1, date: 2, wishes: 3 };
   changes.sort((a, b) => rank[a.field] - rank[b.field]);
 
   return { request: next, changes };
