@@ -1,0 +1,120 @@
+import { daysBetween } from './timeline';
+import { EVENT_TYPES, type EventType, type PlanRequest } from './types';
+
+/**
+ * Request validation.
+ *
+ * Every field arrives from an untrusted client. Each one is checked for type,
+ * bounds and shape, and the error returned names the field and the rule so the
+ * UI can put the message next to the control that failed. Nothing here throws
+ * a generic "bad request".
+ */
+
+export class InputError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly field: string,
+  ) {
+    super(message);
+    this.name = 'InputError';
+  }
+}
+
+export const LIMITS = {
+  guests: { min: 1, max: 5000 },
+  budget: { min: 1000, max: 100_000_000 },
+  /** How far ahead a plan may be made. Two years covers every real booking. */
+  maxLeadDays: 730,
+  city: 60,
+  occasion: 80,
+  preferences: 600,
+} as const;
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Strip C0/C1 control characters, which have no place in any of these fields. */
+function clean(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '').trim();
+}
+
+function optionalText(v: unknown, field: string, max: number): string | null {
+  if (v === undefined || v === null || v === '') return null;
+  if (typeof v !== 'string') throw new InputError(`${field} must be text.`, 'type', field);
+  const s = clean(v);
+  if (s.length > max) {
+    throw new InputError(`Keep ${field} under ${max} characters.`, 'too_long', field);
+  }
+  return s || null;
+}
+
+function wholeNumber(v: unknown, field: string, min: number, max: number): number {
+  const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+  if (typeof n !== 'number' || !Number.isFinite(n)) {
+    throw new InputError(`Enter ${field} as a number.`, 'type', field);
+  }
+  const whole = Math.round(n);
+  if (whole < min || whole > max) {
+    throw new InputError(
+      `${field.charAt(0).toUpperCase()}${field.slice(1)} must be between ${min.toLocaleString('en-IN')} and ${max.toLocaleString('en-IN')}.`,
+      'range',
+      field,
+    );
+  }
+  return whole;
+}
+
+/**
+ * Validate a calendar date string and check it is a real date.
+ * `new Date('2026-02-30')` would roll over to March; this rejects it.
+ */
+export function validateDate(v: unknown, today: string): string {
+  const match = typeof v === 'string' ? ISO_DATE.exec(v) : null;
+  if (!match) {
+    throw new InputError('Enter the event date as YYYY-MM-DD.', 'format', 'eventDate');
+  }
+  const [y, m, d] = match.slice(1).map(Number) as [number, number, number];
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) {
+    throw new InputError('That date does not exist on the calendar.', 'invalid', 'eventDate');
+  }
+  const lead = daysBetween(today, v as string);
+  if (lead < 0) throw new InputError('The event date is in the past.', 'past', 'eventDate');
+  if (lead > LIMITS.maxLeadDays) {
+    throw new InputError('Plans can be made up to two years ahead.', 'too_far', 'eventDate');
+  }
+  return v as string;
+}
+
+/**
+ * Validate and normalise a raw request body.
+ *
+ * @param body   parsed JSON from the client, of unknown shape
+ * @param today  YYYY-MM-DD, the planning date (injected for testability)
+ */
+export function validatePlanRequest(body: unknown, today: string): PlanRequest {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new InputError('Expected a JSON object.', 'type', 'body');
+  }
+  const b = body as Record<string, unknown>;
+
+  const eventType = b.eventType;
+  if (typeof eventType !== 'string' || !EVENT_TYPES.includes(eventType as EventType)) {
+    throw new InputError(
+      'Choose an occasion: wedding, birthday or community event.',
+      'invalid',
+      'eventType',
+    );
+  }
+
+  return {
+    eventType: eventType as EventType,
+    eventDate: validateDate(b.eventDate, today),
+    guests: wholeNumber(b.guests, 'guests', LIMITS.guests.min, LIMITS.guests.max),
+    budget: wholeNumber(b.budget, 'budget', LIMITS.budget.min, LIMITS.budget.max),
+    city: optionalText(b.city, 'city', LIMITS.city),
+    occasion: optionalText(b.occasion, 'occasion', LIMITS.occasion),
+    preferences: optionalText(b.preferences, 'preferences', LIMITS.preferences),
+  };
+}

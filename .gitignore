@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+dist/
+coverage/
+.dev.vars
+.env
+.DS_Store
+*.log
+
+# Session working notes. Local-only by design: the ledger quotes working
+# discussion and has no business in a public repository.
+.claude/
+CLAUDE.md
+PRATIKRAMAN.md
+JOTTINGS.md

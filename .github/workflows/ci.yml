@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default. Jobs that need more ask for it themselves; today
+# only the CodeQL job does, and only for security-events.
+permissions:
+  contents: read
+
+# A superseded run tells you nothing and still holds a runner. Cancel it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Every `uses:` in this file is pinned to a commit SHA rather than a tag.
+  # A tag is mutable: whoever controls the action can repoint it, and a
+  # compromised action runs with this workflow's token. The trailing comment
+  # records which release each SHA corresponds to.
+  verify:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Worker binding types
+        run: npx wrangler types
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Test with coverage
+        run: npm run coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Hard gate on the WHOLE tree, dev dependencies included. No suppression,
+      # no `|| true`, no `--omit=dev` escape hatch: a high or critical advisory
+      # anywhere fails the build. See SECURITY.md > Dependencies for how the one
+      # transitive advisory this project inherited was actually resolved.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # This project reaches inference through a Cloudflare binding and has no
+      # API key by design. This job keeps it that way.
+      - name: Assert no credentials are committed
+        run: |
+          if grep -rEn "(sk-[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,}|CLOUDFLARE_API_TOKEN\s*=\s*[A-Za-z0-9._-]{20,})" \
+               --include="*.ts" --include="*.js" --include="*.json" --include="*.jsonc" \
+               --include="*.yml" --include="*.md" . ; then
+            echo "::error::A credential-shaped string was found in the repository."
+            exit 1
+          fi
+          echo "No credentials found."

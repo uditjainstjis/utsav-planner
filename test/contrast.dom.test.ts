@@ -1,0 +1,149 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+
+// Read off disk: a `?raw` import of a .css file is intercepted by Vite's
+// stylesheet pipeline and arrives empty (see test/axe.dom.test.ts).
+const css = readFileSync(resolvePath(process.cwd(), 'public', 'styles.css'), 'utf8');
+
+/**
+ * Colour contrast, enforced.
+ *
+ * axe cannot decide `color-contrast` without layout, so the shipped tokens are
+ * checked here directly: every text colour is converted from OKLCH to sRGB and
+ * its WCAG 2.x contrast ratio against every surface is asserted, in both
+ * themes. docs/ACCESSIBILITY.md quotes these numbers; this file is what keeps
+ * them true after the next palette change.
+ */
+
+type Tokens = Record<string, string>;
+
+function parseBlock(block: string): Tokens {
+  const out: Tokens = {};
+  for (const m of block.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) out[m[1]!] = m[2]!.trim();
+  return out;
+}
+
+const root = /:root \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+const darkMedia =
+  /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme='light'\]\) \{([\s\S]*?)\n {2}\}/.exec(
+    css,
+  )?.[1] ?? '';
+const darkForced = /:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+
+const LIGHT = parseBlock(root);
+const DARK = { ...LIGHT, ...parseBlock(darkMedia) };
+const DARK_FORCED = { ...LIGHT, ...parseBlock(darkForced) };
+
+function resolve(value: string, tokens: Tokens): string {
+  let v = value;
+  for (let i = 0; i < 12 && v.includes('var('); i++) {
+    v = v.replace(/var\(--([a-z0-9-]+)\)/g, (_, name: string) => tokens[name] ?? '0');
+  }
+  return v;
+}
+
+/** Evaluate the tiny arithmetic subset CSS `calc()` is used for here. */
+function num(expr: string): number {
+  let e = expr.trim();
+  while (e.startsWith('calc(')) e = e.slice(5, -1);
+  e = e.replace('%', '');
+  const m = /^\s*(-?[\d.]+)\s*([-+])\s*(-?[\d.]+)\s*$/.exec(e);
+  if (m) return m[2] === '-' ? Number(m[1]) - Number(m[3]) : Number(m[1]) + Number(m[3]);
+  return Number(e);
+}
+
+function splitArgs(inner: string): string[] {
+  const parts: string[] = [];
+  let buf = '';
+  let depth = 0;
+  for (const ch of inner) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth--;
+    if (/\s/.test(ch) && depth === 0) {
+      if (buf) parts.push(buf);
+      buf = '';
+    } else buf += ch;
+  }
+  if (buf) parts.push(buf);
+  return parts;
+}
+
+/** OKLCH → linear sRGB (Björn Ottosson's matrices), clamped to gamut. */
+function oklchToRgb(token: string, tokens: Tokens): [number, number, number] {
+  const s = resolve(token, tokens).trim();
+  if (!s.startsWith('oklch(')) throw new Error(`not oklch: ${token}`);
+  const [l, c, h] = splitArgs(s.slice(6, -1)).map(num) as [number, number, number];
+  const L = l > 1 ? l / 100 : l;
+  const a = c * Math.cos((h * Math.PI) / 180);
+  const b = c * Math.sin((h * Math.PI) / 180);
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+  const l3 = l_ ** 3;
+  const m3 = m_ ** 3;
+  const s3 = s_ ** 3;
+  const clamp = (x: number): number => Math.min(1, Math.max(0, x));
+  return [
+    clamp(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
+    clamp(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
+    clamp(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3),
+  ];
+}
+
+function luminance([r, g, b]: [number, number, number]): number {
+  const f = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/** WCAG 2.x contrast ratio, 1–21. */
+export function contrast(fg: string, bg: string, tokens: Tokens): number {
+  // Accept a token name ("ink") or a literal colour ("oklch(...)").
+  const value = (t: string): string => (t.includes('(') ? t : (tokens[t] ?? t));
+  const a = luminance(oklchToRgb(value(fg), tokens));
+  const b = luminance(oklchToRgb(value(bg), tokens));
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+const TEXT = ['ink', 'ink-soft', 'ink-faint', 'accent', 'risk-high', 'risk-low'] as const;
+const SURFACES = ['surface-0', 'surface-1', 'surface-2'] as const;
+
+describe.each([
+  ['light', LIGHT],
+  ['dark (system)', DARK],
+  ['dark (forced)', DARK_FORCED],
+] as const)('contrast in the %s theme', (_name, tokens) => {
+  it.each(TEXT)('%s reaches AA (4.5:1) on every surface', (fg) => {
+    for (const bg of SURFACES) {
+      expect(contrast(fg, bg, tokens), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('body text reaches AAA (7:1) on the page background', () => {
+    expect(contrast('ink', 'surface-0', tokens)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('the AI badge (page colour on accent) reaches AA', () => {
+    expect(contrast('surface-0', 'accent', tokens)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('text on the warning tints reaches AA', () => {
+    for (const bg of ['risk-high-bg', 'risk-low-bg', 'risk-info-bg']) {
+      expect(contrast('ink', bg, tokens), `ink on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+describe('the converter itself', () => {
+  it('agrees with known OKLCH values', () => {
+    // oklch(100% 0 0) is white; oklch(0% 0 0) is black.
+    expect(contrast('oklch(100% 0 0)', 'oklch(0% 0 0)', {})).toBeCloseTo(21, 0);
+    expect(contrast('oklch(50% 0 0)', 'oklch(50% 0 0)', {})).toBeCloseTo(1, 5);
+  });
+
+  it('found real tokens rather than an empty block', () => {
+    expect(Object.keys(LIGHT).length).toBeGreaterThan(20);
+    expect(Object.keys(parseBlock(darkMedia)).length).toBeGreaterThan(5);
+    expect(Object.keys(parseBlock(darkForced)).length).toBeGreaterThan(5);
+  });
+});

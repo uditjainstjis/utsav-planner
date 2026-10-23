@@ -1,0 +1,9 @@
+# RFC 9116. If you have found a vulnerability in Utsav Planner, this is where to
+# send it. Please do not include real personal details in your report — see SECURITY.md.
+
+Contact: https://github.com/uditjainstjis/utsav-planner/security/advisories/new
+Expires: 2027-10-23T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://utsav-planner.seriouss.workers.dev/.well-known/security.txt
+Policy: https://github.com/uditjainstjis/utsav-planner/blob/main/SECURITY.md
+Acknowledgments: https://github.com/uditjainstjis/utsav-planner/blob/main/SECURITY.md#7-reporting
