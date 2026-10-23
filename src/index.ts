@@ -2,6 +2,7 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { personalise, type Env } from './lib/ai';
 import { harden } from './lib/headers';
 import { buildPlan, planIcs, todayIso } from './lib/plan';
+import { applyRefinement } from './lib/refine';
 import { InputError, LIMITS, validatePlanRequest } from './lib/validate';
 
 /**
@@ -14,6 +15,10 @@ import { InputError, LIMITS, validatePlanRequest } from './lib/validate';
  *   POST /api/personalise  the generative step: ideas, vendor questions and
  *                          budget notes from Workers AI, validated, cached,
  *                          with a deterministic fallback.
+ *   POST /api/refine       the conversational step: the user says what to
+ *                          change; numbers are parsed and recomputed in code,
+ *                          the wording is handed to the model on the next
+ *                          personalise call.
  *   GET  /api/health       liveness, build identity only.
  *
  * The client calls the first and renders it, then calls the second and fills
@@ -119,6 +124,35 @@ app.post('/api/personalise', guardApi, async (c) => {
   // plan object the client sends back; the client never gets to tell the
   // model what the numbers are.
   return c.json(await personalise(c.env, read.plan));
+});
+
+/**
+ * Refine a plan in plain words.
+ *
+ * Returns the recomputed deterministic plan, the exact changes that were
+ * applied (so a misread number is visible, never silent), and the normalised
+ * request the client should send to `/api/personalise` for new ideas.
+ */
+app.post('/api/refine', guardApi, async (c) => {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Expected a JSON body.', code: 'bad_json', field: 'body' }, 400);
+  }
+  try {
+    const today = todayIso();
+    const original = validatePlanRequest(body, today);
+    const refine = (body as { refine?: unknown }).refine;
+    const { request, changes } = applyRefinement(original, refine);
+    const plan = buildPlan(request, today);
+    return c.json({ request, changes, plan, ics: planIcs(plan, new Date().toISOString()) });
+  } catch (err) {
+    if (err instanceof InputError) {
+      return c.json({ error: err.message, code: err.code, field: err.field }, 400);
+    }
+    throw err;
+  }
 });
 
 app.all('/api/*', (c) => c.json({ error: 'Not found', code: 'not_found' }, 404));

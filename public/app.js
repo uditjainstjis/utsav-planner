@@ -36,6 +36,11 @@ const els = {
   statMilestones: $('stat-milestones'),
   statVendors: $('stat-vendors'),
   flags: $('flags'),
+  refineForm: $('refine-form'),
+  refine: $('refine'),
+  refineBtn: $('refine-btn'),
+  refineError: $('refine-error'),
+  changes: $('changes'),
   copyBtn: $('copy-btn'),
   printBtn: $('print-btn'),
   copyStatus: $('copy-status'),
@@ -289,7 +294,7 @@ function clientValidate(body) {
 // ---------------------------------------------------------------- fetch
 
 /** Server-side the model is capped at 20 s per call; the client allows a little more. */
-const TIMEOUT_MS = { '/api/plan': 10_000, '/api/personalise': 45_000 };
+const TIMEOUT_MS = { '/api/plan': 10_000, '/api/refine': 10_000, '/api/personalise': 45_000 };
 
 async function postJson(path, body) {
   let res;
@@ -464,6 +469,9 @@ function renderVendors(plan) {
     check.id = `vendor-${v.id}`;
     title.id = `vendor-${v.id}-title`;
     check.setAttribute('aria-labelledby', title.id);
+    // The template carries a generic aria-label so the markup is valid before
+    // cloning; the real name is the vendor title, so the placeholder goes.
+    check.removeAttribute('aria-label');
     check.checked = done.has(v.id);
     li.dataset.done = String(check.checked);
     title.textContent = v.label;
@@ -599,6 +607,98 @@ els.form.addEventListener('submit', async (ev) => {
     }
   } finally {
     setBusy(false);
+  }
+});
+
+// ---------------------------------------------------------------- refine
+
+const CHANGE_LABEL = { budget: 'Budget', guests: 'Guests', wishes: 'Ideas rewritten for' };
+
+function renderChanges(changes) {
+  els.changes.replaceChildren();
+  for (const c of changes) {
+    const li = document.createElement('li');
+    li.className = `change change--${c.field}`;
+    if (c.field === 'wishes') li.textContent = `${CHANGE_LABEL.wishes}: “${c.to}”`;
+    else li.textContent = `${CHANGE_LABEL[c.field]}: ${c.from} → ${c.to}`;
+    els.changes.append(li);
+  }
+}
+
+function showRefineError(message) {
+  els.refineError.textContent = message;
+  els.refineError.hidden = false;
+  els.refine.setAttribute('aria-invalid', 'true');
+  els.refine.setAttribute('aria-describedby', 'refine-help refine-error');
+  els.refine.focus();
+}
+function hideRefineError() {
+  els.refineError.hidden = true;
+  els.refineError.textContent = '';
+  els.refine.removeAttribute('aria-invalid');
+  els.refine.setAttribute('aria-describedby', 'refine-help');
+}
+
+/**
+ * The conversational step. The server re-runs the numbers it can read from the
+ * sentence and returns the exact changes; the wording goes to the model on the
+ * personalise call that follows, exactly as for a fresh brief.
+ */
+els.refineForm.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  if (!current || els.refineBtn.getAttribute('aria-disabled') === 'true') return;
+  hideRefineError();
+  const text = els.refine.value.trim();
+  if (!text) {
+    showRefineError('Say what you would like to change.');
+    return;
+  }
+  els.refineBtn.setAttribute('aria-disabled', 'true');
+  els.refineBtn.textContent = 'Updating…';
+  announce('Updating your plan.');
+  try {
+    const body = { ...current.plan.request, refine: text };
+    const { request, changes, plan, ics } = await postJson('/api/refine', body);
+    current = { plan, ics, personalisation: null };
+    renderPlan(plan);
+    renderChanges(changes);
+    // Keep the form truthful about the numbers now in force.
+    els.guests.value = String(request.guests);
+    els.budget.value = String(request.budget);
+    els.refine.value = '';
+    els.ideasStatus.textContent = 'Rewriting ideas for the change…';
+    els.ideasStatus.dataset.state = 'busy';
+    els.aiSummary.textContent = '';
+    els.ideasList.replaceChildren();
+    const applied = changes
+      .filter((c) => c.field !== 'wishes')
+      .map((c) => `${CHANGE_LABEL[c.field]} ${c.to}`)
+      .join(', ');
+    announce(`Plan updated${applied ? `: ${applied}` : ''}. Ideas are being rewritten.`);
+    els.resultsTitle.focus();
+
+    const t0 = performance.now();
+    const p = await postJson('/api/personalise', request);
+    current.personalisation = p;
+    renderPersonalisation(plan, p);
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    els.ideasStatus.textContent =
+      p.source === 'model'
+        ? `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`
+        : 'The AI was unavailable — showing general ideas instead.';
+    els.ideasStatus.dataset.state = p.source === 'model' ? 'ok' : 'degraded';
+    announce(`${p.ideas.length} ideas rewritten.`);
+  } catch (err) {
+    if (err.field === 'refine' || !current) {
+      showRefineError(err.message || 'That change could not be applied.');
+    } else {
+      els.ideasStatus.textContent =
+        'Ideas could not be rewritten just now. The updated plan stands.';
+      els.ideasStatus.dataset.state = 'degraded';
+    }
+  } finally {
+    els.refineBtn.removeAttribute('aria-disabled');
+    els.refineBtn.textContent = 'Update the plan';
   }
 });
 

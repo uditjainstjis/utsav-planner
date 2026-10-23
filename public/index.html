@@ -269,6 +269,30 @@
             </div>
           </dl>
           <ul class="flags" id="flags" aria-label="Budget warnings"></ul>
+          <form id="refine-form" class="refine" novalidate>
+            <label for="refine" class="field__label">Change something</label>
+            <p id="refine-help" class="field__help">
+              Say it in words — <q>budget 12 lakh</q>, <q>300 guests</q>,
+              <q>more budget-friendly, add a mehndi night</q>. Numbers are recomputed in code; the
+              ideas are rewritten around the rest.
+            </p>
+            <div class="refine__row">
+              <input
+                type="text"
+                id="refine"
+                name="refine"
+                maxlength="200"
+                autocomplete="off"
+                aria-describedby="refine-help"
+                placeholder="budget 12 lakh, 300 guests, simpler decor"
+              />
+              <button type="submit" id="refine-btn" class="btn btn--primary">
+                Update the plan
+              </button>
+            </div>
+            <ul class="changes" id="changes" aria-label="What changed"></ul>
+            <p id="refine-error" class="notice notice--error" role="alert" hidden></p>
+          </form>
           <div class="summary__actions">
             <button type="button" class="btn btn--ghost" id="copy-btn">
               Copy the plan as text

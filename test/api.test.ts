@@ -292,3 +292,40 @@ describe('POST /api/personalise', () => {
     expect(user).toContain('pastel decor');
   });
 });
+
+describe('POST /api/refine', () => {
+  it('recomputes the numbers in code and reports exactly what changed', async () => {
+    const res = await post('/api/refine', {
+      ...GOOD,
+      refine: 'budget 10 lakh and 300 guests, add a mehndi night',
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{
+      request: { budget: number; guests: number; preferences: string };
+      changes: { field: string; from: string; to: string }[];
+      plan: Plan;
+      ics: string;
+    }>();
+    expect(body.request.budget).toBe(1_000_000);
+    expect(body.request.guests).toBe(300);
+    expect(body.plan.budget.lines.reduce((a, l) => a + l.amount, 0)).toBe(1_000_000);
+    expect(body.plan.budget.perGuest).toBe(3333);
+    expect(body.changes.map((c) => c.field)).toEqual(['budget', 'guests', 'wishes']);
+    expect(body.request.preferences).toContain('Adjustment requested: budget 10 lakh');
+    expect(body.ics).toContain('BEGIN:VCALENDAR');
+  });
+
+  it('validates the original request first, then the change, naming the field', async () => {
+    const bad = await post('/api/refine', { ...GOOD, guests: 0, refine: 'anything' });
+    await expect(bad.json()).resolves.toMatchObject({ field: 'guests' });
+    const empty = await post('/api/refine', { ...GOOD, refine: '' });
+    expect(empty.status).toBe(400);
+    await expect(empty.json()).resolves.toMatchObject({ field: 'refine', code: 'missing' });
+  });
+
+  it('never calls the model: refining is arithmetic, personalising is a separate call', async () => {
+    const env = stubEnv();
+    await post('/api/refine', { ...GOOD, refine: 'simpler decor' }, env);
+    expect((env.AI as unknown as { run: ReturnType<typeof vi.fn> }).run).not.toHaveBeenCalled();
+  });
+});

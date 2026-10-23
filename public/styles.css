@@ -1246,3 +1246,45 @@ textarea[aria-invalid='true'] {
     animation: none;
   }
 }
+
+/* --- refine (the conversational step) ---------------------------------- */
+.refine {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--surface-0);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+}
+.refine .field__help {
+  margin: 0;
+}
+.refine__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.refine__row input {
+  flex: 1 1 18rem;
+}
+.changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.changes:empty {
+  display: none;
+}
+.change {
+  padding: 0.3rem 0.7rem;
+  font-size: var(--t-sm);
+  border-radius: 999px;
+  background: var(--risk-low-bg);
+  color: var(--ink);
+}
+.change--wishes {
+  background: var(--risk-info-bg);
+}
