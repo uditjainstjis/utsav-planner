@@ -143,7 +143,7 @@ npm run check     # typecheck (strict + noUncheckedIndexedAccess), lint, format,
 npm run coverage  # istanbul report
 ```
 
-232 tests across 13 files, run inside **workerd** (the deployed runtime) for
+246 tests across 13 files, run inside **workerd** (the deployed runtime) for
 everything but the DOM-only axe and contrast suites, which run in jsdom.
 Coverage of `src/`: 99% statements, 100% functions, 86% branches (the uncovered
 branches are defensive arms of the model-reply coercion). The suite is hermetic:
