@@ -77,6 +77,63 @@ plan does not have is dropped, enumerations are re-checked case-insensitively,
 strings are bounded. `test/ai.test.ts` covers each of those paths with a
 deliberately malformed reply.
 
+## 6. What personalisation looks like
+
+The same prompts, the same model, three sample briefs. Every line below came
+back from `/api/personalise` on the live deployment on 23 Oct 2026 — pasted, not
+paraphrased. The words that could only have come from the brief are the point:
+marigold, dhol and sangeet for Jaipur; nut-free and dinosaurs for a
+five-year-old; clay diyas and seed-bomb favours for an eco-friendly mela.
+
+**Jaipur wedding, 250 guests, ₹15,00,000 — "vegetarian only, pastel and
+marigold, live dhol, sangeet"** — summary: _Riya & Arjun's wedding will host 250
+guests in Jaipur, with ₹6,000 per guest to prioritize a memorable sangeet night.
+The occasion demands a balance of traditio…_
+
+- [theme · medium] **Royal Wedding Theme** — Use pastel colors
+- [decor · low] **Marigold Mandap** — Adorn with marigold flowers
+- [food · high] **Rajasthani Cuisine** — Serve dal bati churma
+- [activity · medium] **Dhol Baraat** — Hire live dhol players
+- [favour · low] **Marigold Favour** — Give marigold garlands
+- [invite · high] **Custom Invite** — Design with pastel colours
+- vendor question → venue: _Is outdoor space available for baraat?_
+- vendor question → caterer: _Do you offer vegetarian only options?_
+- budget note → catering: _Opt for local vegetarian cuisine_
+
+**5th birthday, 20 kids, ₹25,000 — "dinosaur theme, two nut allergies"** —
+summary: _Aarav turns 5 birthday party will host 20 guests in Pune, prioritise
+safety with nut allergies. With ₹1,250 per guest, the party will be an intimate
+celebration…_
+
+- [theme · low] **Dino theme** — Use dinosaur props and balloons
+- [food · medium] **Nut-free cake** — Order from a nut-free bakery
+- [decor · high] **Dino decor** — Create a dinosaur den area
+- [activity · medium] **Dino Egg Hunt** — Hide plastic eggs with treats
+- [favour · low] **Dino Toy** — Give small plastic dinosaurs
+- [invite · high] **Custom Invite** — Design with Aarav and dinosaurs
+- vendor question → venue: _Is outdoor play area safe?_
+- vendor question → caterer: _Nut-free cake options?_
+- budget note → catering: _Nut free food options essential_
+
+**Society Diwali mela, 400 people, ₹1,80,000 — "food stalls, kids zone, small
+stage, eco-friendly, no plastic"** — summary: _The Society Diwali mela is a
+large community event with 400 guests, and at ₹450 per guest, prioritise
+eco-friendly decor to create a memorable experience. The e…_
+
+- [theme · medium] **Eco-friendly Diwali** — Use biodegradable materials
+- [decor · low] **Diya Decor** — Use clay diyas instead
+- [food · medium] **Local Street Food** — Hire local food vendors
+- [activity · low] **Lantern Making** — Use recycled paper and glue
+- [favour · low] **Seed Bomb Favors** — Give clay balls with plant seeds
+- [invite · low] **Customized E-invite** — Design with Diwali theme online
+- vendor question → venue: _Noida parking options?_
+- vendor question → caterer: _Biodegradable utensils used?_
+- budget note → catering: _Opt for local food vendors_
+
+When the model is unavailable the section is filled from `src/lib/fallback.ts`
+and labelled "general ideas" in the UI — deliberately generic, so a reader can
+tell the two apart.
+
 ## Reproducing
 
 The prompts are built by `src/prompts/plan.ts` from any plan;
