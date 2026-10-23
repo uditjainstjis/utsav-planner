@@ -1004,8 +1004,8 @@ textarea[aria-invalid='true'] {
   content: 'AI';
   display: inline-block;
   margin-right: 0.4em;
-  padding: 0 0.35em;
-  font-size: 0.68em;
+  padding: 0.1em 0.45em;
+  font-size: 0.78em;
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.6;
@@ -1134,8 +1134,8 @@ textarea[aria-invalid='true'] {
 }
 .ai-mark {
   display: inline-block;
-  padding: 0 0.35em;
-  font-size: 0.68em;
+  padding: 0.1em 0.45em;
+  font-size: 0.78em;
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.6;
@@ -1170,13 +1170,6 @@ textarea[aria-invalid='true'] {
   background: var(--surface-0);
   border: 1px solid var(--rule);
   border-radius: var(--r);
-  border-top: 3px solid var(--c-300);
-}
-.idea[data-tier='medium'] {
-  border-top-color: var(--c-500);
-}
-.idea[data-tier='high'] {
-  border-top-color: var(--c-700);
 }
 .idea__category {
   margin: 0;
