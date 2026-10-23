@@ -39,7 +39,8 @@
     "node": ">=20"
   },
   "overrides": {
-    "sharp": "0.35.4"
+    "sharp": "0.35.5",
+    "undici": "8.12.3"
   },
   "allowScripts": {
     "workerd@1.20260815.1": true,
