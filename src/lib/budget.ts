@@ -23,6 +23,14 @@ interface Template {
   floor: { total: number; catering: number };
 }
 
+/** Every occasion keeps the same share aside, as its last line. */
+const CONTINGENCY = {
+  id: 'contingency',
+  label: 'Contingency (keep aside)',
+  share: 0.05,
+  scalesWithGuests: false,
+} as const;
+
 const TEMPLATES: Readonly<Record<EventType, Template>> = {
   wedding: {
     lines: [
@@ -34,12 +42,7 @@ const TEMPLATES: Readonly<Record<EventType, Template>> = {
       { id: 'entertainment', label: 'Music, DJ & sangeet', share: 0.05, scalesWithGuests: false },
       { id: 'invitations', label: 'Invitations & stationery', share: 0.02, scalesWithGuests: true },
       { id: 'logistics', label: 'Transport & guest stay', share: 0.05, scalesWithGuests: true },
-      {
-        id: 'contingency',
-        label: 'Contingency (keep aside)',
-        share: 0.05,
-        scalesWithGuests: false,
-      },
+      CONTINGENCY,
     ],
     floor: { total: 1500, catering: 600 },
   },
@@ -56,12 +59,7 @@ const TEMPLATES: Readonly<Record<EventType, Template>> = {
       },
       { id: 'photography', label: 'Photography', share: 0.04, scalesWithGuests: false },
       { id: 'favours', label: 'Invitations & return gifts', share: 0.07, scalesWithGuests: true },
-      {
-        id: 'contingency',
-        label: 'Contingency (keep aside)',
-        share: 0.05,
-        scalesWithGuests: false,
-      },
+      CONTINGENCY,
     ],
     floor: { total: 400, catering: 250 },
   },
@@ -89,12 +87,7 @@ const TEMPLATES: Readonly<Record<EventType, Template>> = {
         share: 0.07,
         scalesWithGuests: false,
       },
-      {
-        id: 'contingency',
-        label: 'Contingency (keep aside)',
-        share: 0.05,
-        scalesWithGuests: false,
-      },
+      CONTINGENCY,
     ],
     floor: { total: 200, catering: 120 },
   },

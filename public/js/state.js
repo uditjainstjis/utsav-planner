@@ -44,10 +44,24 @@ const BUSY = {
  * @param {keyof typeof BUSY} which
  * @param {boolean} busy
  */
-export function setBusy(which, busy) {
+function setBusy(which, busy) {
   const { btn, idle, working } = BUSY[which];
   btn.setAttribute('aria-disabled', String(busy));
   btn.textContent = busy ? working : idle;
+}
+
+/**
+ * Run `task` with the `which` button busy, and free it however the task ends.
+ * @param {keyof typeof BUSY} which
+ * @param {() => Promise<void>} task
+ */
+export async function whileBusy(which, task) {
+  setBusy(which, true);
+  try {
+    await task();
+  } finally {
+    setBusy(which, false);
+  }
 }
 
 /** @param {keyof typeof BUSY} which */

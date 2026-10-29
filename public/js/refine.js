@@ -11,7 +11,7 @@ import { fmtDate } from './format.js';
 import { loadIdeas } from './personalise.js';
 import { resetIdeas } from './render-ideas.js';
 import { showPlan } from './render-plan.js';
-import { announce, getCurrent, isBusy, setBusy } from './state.js';
+import { announce, getCurrent, isBusy, whileBusy } from './state.js';
 
 /** @typedef {import('../../src/lib/refine').Change} Change */
 /** @typedef {import('../../src/lib/types').PlanRequest} PlanRequest */
@@ -123,11 +123,6 @@ export function wireRefine() {
       showRefineError('Say what you would like to change.');
       return;
     }
-    setBusy('refine', true);
-    try {
-      await submitRefine(current, text);
-    } finally {
-      setBusy('refine', false);
-    }
+    await whileBusy('refine', () => submitRefine(current, text));
   });
 }

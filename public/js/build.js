@@ -6,7 +6,7 @@ import { clientValidate, hideError, readForm, showError } from './form.js';
 import { loadIdeas } from './personalise.js';
 import { resetIdeas } from './render-ideas.js';
 import { showPlan } from './render-plan.js';
-import { announce, isBusy, setBusy } from './state.js';
+import { announce, isBusy, whileBusy } from './state.js';
 
 /** @typedef {import('./form.js').Brief} Brief */
 
@@ -60,11 +60,6 @@ export function wireBuild() {
       showError(...bad);
       return;
     }
-    setBusy('plan', true);
-    try {
-      await submitPlan(body);
-    } finally {
-      setBusy('plan', false);
-    }
+    await whileBusy('plan', () => submitPlan(body));
   });
 }
