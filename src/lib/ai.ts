@@ -31,6 +31,9 @@ import type { CostTier, Idea, IdeaCategory, Personalisation, Plan } from './type
 
 export const PRIMARY_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 export const FALLBACK_MODEL = '@cf/mistralai/mistral-small-3.1-24b-instruct';
+type Model = typeof PRIMARY_MODEL | typeof FALLBACK_MODEL;
+/** Tried in this order for every part. */
+const MODELS: readonly Model[] = [PRIMARY_MODEL, FALLBACK_MODEL];
 
 /** Bindings this Worker requires. `AI` is the only external dependency. */
 export interface Env {
@@ -58,7 +61,8 @@ const TIERS: readonly CostTier[] = ['low', 'medium', 'high'];
  */
 export const MODEL_TIMEOUT_MS = 20_000;
 
-export const LIMITS = {
+/** Bounds on what a model reply may contribute. Request limits live in validate.ts. */
+export const REPLY_LIMITS = {
   ideas: 8,
   questionsPerVendor: 3,
   summary: 600,
@@ -75,6 +79,13 @@ const PART_KEYS: Record<Part, string> = {
   notes: 'budgetNotes',
 };
 
+/** Keys a reply part carries. An object with none of them is not a reply. */
+const REPLY_KEYS = ['ideas', 'summary', 'vendorQuestions', 'budgetNotes'];
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
 /**
  * Extract a JSON object from a model reply.
  *
@@ -83,47 +94,64 @@ const PART_KEYS: Record<Part, string> = {
  * nothing and avoids discarding an otherwise good answer.
  */
 export function extractJson(raw: unknown): Record<string, unknown> | null {
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    const obj = raw as Record<string, unknown>;
-    // Workers AI wraps replies two ways depending on the model: a `response`
-    // field, or an OpenAI-style `choices[0].message.content`. Some models
-    // return both with `response` empty, so the envelope is unwrapped first.
-    if (Array.isArray(obj.choices) && obj.choices.length > 0) {
-      const first = obj.choices[0] as { message?: { content?: unknown }; text?: unknown };
-      const content = first.message?.content ?? first.text;
-      const inner = extractJson(content);
-      if (inner) return inner;
-    }
-    if ('response' in obj) return extractJson(obj.response);
-    if ('ideas' in obj || 'summary' in obj || 'vendorQuestions' in obj || 'budgetNotes' in obj) {
-      return obj;
-    }
-    return null;
-  }
-  if (typeof raw !== 'string') return null;
-  const text = raw
+  if (isRecord(raw)) return fromEnvelope(raw);
+  return typeof raw === 'string' ? parseObject(stripFences(raw)) : null;
+}
+
+/**
+ * Workers AI wraps replies two ways depending on the model: a `response`
+ * field, or an OpenAI-style `choices[0].message.content`. Some models return
+ * both with `response` empty, so the choices are tried first.
+ */
+function fromEnvelope(obj: Record<string, unknown>): Record<string, unknown> | null {
+  const inner = extractJson(firstChoice(obj.choices));
+  if (inner) return inner;
+  if ('response' in obj) return extractJson(obj.response);
+  return REPLY_KEYS.some((k) => k in obj) ? obj : null;
+}
+
+/** `choices[0].message.content`, else `choices[0].text`. */
+function firstChoice(choices: unknown): unknown {
+  const first: unknown = Array.isArray(choices) ? choices[0] : undefined;
+  if (!isRecord(first)) return undefined;
+  return (isRecord(first.message) ? first.message.content : undefined) ?? first.text;
+}
+
+function stripFences(text: string): string {
+  return text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '');
+}
+
+/** An object parsed from the text, or from its outermost braces when prose surrounds it. */
+function parseObject(text: string): Record<string, unknown> | null {
+  const whole = tryParse(text);
+  if (whole !== undefined) return isRecord(whole) ? whole : null;
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
+  const inner = tryParse(text.slice(start, end + 1));
+  return isRecord(inner) ? inner : null;
+}
+
+/** JSON.parse, or undefined (which JSON never produces) when the text is not JSON. */
+function tryParse(text: string): unknown {
   try {
-    const parsed: unknown = JSON.parse(text);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
+    return JSON.parse(text);
   } catch {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end <= start) return null;
-    try {
-      return JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
+    return undefined;
   }
 }
 
 function asString(v: unknown, max: number): string {
   return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+}
+
+/** The allowed value `v` names, else `fallback`. Compared, never cast. */
+function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
+  const s = asString(v, 16).toLowerCase();
+  return allowed.find((a) => a === s) ?? fallback;
 }
 
 /**
@@ -141,64 +169,70 @@ export function coercePersonalisation(
 ): Personalisation | null {
   const lineIds = new Set(plan.budget.lines.map((l) => l.id));
   const vendorIds = new Set(plan.vendors.map((v) => v.id));
-
-  const ideas: Idea[] = Array.isArray(raw.ideas)
-    ? raw.ideas
-        .slice(0, LIMITS.ideas)
-        .map((i): Idea | null => {
-          if (!i || typeof i !== 'object') return null;
-          const rec = i as Record<string, unknown>;
-          const title = asString(rec.title, LIMITS.ideaTitle);
-          const detail = asString(rec.detail, LIMITS.ideaDetail);
-          if (!title || !detail) return null;
-          const category = asString(rec.category, 12).toLowerCase() as IdeaCategory;
-          const tier = asString(rec.costTier, 8).toLowerCase() as CostTier;
-          const lineId = asString(rec.budgetLineId, 24);
-          return {
-            title,
-            detail,
-            category: CATEGORIES.includes(category) ? category : 'other',
-            costTier: TIERS.includes(tier) ? tier : 'medium',
-            budgetLineId: lineIds.has(lineId) ? lineId : null,
-          };
-        })
-        .filter((i): i is Idea => i !== null)
-    : [];
+  const ideas = coerceIdeas(raw.ideas, lineIds);
   if (ideas.length === 0) return null;
-
-  const vendorQuestions: Record<string, string[]> = {};
-  if (raw.vendorQuestions && typeof raw.vendorQuestions === 'object') {
-    for (const [id, qs] of Object.entries(raw.vendorQuestions as Record<string, unknown>)) {
-      if (!vendorIds.has(id) || !Array.isArray(qs)) continue;
-      const clean = qs
-        .map((q) => asString(q, LIMITS.question))
-        .filter(Boolean)
-        .slice(0, LIMITS.questionsPerVendor);
-      if (clean.length) vendorQuestions[id] = clean;
-    }
-  }
-
-  const budgetNotes: Record<string, string> = {};
-  if (raw.budgetNotes && typeof raw.budgetNotes === 'object') {
-    for (const [id, note] of Object.entries(raw.budgetNotes as Record<string, unknown>)) {
-      if (!lineIds.has(id)) continue;
-      const clean = asString(note, LIMITS.note);
-      if (clean) budgetNotes[id] = clean;
-    }
-  }
-
   return {
-    summary: asString(raw.summary, LIMITS.summary),
+    summary: asString(raw.summary, REPLY_LIMITS.summary),
     ideas,
-    vendorQuestions,
-    budgetNotes,
+    vendorQuestions: coerceVendorQuestions(raw.vendorQuestions, vendorIds),
+    budgetNotes: coerceBudgetNotes(raw.budgetNotes, lineIds),
     source: 'model',
     model: meta.model,
     cached: meta.cached,
   };
 }
 
-async function callModel(env: Env, model: string, part: Part, plan: Plan, nonce: string) {
+function coerceIdeas(raw: unknown, lineIds: ReadonlySet<string>): Idea[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, REPLY_LIMITS.ideas)
+    .map((i) => coerceIdea(i, lineIds))
+    .filter((i): i is Idea => i !== null);
+}
+
+function coerceIdea(raw: unknown, lineIds: ReadonlySet<string>): Idea | null {
+  if (!isRecord(raw)) return null;
+  const title = asString(raw.title, REPLY_LIMITS.ideaTitle);
+  const detail = asString(raw.detail, REPLY_LIMITS.ideaDetail);
+  if (!title || !detail) return null;
+  const lineId = asString(raw.budgetLineId, 24);
+  return {
+    title,
+    detail,
+    category: oneOf(raw.category, CATEGORIES, 'other'),
+    costTier: oneOf(raw.costTier, TIERS, 'medium'),
+    budgetLineId: lineIds.has(lineId) ? lineId : null,
+  };
+}
+
+function coerceVendorQuestions(
+  raw: unknown,
+  vendorIds: ReadonlySet<string>,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!isRecord(raw)) return out;
+  for (const [id, qs] of Object.entries(raw)) {
+    if (!vendorIds.has(id) || !Array.isArray(qs)) continue;
+    const clean = qs
+      .map((q) => asString(q, REPLY_LIMITS.question))
+      .filter(Boolean)
+      .slice(0, REPLY_LIMITS.questionsPerVendor);
+    if (clean.length) out[id] = clean;
+  }
+  return out;
+}
+
+function coerceBudgetNotes(raw: unknown, lineIds: ReadonlySet<string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!isRecord(raw)) return out;
+  for (const [id, note] of Object.entries(raw)) {
+    const clean = lineIds.has(id) ? asString(note, REPLY_LIMITS.note) : '';
+    if (clean) out[id] = clean;
+  }
+  return out;
+}
+
+async function callModel(env: Env, model: Model, part: Part, plan: Plan, nonce: string) {
   return env.AI.run(model, {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -209,7 +243,7 @@ async function callModel(env: Env, model: string, part: Part, plan: Plan, nonce:
     // Some variety is wanted — two users with the same brief should not get
     // identical ideas — but not so much that the schema or the facts drift.
     temperature: 0.5,
-  } as never);
+  });
 }
 
 interface PartResult {
@@ -244,7 +278,7 @@ async function askPart(
   nonce: string,
   timeoutMs: number,
 ): Promise<PartResult | null> {
-  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+  for (const model of MODELS) {
     try {
       const obj = extractJson(
         await withTimeout(callModel(env, model, part, plan, nonce), timeoutMs),
@@ -275,9 +309,10 @@ function cacheParts(plan: Plan): string[] {
   ];
 }
 
-function pick<T>(part: PartResult | null, key: string, generic: T): T {
+/** A part's object at `key`, else the generic one. Its contents are checked later, by coercePersonalisation. */
+function pick(part: PartResult | null, key: string, generic: object): object {
   const raw = part?.obj[key];
-  return raw && typeof raw === 'object' ? (raw as T) : generic;
+  return typeof raw === 'object' && raw !== null ? raw : generic;
 }
 
 /**

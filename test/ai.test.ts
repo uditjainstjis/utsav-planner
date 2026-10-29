@@ -3,7 +3,7 @@ import {
   coercePersonalisation,
   extractJson,
   FALLBACK_MODEL,
-  LIMITS,
+  REPLY_LIMITS,
   personalise,
   PRIMARY_MODEL,
   type Env,
@@ -150,7 +150,7 @@ describe('coercePersonalisation', () => {
 
   it('keeps only vendor ids in the plan and caps questions per vendor', () => {
     expect(Object.keys(p.vendorQuestions)).toEqual(['caterer']);
-    expect(p.vendorQuestions.caterer).toHaveLength(LIMITS.questionsPerVendor);
+    expect(p.vendorQuestions.caterer).toHaveLength(REPLY_LIMITS.questionsPerVendor);
   });
 
   it('keeps only budget line ids in the plan', () => {
@@ -173,11 +173,11 @@ describe('coercePersonalisation', () => {
       budgetNotes: { decor: 'n'.repeat(1000) },
     };
     const q = coercePersonalisation(long, plan, { model: 'm', cached: false })!;
-    expect(q.summary.length).toBe(LIMITS.summary);
-    expect(q.ideas[0]!.title.length).toBe(LIMITS.ideaTitle);
-    expect(q.ideas[0]!.detail.length).toBe(LIMITS.ideaDetail);
-    expect(q.vendorQuestions.caterer![0]!.length).toBe(LIMITS.question);
-    expect(q.budgetNotes.decor!.length).toBe(LIMITS.note);
+    expect(q.summary.length).toBe(REPLY_LIMITS.summary);
+    expect(q.ideas[0]!.title.length).toBe(REPLY_LIMITS.ideaTitle);
+    expect(q.ideas[0]!.detail.length).toBe(REPLY_LIMITS.ideaDetail);
+    expect(q.vendorQuestions.caterer![0]!.length).toBe(REPLY_LIMITS.question);
+    expect(q.budgetNotes.decor!.length).toBe(REPLY_LIMITS.note);
   });
 
   it('rejects a reply with no usable ideas so the caller can try again', () => {
