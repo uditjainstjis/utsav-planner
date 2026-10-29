@@ -36,10 +36,26 @@ function saveDone(plan, set) {
 }
 
 /**
- * The list a vendor's questions go in.
- * @param {HTMLElement} li
+ * Add questions to a vendor's list, each marked as the AI's when a model wrote them.
+ * @param {HTMLElement} li the vendor's item
+ * @param {readonly string[]} questions
+ * @param {boolean} byModel
  */
-const questionsOf = (li) => part(li, '.vendor__questions', HTMLElement);
+function addQuestions(li, questions, byModel) {
+  const ul = part(li, '.vendor__questions', HTMLElement);
+  for (const q of questions) {
+    const qi = document.createElement('li');
+    if (byModel) {
+      const mark = document.createElement('span');
+      mark.className = 'ai-mark';
+      mark.textContent = 'AI';
+      qi.className = 'vendor__question--ai';
+      qi.append(mark, ' ');
+    }
+    qi.append(q);
+    ul.append(qi);
+  }
+}
 
 /**
  * @param {Plan} plan
@@ -71,12 +87,7 @@ export function renderVendors(plan) {
     title.textContent = v.label;
     part(li, '.vendor__meta', HTMLElement).textContent =
       `Book by ${fmtDate(v.bookBy)} · paid from ${lineLabel(plan, v.budgetLineId)}`;
-    const ul = questionsOf(li);
-    for (const q of v.questions) {
-      const qi = document.createElement('li');
-      qi.textContent = q;
-      ul.append(qi);
-    }
+    addQuestions(li, v.questions, false);
     check.addEventListener('change', () => {
       if (check.checked) done.add(v.id);
       else done.delete(v.id);
@@ -98,18 +109,6 @@ export function renderVendorQuestions(p) {
   for (const li of els.vendorList.querySelectorAll('.vendor')) {
     if (!(li instanceof HTMLElement)) continue;
     const extra = p.vendorQuestions[li.dataset.vendor ?? ''] ?? [];
-    const ul = questionsOf(li);
-    for (const q of extra) {
-      const qi = document.createElement('li');
-      if (p.sources.vendorQuestions === 'model') {
-        const mark = document.createElement('span');
-        mark.className = 'ai-mark';
-        mark.textContent = 'AI';
-        qi.className = 'vendor__question--ai';
-        qi.append(mark, ' ');
-      }
-      qi.append(q);
-      ul.append(qi);
-    }
+    addQuestions(li, extra, p.sources.vendorQuestions === 'model');
   }
 }
