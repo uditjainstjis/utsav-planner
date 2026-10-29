@@ -19,5 +19,5 @@
     "allowJs": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "worker-configuration.d.ts"],
-  "exclude": ["node_modules", "dist", "test/**/*.dom.test.ts"]
+  "exclude": ["node_modules", "dist", "test/**/*.dom.test.ts", "test/**/*.dom.ts"]
 }

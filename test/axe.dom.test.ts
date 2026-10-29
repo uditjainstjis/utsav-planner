@@ -25,8 +25,8 @@ const css = read('styles.css');
  *
  * jsdom does no layout, so `color-contrast` cannot be decided here and axe
  * returns it as "incomplete" rather than passing or failing it. Contrast is
- * checked by `test/contrast.dom.test.ts`, which computes the WCAG ratio of every
- * token pair; `test/a11y.test.ts` covers the structural rules inside workerd
+ * checked by `test/contrast/contrast.dom.test.ts`, which computes the WCAG ratio
+ * of every token pair; `test/a11y/` covers the structural rules inside workerd
  * using the same HTMLRewriter the runtime parses with.
  */
 

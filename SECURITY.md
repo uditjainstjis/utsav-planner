@@ -75,9 +75,10 @@ folded into them). All three are handled the same way.
 - `withoutInjection` removes every sentence that holds a match — every match,
   not only the 25 per field that are shown — before the prompt is built. A
   sentence runs to the next full stop, `!`, `?` or line break; a field left
-  empty is sent as not given. `test/api.test.ts` asserts that no flagged
-  sentence appears in any of the four prompts sent. Text the rules do not
-  recognise still reaches the model, which is what the next two layers are for.
+  empty is sent as not given. `test/api/personalise.test.ts` asserts that no
+  flagged sentence appears in any of the four prompts sent. Text the rules do
+  not recognise still reaches the model, which is what the next two layers are
+  for.
 - `fenceUntrusted` defangs chat control tokens and wraps the text in a delimiter
   generated per request from a random UUID (122 random bits). The text cannot
   guess the delimiter, so it cannot close the data section and start issuing
@@ -117,7 +118,7 @@ limit: at most the three most recent adjustments are kept, older ones are
 dropped first, and the result can never exceed 600 characters, so the brief that
 reaches the model on the next `/api/personalise` call is subject to exactly the
 same screen, removal, fence and validation as a fresh one. The refine route
-itself never calls a model, and `test/api.test.ts` asserts it.
+itself never calls a model, and `test/api/plan.test.ts` asserts it.
 
 ## 4. The page (`src/lib/headers.ts`, `public/js/`)
 

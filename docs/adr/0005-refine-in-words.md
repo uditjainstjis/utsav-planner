@@ -44,5 +44,5 @@ Add one more turn, `POST /api/refine`, with the same split as everything else:
   matter of adding a pattern and a test, not of prompting.
 - Adjustments accumulate in the brief across turns, bounded in length: the model
   sees the three most recent, and older ones are dropped first.
-- Refining never calls the model itself (`test/api.test.ts` asserts it), so the
-  numbers update in milliseconds and the words follow.
+- Refining never calls the model itself (`test/api/plan.test.ts` asserts it), so
+  the numbers update in milliseconds and the words follow.

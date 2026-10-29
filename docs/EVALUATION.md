@@ -76,7 +76,7 @@ Repeat requests with the same brief are served from the Workers Cache API
 Every reply is checked against the plan it was asked about, not just against the
 schema: a `budgetLineId` the plan does not have becomes `null`, a vendor id the
 plan does not have is dropped, enumerations are re-checked case-insensitively,
-strings are bounded. `test/ai.test.ts` covers each of those paths with a
+strings are bounded. The suites in `test/ai/` cover each of those paths with a
 deliberately malformed reply.
 
 ## 6. What personalisation looks like

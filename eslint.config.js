@@ -82,7 +82,7 @@ export default tseslint.config(
     // root tsconfig on purpose — the Worker must not be able to reach for
     // `document` and still typecheck — so typed linting needs pointing at the
     // config that does have the DOM lib and Node's types.
-    files: ['test/**/*.dom.test.ts'],
+    files: ['test/**/*.dom.test.ts', 'test/**/*.dom.ts'],
     languageOptions: {
       parserOptions: {
         projectService: false,

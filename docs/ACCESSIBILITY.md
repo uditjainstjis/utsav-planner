@@ -8,14 +8,14 @@ hand and is recorded here.
 
 ## What is enforced in CI
 
-| Claim                                                                                                                                                                          | Where it is enforced                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes                           | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                               |
-| Every text colour reaches **4.5:1** on every surface, in both themes, including link hover and placeholders; body text reaches 7:1; the focus ring and input borders reach 3:1 | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
-| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                                                | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
-| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend                        | `test/a11y.test.ts`                                                                                                                                  |
-| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                                                    | `test/a11y.test.ts`                                                                                                                                  |
-| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                                              | `test/a11y.test.ts`                                                                                                                                  |
+| Claim                                                                                                                                                                          | Where it is enforced                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes                           | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                                        |
+| Every text colour reaches **4.5:1** on every surface, in both themes, including link hover and placeholders; body text reaches 7:1; the focus ring and input borders reach 3:1 | `test/contrast/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
+| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                                                | `test/a11y/` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                                             |
+| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend                        | `test/a11y/`                                                                                                                                                  |
+| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                                                    | `test/a11y/`                                                                                                                                                  |
+| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                                              | `test/a11y/`                                                                                                                                                  |
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
@@ -77,7 +77,7 @@ interruptions. Three small visible regions are also polite `role="status"`, each
 reporting one result where it appears: the ideas status (`#ideas-status`:
 writing, done, or unavailable), the vendor "n of m booked" counter
 (`#vendor-progress`, which changes when a box is ticked), and the copy result
-(`#copy-status`). Four in all, asserted by `test/a11y.test.ts`.
+(`#copy-status`). Four in all, asserted by `test/a11y/interaction.test.ts`.
 
 **Focus moves to the result.** After a successful build, focus is placed on the
 "Your plan" heading (`tabindex="-1"`), so a screen-reader user lands at the top
