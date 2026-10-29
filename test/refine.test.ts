@@ -142,6 +142,20 @@ describe('splitWishes / assembleWishes', () => {
     expect(assembleWishes(null, ['only'])).toBe('Adjustment requested: only');
   });
 
+  it('finds no original wishes in a brief made only of adjustments', () => {
+    expect(splitWishes('Adjustment requested: a\nAdjustment requested: b')).toEqual({
+      base: null,
+      adjustments: ['a', 'b'],
+    });
+  });
+
+  it('drops the original wishes when the newest adjustment alone fills the limit', () => {
+    const out = assembleWishes('Vegetarian only.', ['x'.repeat(600)], 600);
+    expect(out).toHaveLength(600);
+    expect(out.startsWith('Adjustment requested: x')).toBe(true);
+    expect(out).not.toContain('Vegetarian');
+  });
+
   it('shortens the original wishes only after older adjustments are gone', () => {
     const out = assembleWishes('w'.repeat(590), ['first', 'second', 'third'], 600);
     expect(out.length).toBeLessThanOrEqual(600);

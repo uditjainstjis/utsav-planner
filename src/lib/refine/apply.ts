@@ -57,13 +57,13 @@ const without = (text: string, [start, end]: [number, number]): string =>
 /**
  * Run one of the form's own validators on a value read from the change, and
  * name the change box as the field that failed: that is where it was typed.
+ * Anything other than an input error is a fault, and passes through as it is.
  */
 function asChange<T>(validate: () => T): T {
   try {
     return validate();
   } catch (err) {
-    if (err instanceof InputError) throw new InputError(err.message, err.code, 'refine');
-    throw err;
+    throw err instanceof InputError ? new InputError(err.message, err.code, 'refine') : err;
   }
 }
 

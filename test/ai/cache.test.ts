@@ -104,4 +104,26 @@ describe('personalise and the cache', () => {
     expect(p.sources.ideas).toBe('model');
     expect(good).toHaveBeenCalledTimes(4);
   });
+
+  it('treats a cache that cannot be read as a miss, and still answers from the model', async () => {
+    const match = vi.spyOn(caches.default, 'match').mockRejectedValue(new Error('cache down'));
+    const run = vi.fn(async () => ({ response: REPLY }));
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
+    match.mockRestore();
+    expect(p.sources.ideas).toBe('model');
+    expect(p.cached).toBe(false);
+    expect(run).toHaveBeenCalledTimes(4);
+  });
+
+  it('caches a brief with no name, city or wishes like any other', async () => {
+    // A budget no other test uses, since the brief carries no unique name.
+    const req = request({ occasion: null, city: null, preferences: null, budget: 31_337 });
+    const run = vi.fn(async () => ({ response: REPLY }));
+    const c = ctx();
+    await personalise(binding(run as never), buildPlan(req, TODAY), c);
+    await c.settled();
+    const second = await personalise(binding(run as never), buildPlan(req, TODAY), c);
+    expect(second.cached).toBe(true);
+    expect(run).toHaveBeenCalledTimes(4);
+  });
 });

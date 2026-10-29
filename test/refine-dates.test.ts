@@ -58,6 +58,14 @@ describe('dates in a refinement', () => {
     expect(both.changes.map((c) => c.field)).toEqual(['budget', 'guests', 'date', 'wishes']);
   });
 
+  it('reads no date from a day number no month has, and leaves the date alone', () => {
+    expect(parseDate('the 0 March slot', REQ.eventDate, TODAY)).toBeNull();
+    expect(parseDate('40 March', REQ.eventDate, TODAY)).toBeNull();
+    const r = applyRefinement(REQ, 'make it 32 March', TODAY);
+    expect(r.request.eventDate).toBe(REQ.eventDate);
+    expect(r.changes.map((c) => c.field)).toEqual(['wishes']);
+  });
+
   it('rejects a past or impossible date, naming the refine field', () => {
     expect(() => applyRefinement(REQ, 'move it to 2020-01-01', TODAY)).toThrow(/in the past/);
     expect(() => applyRefinement(REQ, '2027-02-30 maybe', TODAY)).toThrow(/does not exist/);

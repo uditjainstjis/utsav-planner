@@ -73,6 +73,18 @@ describe('request gate', () => {
     await expect(res.json()).resolves.toMatchObject({ code: 'unsupported_media_type' });
   });
 
+  it('rejects a body sent with no content type at all', async () => {
+    const res = await worker.fetch(
+      new Request('https://utsav.test/api/plan', {
+        method: 'POST',
+        body: new TextEncoder().encode(JSON.stringify(GOOD)),
+      }),
+      stubEnv(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(415);
+  });
+
   it('rejects a browser cross-site request', async () => {
     const res = await post('/api/plan', GOOD, stubEnv(), { 'sec-fetch-site': 'cross-site' });
     expect(res.status).toBe(403);
@@ -91,6 +103,21 @@ describe('request gate', () => {
     const res = await post('/api/plan', GOOD, env);
     expect(res.status).toBe(429);
     expect(limit).toHaveBeenCalledWith({ key: '203.0.113.9' });
+  });
+
+  it('counts requests with no connecting IP, as under wrangler dev, against one shared key', async () => {
+    const limit = vi.fn(async () => ({ success: true }));
+    const res = await worker.fetch(
+      new Request('https://utsav.test/api/plan', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(GOOD),
+      }),
+      stubEnv({ RATE_LIMITER: { limit } }),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+    expect(limit).toHaveBeenCalledWith({ key: 'local' });
   });
 
   it('never spends the rate budget on a rejected cross-site request', async () => {

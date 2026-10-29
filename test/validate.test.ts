@@ -47,6 +47,12 @@ describe('validatePlanRequest', () => {
     expect(r.preferences).toBeNull();
   });
 
+  it('treats text that is only spaces or control characters as absent', () => {
+    const r = validatePlanRequest({ ...GOOD, city: '   ', occasion: '\u0007\u0000 ' }, TODAY);
+    expect(r.city).toBeNull();
+    expect(r.occasion).toBeNull();
+  });
+
   it('rejects a body that is not an object', () => {
     fails(null, 'type', 'body');
     fails([], 'type', 'body');

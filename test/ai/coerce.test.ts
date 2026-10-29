@@ -45,6 +45,15 @@ describe('coercePersonalisation', () => {
     });
   });
 
+  it('counts a vendor whose every question is blank as unanswered', () => {
+    const q = coercePersonalisation({ ...REPLY, vendorQuestions: { caterer: ['   ', ''] } }, plan, {
+      model: PRIMARY_MODEL,
+      cached: false,
+    })!;
+    expect(q.vendorQuestions).toEqual(fallbackPersonalisation(plan).vendorQuestions);
+    expect(q.sources.vendorQuestions).toBe('fallback');
+  });
+
   const p = coercePersonalisation(REPLY, plan, { model: PRIMARY_MODEL, cached: false })!;
 
   it('normalises whitespace and keeps the summary bounded', () => {
