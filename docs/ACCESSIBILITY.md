@@ -8,14 +8,17 @@ hand and is recorded here.
 
 ## What is enforced in CI
 
-| Claim                                                                                                                                                                          | Where it is enforced                                                                                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes                           | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                                        |
-| Every text colour reaches **4.5:1** on every surface, in both themes, including link hover and placeholders; body text reaches 7:1; the focus ring and input borders reach 3:1 | `test/contrast/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
-| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                                                | `test/a11y/` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                                             |
-| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend                        | `test/a11y/`                                                                                                                                                  |
-| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                                                    | `test/a11y/`                                                                                                                                                  |
-| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                                              | `test/a11y/`                                                                                                                                                  |
+| Claim                                                                                                                                                                                        | Where it is enforced                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes                                         | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                                        |
+| Every text colour reaches **4.5:1** on every surface, in both themes, including link hover and placeholders; body text reaches 7:1; the focus ring and input borders reach 3:1               | `test/contrast/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
+| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                                                              | `test/a11y/` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                                             |
+| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend                                      | `test/a11y/`                                                                                                                                                  |
+| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                                                                  | `test/a11y/`                                                                                                                                                  |
+| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                                                            | `test/a11y/`                                                                                                                                                  |
+| The vendor checkbox, buttons and sample chips are at least 24px (WCAG 2.5.8); under forced colours the chosen occasion keeps a `Highlight` border; no words are put in CSS generated content | `test/contrast/contrast.dom.test.ts` — reads the rules from the shipped stylesheet                                                                            |
+| The sideways-scrolling budget table sits in a focusable region named by the table's caption                                                                                                  | `test/a11y/`                                                                                                                                                  |
+| AI marks are text nodes, on exactly the sections a model wrote; the ideas list is `aria-busy` exactly while ideas are written                                                                | `test/app/` — the real page and modules in jsdom                                                                                                              |
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
@@ -51,7 +54,18 @@ reads each of these rules from the stylesheet, so it checks what is shipped.
 **Colour never carries meaning alone.** Budget warnings have a glyph (▲ ● ○) and
 words; cost tiers are "● Low cost" / "●● Mid cost" / "●●● Higher cost";
 AI-written text carries a visible "AI" badge, not just a tint; a booked vendor
-is struck through as well as faded (WCAG 1.4.1).
+is struck through as well as faded (WCAG 1.4.1). The warning glyphs have empty
+alternative text (`content: '▲' / ''`), since the words say it, so a screen
+reader does not read out a triangle first. The "AI" badge is a text node, never
+CSS `content`, so a screen reader reads it and a copy keeps it (1.3.1, F87).
+
+**Forced colours.** Windows High Contrast drops box-shadow and repaints every
+border in one colour. The chosen occasion is marked by a shadow, so under
+`forced-colors: active` it gets a 3px `Highlight` border instead, and the AI
+badge, whose fill is gone, keeps an outline (1.4.11).
+
+**Targets are at least 24px.** Buttons are 48px tall, sample chips 44px and the
+vendor checkboxes 24px square, so none depends on the spacing exception (2.5.8).
 
 **Native controls over ARIA widgets.** The occasion picker is three radio
 buttons in a fieldset, so arrow-key movement, group semantics and "2 of 3" are
@@ -105,7 +119,9 @@ produces a plan that can be handed to a parent or a committee.
 **Type and zoom.** Body text is 16px, and every size is in `rem` or `em`, so
 text follows the browser's own size setting; the page reflows to a single column
 below 900px and its inner grids below 760px; the budget table scrolls within its
-own container at narrow widths rather than breaking the page.
+own container at narrow widths rather than breaking the page. That container is
+a region named by the table's caption, in the tab order, so a keyboard user can
+scroll it too; not every browser makes a scroller focusable on its own (2.1.1).
 
 ## Checked by hand
 

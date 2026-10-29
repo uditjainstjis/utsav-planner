@@ -124,7 +124,8 @@ src/lib/refine/span.ts      where in the sentence a match was
 src/lib/refine/wishes.ts    the wishes and the adjustments appended to them
 src/lib/guard.ts            deterministic prompt-injection screen + nonce fence
 src/prompts/plan.ts         the facts block and the four schema-constrained asks
-src/lib/ai/ask.ts           Workers AI calls: four concurrent parts, fallback model, timeout
+src/lib/ai/ask.ts           model policy: four concurrent parts, fallback model, timeout; declares TextGenerator
+src/lib/ai/workers-ai.ts    the TextGenerator over the Workers AI binding: one AI.run per generation
 src/lib/ai/reply.ts         the JSON object in a reply, whatever wraps it
 src/lib/ai/coerce.ts        reply → checked personalisation: ids, bounds, enums
 src/lib/ai/personalise.ts   cache, then ask, then deterministic guidance per section
@@ -164,6 +165,24 @@ npm runs before typechecking, linting and tests and wrangler runs as its
 `build.command` before `dev` and `deploy`; they are gitignored, so they cannot
 drift from their sources.
 
+## Architecture and design principles
+
+The plan is computed by pure functions with no I/O (`src/lib/plan.ts` and what
+it calls); I/O sits at the edges — the routes, the Cache API wrapper and the
+model adapter. Dependencies point inward: the model policy in
+`src/lib/ai/ask.ts` declares the `TextGenerator` it needs, the Workers AI
+adapter implements it, and `src/index.ts`, the composition root and the only
+module that reads a binding, connects the two. Functions are at most 40 lines
+(ESLint, outside tests), and every export states its one job in a doc comment.
+
+| Principle             | How the code meets it                                                                                                                                                                                                                                                                                                                | Where                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single responsibility | Each module has one reason to change: plan arithmetic, model policy, reply parsing, reply checking, caching and HTTP are separate modules; each request admission rule checks one thing; each front-end module renders one section.                                                                                                  | `src/lib/budget.ts`, `src/lib/ai/ask.ts`, `src/lib/ai/reply.ts`, `src/lib/ai/coerce.ts`, `src/lib/cache.ts`, `src/index.ts`, `public/js/render-budget.js` |
+| Open/closed           | What varies is data, extended by adding an entry: occasions are `Record<EventType, …>` tables (a missing one is a type error), injection rules a list, prompt parts tables keyed by `Part`, request admission an `ADMISSION` list. There is no `switch` in `src/` or `public/js/`.                                                   | `src/lib/budget-data.ts`, `src/lib/vendors-data.ts`, `src/lib/timeline-data.ts`, `src/lib/guard.ts`, `src/prompts/plan.ts`, `src/index.ts`                |
+| Liskov substitution   | Any `TextGenerator` stands in for any other: its contract (resolve to a raw reply or reject; honour the abort signal) carries no Workers AI detail, and personalisation's guarantees — never throws, always ideas, every section labelled — are tested against the adapter and against fakes, one of which rejects with a non-Error. | `src/lib/ai/ask.ts`, `src/lib/ai/workers-ai.ts`, `test/ai/ask.test.ts`                                                                                    |
+| Interface segregation | Functions take only what they use: `personalise` a one-method `TextGenerator`, not the whole `Env`, and `Pick<ExecutionContext, 'waitUntil'>`; `toIcs` a `Timeline`; `buildVendors` an occasion and a `Timeline`.                                                                                                                    | `src/lib/ai/personalise.ts`, `src/lib/ics.ts`, `src/lib/vendors.ts`                                                                                       |
+| Dependency inversion  | Policy owns the abstraction and imports no binding; the adapter depends on it; the root wires `workersAi(c.env.AI)`. Another model host is one new adapter and one changed line.                                                                                                                                                     | `src/lib/ai/ask.ts`, `src/lib/ai/workers-ai.ts`, `src/index.ts`                                                                                           |
+
 ## Security
 
 Threat model and controls in [SECURITY.md](SECURITY.md). In short: content-type
@@ -177,10 +196,38 @@ in CI, and `/.well-known/security.txt`.
 
 ## Accessibility
 
-Enforced in CI: axe-core over the shipped markup in both themes, a contrast test
-that converts the OKLCH tokens and asserts WCAG ratios, and structural checks
-through the runtime's own HTML parser. Design decisions and the measured numbers
-are in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
+Built to WCAG 2.2 AA. Enforced in CI: axe-core over the shipped markup in both
+themes, a contrast test that converts the OKLCH tokens and asserts WCAG ratios,
+stylesheet checks for target size and forced colours, structural checks through
+the runtime's own HTML parser, and the front end driven in jsdom. Design
+decisions and the measured numbers are in
+[docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
+
+| WCAG 2.2 criterion                                      | How it is met                                                                                                                                                              | Where                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1.1.1 Non-text content                                  | The brand mark is `aria-hidden`; warning glyphs have empty alternative text, because the words carry the meaning                                                           | `public/index.html`, `public/styles.css`                              |
+| 1.3.1 Info and relationships                            | Landmarks; an h1→h4 outline; the occasion as radios in a fieldset; the budget as a `<table>` with caption, row and column headers; the "AI" badge is text, not CSS content | `public/index.html`, `public/js/dom.js`, `public/js/render-budget.js` |
+| 1.3.4 Orientation, 1.4.4 Resize text, 1.4.10 Reflow     | No orientation lock; sizes in `rem`/`em`; one column below 900px; the table scrolls in its own container                                                                   | `public/styles.css`                                                   |
+| 1.3.5 Identify input purpose                            | `autocomplete="address-level2"` on the city                                                                                                                                | `public/index.html`                                                   |
+| 1.4.1 Use of colour                                     | Warnings pair colour with a glyph and words; cost tiers are "● Low cost"…; AI text has a badge; a booked vendor is struck through                                          | `public/js/format.js`, `public/styles.css`                            |
+| 1.4.3 Contrast (minimum)                                | Every text token ≥ 4.5:1 on every surface in both themes, computed from the shipped tokens                                                                                 | `public/styles.css`, `test/contrast/contrast.dom.test.ts`             |
+| 1.4.11 Non-text contrast                                | Focus ring and field borders ≥ 3:1; under forced colours the chosen occasion keeps a `Highlight` border and the AI badge an outline                                        | `public/styles.css`                                                   |
+| 2.1.1 Keyboard                                          | Native controls only; the scrolling budget table is a focusable, named region                                                                                              | `public/index.html`                                                   |
+| 2.4.1 Bypass blocks                                     | Skip link to `#main`                                                                                                                                                       | `public/index.html`                                                   |
+| 2.4.2 Page titled, 3.1.1 Language of page               | A descriptive `<title>`; `lang="en"`                                                                                                                                       | `public/index.html`                                                   |
+| 2.4.3 Focus order                                       | No positive `tabindex`; focus moves to "Your plan" after a build or refinement, and to the failing field on an error                                                       | `public/js/build.js`, `public/js/refine.js`, `public/js/form.js`      |
+| 2.4.6 Headings and labels, 3.3.2 Labels or instructions | Every control labelled; optional fields say so; help text linked by `aria-describedby`                                                                                     | `public/index.html`, `public/js/form.js`                              |
+| 2.4.7 Focus visible, 2.4.11 Focus not obscured          | A 2px `:focus-visible` outline at ≥ 3:1; nothing sticky or fixed can cover it                                                                                              | `public/styles.css`                                                   |
+| 2.5.3 Label in name                                     | Visible labels are the names; each vendor checkbox is named by its vendor's title                                                                                          | `public/js/render-vendors.js`                                         |
+| 2.5.8 Target size (minimum)                             | Buttons 48px, sample chips 44px, vendor checkboxes 24px                                                                                                                    | `public/styles.css`                                                   |
+| 3.2.2 On input                                          | Nothing submits or navigates when a value changes                                                                                                                          | `public/js/form.js`                                                   |
+| 3.3.1 Error identification, 3.3.3 Error suggestion      | The server names the field; the client sets `aria-invalid`, adds the error to `aria-describedby`, focuses it; the message states the allowed range                         | `src/lib/validate.ts`, `public/js/form.js`, `public/js/refine.js`     |
+| 3.3.7 Redundant entry                                   | A refinement writes the new brief back into the form, never asking for it twice                                                                                            | `public/js/refine.js`                                                 |
+| 4.1.2 Name, role, value                                 | Native controls; the theme toggle reports `aria-pressed`; busy buttons use `aria-disabled` so focus stays                                                                  | `public/js/theme.js`, `public/js/state.js`                            |
+| 4.1.3 Status messages                                   | One polite `#progress` region for request stages, three for single results, `role="alert"` for errors, `aria-busy` on the ideas list while it is rewritten                 | `public/js/state.js`, `public/js/render-ideas.js`                     |
+
+Beyond AA: `prefers-reduced-motion` cuts every animation and transition (2.3.3),
+and body text reaches 7:1 (1.4.6).
 
 ## Testing
 
@@ -189,15 +236,19 @@ npm run check     # Worker types and generated files, typecheck (strict, noUnche
 npm run coverage  # istanbul report
 ```
 
-354 tests across 25 files. 291 run inside **workerd** (the deployed runtime);
-the 63 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
+373 tests across 26 files. 306 run inside **workerd** (the deployed runtime);
+the 67 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
 the file references, and the front end's plan form, refine form and AI marks)
 run in jsdom, because they need a DOM or read files off disk. Coverage of
-`src/`: 99.46% statements, 92.44% branches, 100% functions, 99.59% lines. 25 of
-331 branches are uncovered, 16 of them in the model-reply handling
-(`src/lib/ai/`) and the refine parser (`src/lib/refine/`), mostly `??` fallbacks
-and defensive checks. The suite is hermetic: the AI binding is a stub, so it
-runs identically on a laptop and on a CI runner holding no credentials.
+`src/`: **100% statements, 100% lines, 100% functions, 96.39% branches**
+(569/569, 496/496, 167/167, 321/333). The 12 uncovered branches are ten `??`
+fallbacks that `noUncheckedIndexedAccess` requires on array and regex-group
+reads no input leaves empty, and two defensive checks: the request body is
+re-checked as an object after validation has already required one, and a
+validator fault that is not an input error is passed on rather than relabelled.
+The suite is hermetic: the model is reached through a stubbed binding or a fake
+`TextGenerator`, so it runs identically on a laptop and on a CI runner holding
+no credentials.
 
 What is covered, and the property each test holds:
 
@@ -213,16 +264,20 @@ What is covered, and the property each test holds:
 - **validate** — every error code and the field it names; impossible dates are
   rejected rather than rolled over; control characters other than tab and line
   breaks are stripped.
-- **ai** — envelope unwrapping, enum normalisation, id checking, string bounds,
-  primary→fallback→deterministic, `sources` per section when one ask fails and
-  the others answer, a call given up on aborted through its signal, cache hit
-  and cache bypass on any generic section, the cache written through
-  `waitUntil`, schema-constrained call shape.
-- **api** — CSRF gate, cross-site rejection, rate limit by IP (and that it is
-  not spent on rejected requests), the full security policy on API responses,
-  faults and the front end, no configuration leaked by `/api/health`, no flagged
-  sentence in any of the four prompts sent and the rest of the name, city and
-  wishes fenced, 404 under `/api`.
+- **ai** — the `TextGenerator` contract: the Workers AI adapter makes exactly
+  one `AI.run` call per generation, and fakes with no Workers AI in them (one
+  answering a bare object, one rejecting with a non-Error) keep every guarantee;
+  envelope unwrapping, merging idea halves, enum normalisation, id checking,
+  string bounds, primary→fallback→deterministic, `sources` per section when one
+  ask fails and the others answer, a call given up on aborted through its
+  signal, cache hit and cache bypass on any generic section, the cache written
+  through `waitUntil`, schema-constrained call shape.
+- **api** — CSRF gate (including a body with no content type), cross-site
+  rejection, rate limit by IP (one shared key when there is none, as under
+  `wrangler dev`, and never spent on rejected requests), the full security
+  policy on API responses, faults and the front end, no configuration leaked by
+  `/api/health`, no flagged sentence in any of the four prompts sent and the
+  rest of the name, city and wishes fenced, 404 under `/api`.
 - **headers** — `public/_headers` states exactly the headers the Worker sets,
   plus caching for fonts and `security.txt` only; no `unsafe-*` in the CSP.
 - **refine** — Indian and Western magnitudes (lakh, crore, k, million),
@@ -245,8 +300,9 @@ What is covered, and the property each test holds:
   are dropped; the guard notice names the field each finding was in; vendor
   questions and budget notes carry the AI mark exactly when a model wrote that
   section, also when the ideas beside them are generic, and the other way round;
-  a ticked vendor stays ticked when a change moves the headcount; the plan
-  copied as text names an unnamed occasion once.
+  the AI mark is a text node; the ideas list is `aria-busy` exactly while ideas
+  are written; a ticked vendor stays ticked when a change moves the headcount;
+  the plan copied as text names an unnamed occasion once.
 - **assets** (jsdom) — fonts are content-addressed and preloaded as used;
   `public/js/constants.js` exports exactly what `src/shared/constants.ts` does,
   with the same values and wording, and `public/js/dates.js` what
@@ -258,7 +314,9 @@ What is covered, and the property each test holds:
 - **references** (jsdom) — every file a comment or a document names exists, so a
   renamed or split module leaves no stale name behind. It reads the tree less
   what `.gitignore` names, so it runs the same outside a git checkout.
-- **a11y / axe / contrast** — see above.
+- **a11y / axe / contrast** — see above; also 24px targets, the forced-colours
+  rule and no words in CSS generated content, read from the shipped stylesheet,
+  and the scrolling table's focusable region.
 
 ## Running locally
 
