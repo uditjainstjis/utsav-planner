@@ -90,11 +90,11 @@ describe('fallbackPersonalisation', () => {
 
 describe('the prompts', () => {
   const plan = buildPlan(REQ, TODAY);
-  const facts = buildFacts(plan, 'CC_nonce123');
-  const ideas = buildIdeasPrompt(plan, 'CC_nonce123', 'a');
-  const ideasB = buildIdeasPrompt(plan, 'CC_nonce123', 'b');
-  const vendors = buildVendorsPrompt(plan, 'CC_nonce123');
-  const notes = buildNotesPrompt(plan, 'CC_nonce123');
+  const facts = buildFacts(plan, 'UTSAV_nonce123');
+  const ideas = buildIdeasPrompt(plan, 'UTSAV_nonce123', 'a');
+  const ideasB = buildIdeasPrompt(plan, 'UTSAV_nonce123', 'b');
+  const vendors = buildVendorsPrompt(plan, 'UTSAV_nonce123');
+  const notes = buildNotesPrompt(plan, 'UTSAV_nonce123');
 
   it('state every number and never ask the model to produce one', () => {
     expect(facts).toContain('₹1,80,000');
@@ -113,9 +113,9 @@ describe('the prompts', () => {
   });
 
   it('fence the wishes in the nonce, before any instruction in them', () => {
-    expect(facts).toContain('<<<CC_nonce123\n');
-    expect(facts).toContain('\nCC_nonce123>>>');
-    expect(facts.indexOf('<<<CC_nonce123')).toBeLessThan(facts.indexOf('Ignore previous'));
+    expect(facts).toContain('<<<UTSAV_nonce123\n');
+    expect(facts).toContain('\nUTSAV_nonce123>>>');
+    expect(facts.indexOf('<<<UTSAV_nonce123')).toBeLessThan(facts.indexOf('Ignore previous'));
   });
 
   it('state missing city and occasion plainly, and flag a rush', () => {

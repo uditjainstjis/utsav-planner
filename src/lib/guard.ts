@@ -33,14 +33,14 @@ const RULES: Rule[] = [
     re: /(?:^|\n)\s*(?:system|assistant|developer)\s*:|\byou are now\b|\bact as (?:a|an|the)\b|\bpretend to be\b/gi,
   },
   {
-    kind: 'verdict-steering',
-    detail: 'Text instructing an AI system what conclusion to reach about this document.',
-    re: /\b(?:say|state|report|conclude|rate|mark|classify|declare)\b[^.\n]{0,40}\b(?:safe|fair|standard|no risk|low risk|favou?rable|acceptable|nothing unusual)\b/gi,
+    kind: 'budget-steering',
+    detail: 'Text telling an AI system what to say about your budget.',
+    re: /\b(?:say|state|tell|report|claim|declare|confirm)\b[^.\n]{0,40}\b(?:budget|cost|money|price)s?\s+(?:is|are)\s+(?:unlimited|enough|fine|affordable|no (?:limit|object|problem|concern))\b/gi,
   },
   {
     kind: 'suppression',
     detail: 'Text instructing an AI system to withhold information from you.',
-    re: /\b(?:do not|don’t|never|avoid)\b[^.\n]{0,30}\b(?:mention|disclose|reveal|flag|warn|highlight|tell the (?:user|reader|tenant|employee))\b/gi,
+    re: /\b(?:do not|don’t|never|avoid)\b[^.\n]{0,30}\b(?:mention|disclose|reveal|flag|warn|highlight|tell the (?:user|planner|host))\b/gi,
   },
   {
     kind: 'prompt-exfiltration',
@@ -50,7 +50,7 @@ const RULES: Rule[] = [
   {
     kind: 'delimiter-injection',
     detail: 'Chat or template control tokens embedded in the text.',
-    re: /<\|(?:im_start|im_end|endoftext|system)\|>|\[\/?INST\]|<\/?(?:document|system|instructions)>/gi,
+    re: /<\|(?:im_start|im_end|endoftext|system)\|>|\[\/?INST\]|<\/?(?:system|instructions)>/gi,
   },
   {
     kind: 'hidden-characters',
@@ -60,7 +60,7 @@ const RULES: Rule[] = [
   },
 ];
 
-/** Upper bound on findings returned, so a crafted document cannot flood the UI. */
+/** Upper bound on findings returned, so a crafted brief cannot flood the UI. */
 const MAX_FINDINGS = 25;
 
 /**
@@ -127,5 +127,5 @@ export function fenceUntrusted(text: string, nonce: string): string {
 export function makeNonce(): string {
   const bytes = new Uint8Array(12);
   crypto.getRandomValues(bytes);
-  return `CC_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  return `UTSAV_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 }

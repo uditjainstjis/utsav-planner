@@ -176,8 +176,8 @@ What is covered, and the property each test holds:
   headcount phrasings, explicit/relative/month-only dates, all three at once, a
   sentence with no numbers, unchanged values reported as no change, out-of-range
   or past values named by field, the brief re-bounded across six turns.
-- **guard** — each injection rule, the finding cap, document order, fence
-  defanging, nonce forgery.
+- **guard** — each injection rule, the finding cap, text order, fence defanging,
+  nonce forgery.
 - **app** (jsdom, the real `index.html` and `app.js`) — a brief the server
   rejects is shown at its field and focused, also on a second submit with a plan
   already on screen; an ideas failure degrades only the ideas card; the 730-day

@@ -306,7 +306,7 @@ describe('POST /api/personalise', () => {
     const calls = run.mock.calls as unknown as Array<[string, { messages: { content: string }[] }]>;
     const input = calls[0]![1];
     const user = input.messages[1]!.content;
-    expect(user).toMatch(/<<<CC_[0-9a-f]{24}\n/);
+    expect(user).toMatch(/<<<UTSAV_[0-9a-f]{24}\n/);
     expect(user).not.toContain('<|im_end|>');
     expect(user).toContain('pastel decor');
   });

@@ -19,7 +19,7 @@ const TTL_SECONDS = 604_800;
 /** Field separator for hash inputs, chosen so it cannot occur in the inputs. */
 const SEP = String.fromCharCode(0);
 
-/** SHA-256 of the inputs that fully determine an analysis, as lowercase hex. */
+/** SHA-256 of the inputs that fully determine a personalisation, as lowercase hex. */
 export async function contentKey(parts: readonly string[]): Promise<string> {
   const data = new TextEncoder().encode(parts.join(SEP));
   const digest = await crypto.subtle.digest('SHA-256', data);
@@ -47,7 +47,7 @@ export async function cacheGet(key: string): Promise<unknown> {
 
 /**
  * Store a value. Failures are swallowed: the cache is an optimisation, and a
- * caching problem must never surface as an analysis failure.
+ * caching problem must never surface as a failed personalisation.
  */
 export async function cachePut(key: string, value: unknown): Promise<void> {
   try {

@@ -65,7 +65,7 @@ visitor's words reach a model.
 **On the way in:**
 
 - `scanForInjection` runs seven deterministic rules — instruction override, role
-  hijack, verdict steering, suppression, prompt exfiltration, chat delimiter
+  hijack, budget steering, suppression, prompt exfiltration, chat delimiter
   tokens, runs of invisible characters. Findings are **shown to the user**, not
   silently dropped: a planner should know their wishes contained text aimed at a
   machine. The screen is pure code so it cannot be argued with.

@@ -12,8 +12,9 @@
  * browser refuse every assignment to a DOM sink that parses markup —
  * `innerHTML`, `outerHTML`, `document.write`, `insertAdjacentHTML`. The front
  * end already writes exclusively through `textContent`, which is the property
- * that stops a document smuggling markup through the analysis. Before this,
- * that property was a convention held by code review. Now it is enforced by the
+ * that stops a model reply, or a visitor's wishes echoed back in one, from
+ * smuggling markup into the page. Before this, that property was a convention
+ * held by code review. Now it is enforced by the
  * browser, and a future commit that reaches for `innerHTML` breaks loudly
  * instead of silently widening the attack surface.
  *
@@ -23,7 +24,7 @@
  * forecloses a class of side-channel that would otherwise stay open.
  *
  * `permissions-policy` denies every feature rather than the five most obvious
- * ones. A document reader needs none of them, and an allowlist that enumerates
+ * ones. A planning form needs none of them, and an allowlist that enumerates
  * only what someone thought of is an allowlist that grows a hole each time the
  * platform adds a capability.
  */
