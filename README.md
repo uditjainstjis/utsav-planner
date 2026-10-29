@@ -187,11 +187,11 @@ npm run check     # Worker types and generated files, typecheck (strict, noUnche
 npm run coverage  # istanbul report
 ```
 
-348 tests across 25 files. 288 run inside **workerd** (the deployed runtime);
-the 60 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
+351 tests across 25 files. 288 run inside **workerd** (the deployed runtime);
+the 63 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
 the file references, and the front end's plan form, refine form and AI marks)
 run in jsdom, because they need a DOM or read files off disk. Coverage of
-`src/`: 99.46% statements, 92.19% branches, 100% functions, 99.58% lines. 26 of
+`src/`: 99.46% statements, 92.19% branches, 100% functions, 99.59% lines. 26 of
 333 branches are uncovered, 16 of them in the model-reply handling
 (`src/lib/ai/`) and the refine parser (`src/lib/refine/`), mostly `??` fallbacks
 and defensive checks. The suite is hermetic: the AI binding is a stub, so it
@@ -242,7 +242,9 @@ What is covered, and the property each test holds:
   at the change field; ideas that arrive, or fail, after their plan was replaced
   are dropped; the guard notice names the field each finding was in; vendor
   questions and budget notes carry the AI mark exactly when a model wrote that
-  section, also when the ideas beside them are generic, and the other way round.
+  section, also when the ideas beside them are generic, and the other way round;
+  a ticked vendor stays ticked when a change moves the headcount; the plan
+  copied as text names an unnamed occasion once.
 - **assets** (jsdom) — fonts are content-addressed and preloaded as used;
   `public/js/constants.js` exports exactly what `src/shared/constants.ts` does,
   with the same values and wording, and `public/js/dates.js` what
@@ -252,7 +254,8 @@ What is covered, and the property each test holds:
   **app** suite checks the result); the calendar's name matches the occasion
   label.
 - **references** (jsdom) — every file a comment or a document names exists, so a
-  renamed or split module leaves no stale name behind.
+  renamed or split module leaves no stale name behind. It reads the tree less
+  what `.gitignore` names, so it runs the same outside a git checkout.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally
