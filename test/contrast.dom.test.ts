@@ -24,16 +24,31 @@ function parseBlock(block: string): Tokens {
   return out;
 }
 
-const root = /:root \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-const darkMedia =
-  /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme='light'\]\) \{([\s\S]*?)\n {2}\}/.exec(
-    css,
-  )?.[1] ?? '';
-const darkForced = /:root\[data-theme='dark'\] \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+/** Every `light-dark(light, dark)` in `value` replaced by the argument for `scheme`. */
+function inScheme(value: string, scheme: 'light' | 'dark'): string {
+  const open = 'light-dark(';
+  const at = value.indexOf(open);
+  if (at === -1) return value;
+  let depth = 0;
+  let comma = -1;
+  let end = at + open.length;
+  for (; end < value.length; end++) {
+    const ch = value[end];
+    if (ch === '(') depth++;
+    if (ch === ',' && depth === 0) comma = end;
+    if (ch === ')' && depth-- === 0) break;
+  }
+  const chosen =
+    scheme === 'light' ? value.slice(at + open.length, comma) : value.slice(comma + 1, end);
+  return inScheme(value.slice(0, at) + chosen.trim() + value.slice(end + 1), scheme);
+}
 
-const LIGHT = parseBlock(root);
-const DARK = { ...LIGHT, ...parseBlock(darkMedia) };
-const DARK_FORCED = { ...LIGHT, ...parseBlock(darkForced) };
+const root = parseBlock(/:root \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '');
+const themed = (scheme: 'light' | 'dark'): Tokens =>
+  Object.fromEntries(Object.entries(root).map(([name, value]) => [name, inScheme(value, scheme)]));
+
+const LIGHT = themed('light');
+const DARK = themed('dark');
 
 function resolve(value: string, tokens: Tokens): string {
   let v = value;
@@ -101,7 +116,7 @@ function luminance([r, g, b]: [number, number, number]): number {
 }
 
 /** WCAG 2.x contrast ratio, 1–21. */
-export function contrast(fg: string, bg: string, tokens: Tokens): number {
+function contrast(fg: string, bg: string, tokens: Tokens): number {
   // Accept a token name ("ink") or a literal colour ("oklch(...)").
   const value = (t: string): string => (t.includes('(') ? t : (tokens[t] ?? t));
   const a = luminance(oklchToRgb(value(fg), tokens));
@@ -146,8 +161,7 @@ describe('form fields and placeholders', () => {
 
 describe.each([
   ['light', LIGHT],
-  ['dark (system)', DARK],
-  ['dark (forced)', DARK_FORCED],
+  ['dark', DARK],
 ] as const)('contrast in the %s theme', (_name, tokens) => {
   it.each(TEXT)('%s reaches AA (4.5:1) on every surface', (fg) => {
     for (const bg of SURFACES) {
@@ -221,7 +235,13 @@ describe('the converter itself', () => {
 
   it('found real tokens rather than an empty block', () => {
     expect(Object.keys(LIGHT).length).toBeGreaterThan(20);
-    expect(Object.keys(parseBlock(darkMedia)).length).toBeGreaterThan(5);
-    expect(Object.keys(parseBlock(darkForced)).length).toBeGreaterThan(5);
+    const differ = Object.keys(LIGHT).filter((name) => LIGHT[name] !== DARK[name]);
+    expect(differ.length).toBeGreaterThan(15);
+  });
+
+  it('reads each argument of light-dark() for its own scheme', () => {
+    const value = 'light-dark(oklch(1% 0 0), var(--x)), 0 1px light-dark(red, blue)';
+    expect(inScheme(value, 'light')).toBe('oklch(1% 0 0), 0 1px red');
+    expect(inScheme(value, 'dark')).toBe('var(--x), 0 1px blue');
   });
 });

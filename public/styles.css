@@ -20,7 +20,12 @@
    The accent ramp is OKLCH with arcing chroma and a hue rotation toward the
    dark end, so it reads as pigment rather than as arithmetic.
    ========================================================================= */
+/* Each colour token holds its light and its dark value, light-dark(light, dark),
+   and color-scheme picks one: the system's, unless the theme toggle has set
+   data-theme. Dark mode is authored, not inverted: chroma drops, surfaces lift
+   instead of shadows deepening, and the ground is never pure black. */
 :root {
+  color-scheme: light dark;
   --hue: 42;
   --hue-deep: calc(var(--hue) - 14); /* shadows cool as they darken */
 
@@ -42,32 +47,41 @@
   --n-950: oklch(15.5% 0.011 var(--hue-deep));
 
   /* Severity. Always paired with a glyph and a word — never colour alone. */
-  --risk-high: oklch(50% 0.168 27);
-  --risk-high-bg: oklch(95.5% 0.028 27);
-  --risk-low: oklch(47% 0.086 235);
-  --risk-low-bg: oklch(95.5% 0.024 235);
-  --risk-info-bg: oklch(95.5% 0.008 var(--hue));
+  --risk-high: light-dark(oklch(50% 0.168 27), oklch(77% 0.13 27));
+  --risk-high-bg: light-dark(oklch(95.5% 0.028 27), oklch(27% 0.062 27));
+  --risk-low: light-dark(oklch(47% 0.086 235), oklch(78% 0.078 235));
+  --risk-low-bg: light-dark(oklch(95.5% 0.024 235), oklch(27% 0.042 235));
+  --risk-info-bg: light-dark(oklch(95.5% 0.008 var(--hue)), oklch(25% 0.01 var(--hue)));
 
-  --surface-0: var(--n-50);
-  --surface-1: var(--n-0);
-  --surface-2: var(--n-100);
-  --ink: var(--n-900);
-  --ink-soft: var(--n-600);
-  --ink-faint: var(--n-500);
-  --rule: var(--n-200);
+  --surface-0: light-dark(var(--n-50), oklch(15.5% 0.011 var(--hue-deep)));
+  --surface-1: light-dark(var(--n-0), oklch(19% 0.013 var(--hue-deep)));
+  --surface-2: light-dark(var(--n-100), oklch(23% 0.014 var(--hue-deep)));
+  --ink: light-dark(var(--n-900), oklch(95% 0.009 var(--hue)));
+  --ink-soft: light-dark(var(--n-600), oklch(82% 0.012 var(--hue)));
+  --ink-faint: light-dark(var(--n-500), oklch(78% 0.013 var(--hue)));
+  --rule: light-dark(var(--n-200), oklch(30% 0.014 var(--hue-deep)));
   /* Input borders identify the control, so they need 3:1 against the
      surfaces (WCAG 1.4.11); --rule is a hairline and does not reach it. */
-  --field-border: oklch(60% 0.012 var(--hue));
-  --accent: var(--c-700);
-  --accent-bright: var(--c-500);
+  --field-border: light-dark(oklch(60% 0.012 var(--hue)), oklch(52% 0.014 var(--hue-deep)));
+  --accent: light-dark(var(--c-700), var(--c-300));
+  --accent-bright: light-dark(var(--c-500), var(--c-400));
 
-  /* Shadows: stacked, hue-tinted. A single black layer is the cheap tell. */
+  /* Shadows: stacked, hue-tinted. A single black layer is the cheap tell.
+     light-dark() takes colours only, so each theme's layers are listed and
+     the other theme's are transparent. */
   --sh: var(--hue-deep) 32% 14%;
-  --elev-1: 0 1px 1px hsl(var(--sh) / 0.05), 0 2px 2px hsl(var(--sh) / 0.04);
+  --elev-1:
+    0 1px 1px light-dark(hsl(var(--sh) / 0.05), transparent),
+    0 2px 2px light-dark(hsl(var(--sh) / 0.04), transparent),
+    0 1px 2px light-dark(transparent, hsl(var(--sh) / 0.3));
   --elev-2:
-    0 1px 1px hsl(var(--sh) / 0.04), 0 2px 4px hsl(var(--sh) / 0.04),
-    0 4px 8px hsl(var(--sh) / 0.035), 0 8px 16px hsl(var(--sh) / 0.03);
-  --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.7);
+    0 1px 1px light-dark(hsl(var(--sh) / 0.04), transparent),
+    0 2px 4px light-dark(hsl(var(--sh) / 0.04), transparent),
+    0 4px 8px light-dark(hsl(var(--sh) / 0.035), transparent),
+    0 8px 16px light-dark(hsl(var(--sh) / 0.03), transparent),
+    0 2px 6px light-dark(transparent, hsl(var(--sh) / 0.34)),
+    0 8px 20px light-dark(transparent, hsl(var(--sh) / 0.26));
+  --edge-top: inset 0 1px 0 light-dark(oklch(100% 0 0 / 0.7), oklch(100% 0 0 / 0.06));
 
   /* Type scale */
   --t-xs: 0.8125rem;
@@ -88,50 +102,11 @@
   --font-body: 'InterVar', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-doc: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
 }
-
-/* Dark mode is authored, not inverted: chroma drops, surfaces lift instead of
-   shadows deepening, and the ground is never pure black. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --surface-0: oklch(15.5% 0.011 var(--hue-deep));
-    --surface-1: oklch(19% 0.013 var(--hue-deep));
-    --surface-2: oklch(23% 0.014 var(--hue-deep));
-    --ink: oklch(95% 0.009 var(--hue));
-    --ink-soft: oklch(82% 0.012 var(--hue));
-    --ink-faint: oklch(78% 0.013 var(--hue));
-    --rule: oklch(30% 0.014 var(--hue-deep));
-    --field-border: oklch(52% 0.014 var(--hue-deep));
-    --accent: var(--c-300);
-    --accent-bright: var(--c-400);
-    --risk-high: oklch(77% 0.13 27);
-    --risk-high-bg: oklch(27% 0.062 27);
-    --risk-low: oklch(78% 0.078 235);
-    --risk-low-bg: oklch(27% 0.042 235);
-    --risk-info-bg: oklch(25% 0.01 var(--hue));
-    --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.06);
-    --elev-1: 0 1px 2px hsl(var(--sh) / 0.3);
-    --elev-2: 0 2px 6px hsl(var(--sh) / 0.34), 0 8px 20px hsl(var(--sh) / 0.26);
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 :root[data-theme='dark'] {
-  --surface-0: oklch(15.5% 0.011 var(--hue-deep));
-  --surface-1: oklch(19% 0.013 var(--hue-deep));
-  --surface-2: oklch(23% 0.014 var(--hue-deep));
-  --ink: oklch(95% 0.009 var(--hue));
-  --ink-soft: oklch(82% 0.012 var(--hue));
-  --ink-faint: oklch(78% 0.013 var(--hue));
-  --rule: oklch(30% 0.014 var(--hue-deep));
-  --field-border: oklch(52% 0.014 var(--hue-deep));
-  --accent: var(--c-300);
-  --accent-bright: var(--c-400);
-  --risk-high: oklch(77% 0.13 27);
-  --risk-high-bg: oklch(27% 0.062 27);
-  --risk-low: oklch(78% 0.078 235);
-  --risk-low-bg: oklch(27% 0.042 235);
-  --risk-info-bg: oklch(25% 0.01 var(--hue));
-  --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.06);
-  --elev-1: 0 1px 2px hsl(var(--sh) / 0.3);
-  --elev-2: 0 2px 6px hsl(var(--sh) / 0.34), 0 8px 20px hsl(var(--sh) / 0.26);
+  color-scheme: dark;
 }
 
 /* ========================================================================= */
@@ -244,16 +219,8 @@ a:hover {
   gap: 12px;
 }
 .brand__mark {
-  color: var(--n-900);
+  color: light-dark(var(--n-900), var(--c-500));
   display: flex;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .brand__mark {
-    color: var(--c-500);
-  }
-}
-:root[data-theme='dark'] .brand__mark {
-  color: var(--c-500);
 }
 .brand__text {
   display: flex;
@@ -507,13 +474,9 @@ select:focus-visible {
     background-color 140ms var(--ease-out-quart);
 }
 .btn--primary {
-  background: var(--n-900);
-  color: var(--n-50);
+  background: light-dark(var(--n-900), var(--c-400));
+  color: light-dark(var(--n-50), var(--n-950));
   box-shadow: var(--elev-1);
-}
-:root[data-theme='dark'] .btn--primary {
-  background: var(--c-400);
-  color: var(--n-950);
 }
 .btn--primary:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--n-700);
