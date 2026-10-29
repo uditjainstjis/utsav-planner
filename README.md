@@ -105,6 +105,7 @@ src/index.ts                Hono router: /api/health, /api/plan, /api/refine, /a
 src/env.ts                  the Worker's bindings, as `wrangler types` generates them
 src/shared/constants.ts     event types, limits, labels, messages, money, today: for page and Worker
 src/lib/types.ts            the domain types: request, plan, personalisation
+src/lib/constants.ts        the Worker's runtime enumerations: idea categories, cost tiers, screened fields
 src/lib/validate.ts         field-level validation, named errors
 src/lib/dates.ts            calendar-day arithmetic on YYYY-MM-DD strings, in UTC
 src/lib/apportion.ts        largest-remainder split of a total into whole rupees
@@ -119,6 +120,7 @@ src/lib/plan.ts             assembles the deterministic plan; injection screen
 src/lib/refine/apply.ts     applies a change sentence to a request; lists what changed
 src/lib/refine/dates.ts     reads a date from a sentence
 src/lib/refine/numbers.ts   reads a budget and a headcount from a sentence
+src/lib/refine/span.ts      where in the sentence a match was
 src/lib/refine/wishes.ts    the wishes and the adjustments appended to them
 src/lib/guard.ts            deterministic prompt-injection screen + nonce fence
 src/prompts/plan.ts         the facts block and the four schema-constrained asks
@@ -147,7 +149,7 @@ public/js/refine.js         "Change something": the refine round trip
 public/js/personalise.js    the ideas call, dropped if its plan was replaced
 public/js/render-*.js       plan summary, budget, timeline, vendors, ideas
 public/js/exports.js        CSV, .ics, copy as text, print
-public/js/format.js         share and date formatting
+public/js/format.js         share, date and cost-tier formatting
 public/js/theme.js          the light/dark toggle
 ```
 

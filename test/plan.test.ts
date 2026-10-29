@@ -3,7 +3,8 @@ import { fallbackPersonalisation } from '../src/lib/fallback';
 import { todayIso } from '../src/shared/constants';
 import { buildPlan, planIcs } from '../src/lib/plan';
 import { EVENT_TYPES } from '../src/shared/constants';
-import { COST_TIERS, IDEA_CATEGORIES, type PlanRequest } from '../src/lib/types';
+import { COST_TIERS, IDEA_CATEGORIES } from '../src/lib/constants';
+import type { PlanRequest } from '../src/lib/types';
 import { MAX_TOKENS, PROMPT_BUILDERS, SCHEMAS, SYSTEM_PROMPT } from '../src/prompts/plan';
 
 const TODAY = '2026-10-23';

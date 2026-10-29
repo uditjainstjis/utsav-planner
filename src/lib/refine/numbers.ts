@@ -1,5 +1,5 @@
 /** Reading a budget and a headcount out of a sentence, in Indian or Western magnitudes. */
-import { spanOf } from './dates';
+import { spanOf } from './span';
 
 /** Indian and Western magnitudes, lower-cased, matched as a whole word after a number. */
 const MAGNITUDE: Record<string, number> = {

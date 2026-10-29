@@ -10,6 +10,7 @@
 
 import type { EventType } from '../shared/constants';
 import type { BudgetLineId } from './budget-data';
+import type { COST_TIERS, IDEA_CATEGORIES, SCREENED_FIELDS } from './constants';
 import type { VendorId } from './vendors-data';
 
 /** A validated, normalised planning request: from `validate.ts`, or from `refine/apply.ts` through the same validators. */
@@ -102,19 +103,7 @@ export interface VendorItem {
 
 // ---------------------------------------------------------------- AI output
 
-/** The one definition of each enumeration; the reply schema and its validation read these. */
-export const IDEA_CATEGORIES = [
-  'theme',
-  'decor',
-  'food',
-  'activity',
-  'favour',
-  'invite',
-  'other',
-] as const;
 export type IdeaCategory = (typeof IDEA_CATEGORIES)[number];
-
-export const COST_TIERS = ['low', 'medium', 'high'] as const;
 export type CostTier = (typeof COST_TIERS)[number];
 
 export interface Idea {
@@ -150,12 +139,6 @@ export interface Personalisation {
 
 // ---------------------------------------------------------------- plan
 
-/** The request fields written in a visitor's own words. Each reaches the model, so each is screened. */
-export const SCREENED_FIELDS = [
-  'occasion',
-  'city',
-  'preferences',
-] as const satisfies readonly (keyof PlanRequest)[];
 export type ScreenedField = (typeof SCREENED_FIELDS)[number];
 
 export interface InjectionFinding {

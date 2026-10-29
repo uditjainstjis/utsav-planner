@@ -1,6 +1,7 @@
 import { OCCASION_LABEL, rupees } from '../shared/constants';
 import { fenceUntrusted, withoutInjection } from '../lib/guard';
-import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../lib/types';
+import { COST_TIERS, IDEA_CATEGORIES } from '../lib/constants';
+import type { IdeaCategory, Plan } from '../lib/types';
 
 /**
  * The prompts.

@@ -1,7 +1,18 @@
 // @ts-check
-/** Share and date formatting. Money is in constants.js, calendar arithmetic in dates.js. */
+/** Share, date and cost-tier formatting. Money is in constants.js, calendar arithmetic in dates.js. */
 
+/** @typedef {import('../../src/lib/types').CostTier} CostTier */
 /** @typedef {import('../../src/lib/types').Plan} Plan */
+
+/**
+ * Cost tiers carry a glyph and a word, never colour alone.
+ * @type {Record<CostTier, { glyph: string, word: string }>}
+ */
+export const TIER = {
+  low: { glyph: '●', word: 'Low cost' },
+  medium: { glyph: '●●', word: 'Mid cost' },
+  high: { glyph: '●●●', word: 'Higher cost' },
+};
 
 /** @param {number} share */
 export const percent = (share) => `${Math.round(share * 100)}%`;

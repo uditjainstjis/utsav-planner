@@ -3,7 +3,8 @@ import { buildBudget } from './budget';
 import { scanForInjection } from './guard';
 import { toIcs } from './ics';
 import { buildTimeline } from './timeline';
-import { SCREENED_FIELDS, type Plan, type PlanRequest } from './types';
+import { SCREENED_FIELDS } from './constants';
+import type { Plan, PlanRequest } from './types';
 import { buildVendors } from './vendors';
 
 /**

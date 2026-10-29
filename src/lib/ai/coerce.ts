@@ -1,12 +1,6 @@
 import { fallbackPersonalisation } from '../fallback';
-import {
-  COST_TIERS,
-  IDEA_CATEGORIES,
-  type BudgetLine,
-  type Idea,
-  type Personalisation,
-  type Plan,
-} from '../types';
+import { COST_TIERS, IDEA_CATEGORIES } from '../constants';
+import type { BudgetLine, Idea, Personalisation, Plan } from '../types';
 import { isRecord } from '../validate';
 
 /**
