@@ -105,6 +105,12 @@ describe('toIcs', () => {
     expect(odd).toContain('SUMMARY:A\\, B\\; C\\\\D: ');
   });
 
+  it('escapes CRLF, CR and LF line breaks, leaving no bare CR or LF', () => {
+    const odd = toIcs(t, 'A\r\nB\rC\nD', STAMP);
+    expect(odd).toContain('SUMMARY:A\\nB\\nC\\nD: ');
+    expect(odd).not.toMatch(/\r(?!\n)|[^\r]\n/);
+  });
+
   it('folds lines at 75 octets', () => {
     const long = toIcs(t, 'x'.repeat(200), STAMP);
     for (const line of long.split('\r\n')) {

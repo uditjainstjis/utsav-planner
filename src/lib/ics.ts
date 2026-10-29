@@ -7,9 +7,13 @@ import type { Timeline } from './types';
  * testable.
  */
 
-/** RFC 5545 text escaping. */
+/** RFC 5545 text escaping. Every line break — CRLF, CR or LF — becomes the escape `\n`. */
 function icsText(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n|\r|\n/g, '\\n');
 }
 
 /** Fold a content line at 75 octets, as RFC 5545 §3.1 requires. */
