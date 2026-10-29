@@ -6,7 +6,13 @@ import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from '../dates';
  */
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const MONTH = `(?<month>${MONTHS.join('|')})[a-z]*\\.?`;
+/**
+ * A month's full name or standard abbreviation, as a whole word: "Mar", "March"
+ * and "Mar." are March, but "marquee", "decor" and "maybe" are not months.
+ */
+const MONTH =
+  '(?<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|' +
+  'sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\b\\.?';
 /** 2027-03-15 */
 const DATE_ISO_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
 /** 15 March 2027 · 15th Mar · 15 march */

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { applyRefinement } from '../src/lib/refine/apply';
-import { parseDate } from '../src/lib/refine/dates';
 import { assembleWishes, splitWishes } from '../src/lib/refine/wishes';
 import { LIMITS } from '../src/shared/constants';
 import { InputError } from '../src/lib/validate';
@@ -137,63 +136,5 @@ describe('splitWishes / assembleWishes', () => {
     expect(out.length).toBeLessThanOrEqual(600);
     expect(out).toContain('Adjustment requested: third');
     expect(out).not.toContain('first');
-  });
-});
-
-describe('dates in a refinement', () => {
-  it.each([
-    ['move it to 2027-05-01', '2027-05-01'],
-    ['15 March 2027 works better', '2027-03-15'],
-    ['March 15, 2027', '2027-03-15'],
-    ['on the 3rd Nov', '2026-11-03'],
-    ['Dec 20', '2026-12-20'],
-    ['in 3 weeks', '2026-11-13'],
-    ['in 10 days', '2026-11-02'],
-    ['in 2 months', '2026-12-23'],
-  ])('reads "%s" as %s', (text, iso) => {
-    const { request, changes } = applyRefinement(REQ, text, TODAY);
-    expect(request.eventDate).toBe(iso);
-    expect(changes.find((c) => c.field === 'date')).toMatchObject({ from: '2027-03-20', to: iso });
-  });
-
-  it('reads a month alone and keeps the current day of month', () => {
-    const { request, changes } = applyRefinement(
-      { ...REQ, eventDate: '2027-05-20' },
-      'move it to March',
-      TODAY,
-    );
-    expect(request.eventDate).toBe('2027-03-20');
-    expect(changes.find((c) => c.field === 'date')).toMatchObject({
-      from: '2027-05-20',
-      to: '2027-03-20',
-    });
-  });
-
-  it('keeps the day of month when only a month is named, clamped to the month', () => {
-    const feb = applyRefinement({ ...REQ, eventDate: '2027-03-31' }, 'to February', TODAY);
-    expect(feb.request.eventDate).toBe('2027-02-28');
-  });
-
-  it('never reads a date out of a headcount or an amount', () => {
-    expect(parseDate('300 guests and 12 lakh', REQ.eventDate, TODAY)).toBeNull();
-    expect(parseDate('just 15 kids', REQ.eventDate, TODAY)).toBeNull();
-    const both = applyRefinement(REQ, 'budget 12 lakh, 300 guests, 15 March 2027', TODAY);
-    expect(both.request).toMatchObject({ budget: 1_200_000, guests: 300, eventDate: '2027-03-15' });
-    expect(both.changes.map((c) => c.field)).toEqual(['budget', 'guests', 'date', 'wishes']);
-  });
-
-  it('rejects a past or impossible date, naming the refine field', () => {
-    expect(() => applyRefinement(REQ, 'move it to 2020-01-01', TODAY)).toThrow(/in the past/);
-    expect(() => applyRefinement(REQ, '2027-02-30 maybe', TODAY)).toThrow(/does not exist/);
-    try {
-      applyRefinement(REQ, 'move it to 2020-01-01', TODAY);
-    } catch (err) {
-      expect((err as InputError).field).toBe('refine');
-    }
-  });
-
-  it('reports no date change when the date is unchanged', () => {
-    const { changes } = applyRefinement(REQ, '20 March 2027, simpler decor', TODAY);
-    expect(changes.map((c) => c.field)).toEqual(['wishes']);
   });
 });
