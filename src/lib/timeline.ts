@@ -10,8 +10,8 @@ import type { EventType, Milestone, Phase, Timeline } from './types';
  * silently lands in the past. Dates are plain calendar arithmetic in UTC so a
  * plan made in Mumbai and read in Toronto shows the same dates.
  *
- * The ICS export is deterministic for a given plan — same input, byte-identical
- * file — which is what makes it testable and lets a browser cache it.
+ * The ICS export is deterministic for a given timeline, name and stamp — same
+ * input, byte-identical file — which is what makes it testable.
  */
 
 interface Step {
@@ -291,7 +291,7 @@ export function buildTimeline(eventType: EventType, eventDate: string, today: st
   return { leadDays, rushed, milestones };
 }
 
-/** Days-before for the milestone that books `vendorId`, or null. */
+/** The milestone that books `vendorId`, or null when none does. */
 export function bookByFor(timeline: Timeline, vendorId: string): Milestone | null {
   return timeline.milestones.find((m) => m.vendorId === vendorId) ?? null;
 }

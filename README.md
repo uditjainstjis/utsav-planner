@@ -99,10 +99,10 @@ the deployed bundle.
 ## Architecture
 
 ```
-public/            static single-page app: index.html, styles.css, js/ (ES modules)
-public/js/shared   request limits and occasion labels, imported by the page and the Worker
 src/index.ts       Hono router: /api/health, /api/plan, /api/refine, /api/personalise, assets
+src/lib/types      the domain types: request, plan, personalisation
 src/lib/validate   field-level validation, named errors
+src/lib/dates      calendar-day arithmetic on YYYY-MM-DD strings, in UTC
 src/lib/budget     shares → whole-rupee lines that sum exactly; warnings
 src/lib/timeline   milestones counted back from the date; compression; .ics
 src/lib/vendors    checklist tied to timeline milestones and budget lines
@@ -114,6 +114,22 @@ src/lib/ai         Workers AI client: concurrency, fallback, validation, cache
 src/lib/fallback   deterministic guidance when no model answers
 src/lib/headers    CSP, Trusted Types, COOP/COEP/CORP, HSTS, permissions policy
 src/lib/cache      content-addressed Workers Cache API wrapper
+
+public/            static single-page app: index.html, styles.css, _headers, fonts/, js/
+public/js/main          entry point: wires the modules below
+public/js/shared        request limits and occasion labels, imported by the page and the Worker
+public/js/dom           every element the script touches, looked up once
+public/js/state         the plan on screen, the progress announcer, busy buttons
+public/js/api           the three POST calls, with timeouts and readable errors
+public/js/form          the brief form: reading, client checks, field errors
+public/js/samples       the four example briefs
+public/js/build         "Build my plan": numbers first, then ideas
+public/js/refine        "Change something": the refine round trip
+public/js/personalise   the ideas call, dropped if its plan was replaced
+public/js/render-*      plan summary, budget, timeline, vendors, ideas
+public/js/exports       CSV, .ics, copy as text, print
+public/js/format        money, share and date formatting
+public/js/theme         the light/dark toggle
 ```
 
 Runs on Cloudflare Workers with one runtime dependency (`hono`). Static assets
