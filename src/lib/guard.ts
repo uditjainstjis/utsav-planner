@@ -15,6 +15,13 @@ import type { InjectionFinding } from './types';
  * that can itself be argued with. See SECURITY.md.
  */
 
+/**
+ * Characters that render as nothing: zero-width space, non-joiner and joiner,
+ * the left-to-right and right-to-left marks, bidi embeddings and overrides,
+ * the word joiner and invisible operators, and the byte-order mark.
+ */
+const INVISIBLE = '[\\u200b-\\u200f\\u202a-\\u202e\\u2060-\\u2064\\ufeff]';
+
 interface Rule {
   kind: string;
   detail: string;
@@ -55,8 +62,7 @@ const RULES: Rule[] = [
   {
     kind: 'hidden-characters',
     detail: 'Invisible characters, commonly used to conceal text from human readers.',
-    // Zero-width space/non-joiner/joiner, word joiner, BOM, bidi overrides.
-    re: /[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]{2,}/g,
+    re: new RegExp(`${INVISIBLE}{2,}`, 'g'),
   },
 ];
 
@@ -90,7 +96,7 @@ export function scanForInjection(text: string): InjectionFinding[] {
 function excerpt(text: string, offset: number, length: number): string {
   const raw = text.slice(offset, offset + Math.min(length, 120));
   // Render invisible characters visibly, otherwise the excerpt looks empty.
-  return raw.replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g, '□') || '□';
+  return raw.replace(new RegExp(INVISIBLE, 'g'), '□') || '□';
 }
 
 /**
@@ -123,9 +129,10 @@ export function fenceUntrusted(text: string, nonce: string): string {
   return `<<<${nonce}\n${defanged}\n${nonce}>>>`;
 }
 
-/** Cryptographically random delimiter for {@link fenceUntrusted}. */
+/**
+ * Cryptographically random delimiter for {@link fenceUntrusted}: a v4 UUID,
+ * 122 random bits, as 32 hex digits.
+ */
 export function makeNonce(): string {
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  return `UTSAV_${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  return `UTSAV_${crypto.randomUUID().replace(/-/g, '')}`;
 }

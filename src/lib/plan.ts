@@ -33,8 +33,3 @@ export function planIcs(plan: Plan, stamp: string): string {
   const label = plan.request.occasion ?? OCCASION_LABEL[plan.request.eventType];
   return toIcs(plan.timeline, label, stamp);
 }
-
-/** Today as YYYY-MM-DD in UTC. One place, so tests can reason about it. */
-export function todayIso(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
-}

@@ -29,10 +29,6 @@ const DATE_FMT = new Intl.DateTimeFormat('en-IN', {
 /** @param {string} iso */
 export const fmtDate = (iso) => DATE_FMT.format(new Date(`${iso}T00:00:00Z`));
 
-export function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /**
  * @param {string} iso
  * @param {number} days

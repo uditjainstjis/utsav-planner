@@ -5,9 +5,9 @@
  * every field again; these checks are a convenience, not a control.
  */
 import { els } from './dom.js';
-import { addDays, INR, todayIso } from './format.js';
+import { addDays, INR } from './format.js';
 import { SAMPLES } from './samples.js';
-import { LIMITS } from './shared.js';
+import { LIMITS, todayIso } from './shared.js';
 
 /** @typedef {import('./samples.js').Sample} Sample */
 

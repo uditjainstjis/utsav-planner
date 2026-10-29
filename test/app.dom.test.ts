@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fallbackPersonalisation } from '../src/lib/fallback';
-import { buildPlan, todayIso } from '../src/lib/plan';
+import { todayIso } from '../public/js/shared.js';
+import { buildPlan } from '../src/lib/plan';
 import { applyRefinement } from '../src/lib/refine';
 import type { Personalisation, Plan, PlanRequest } from '../src/lib/types';
 

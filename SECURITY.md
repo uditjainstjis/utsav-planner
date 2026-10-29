@@ -73,10 +73,10 @@ fenced. Everything below applies to the wishes.
   silently dropped: a planner should know their wishes contained text aimed at a
   machine. The screen is pure code so it cannot be argued with.
 - `fenceUntrusted` defangs chat control tokens and wraps the text in a delimiter
-  generated from 12 random bytes per request. The text cannot guess the
-  delimiter, so it cannot close the data section and start issuing instructions.
-  The nonce itself is removed from the text first, so it cannot be forged. The
-  system prompt names the fence and tells the model it is data.
+  generated per request from a random UUID (122 random bits). The text cannot
+  guess the delimiter, so it cannot close the data section and start issuing
+  instructions. The nonce itself is removed from the text first, so it cannot be
+  forged. The system prompt names the fence and tells the model it is data.
 - **The model is never asked for a number.** Budget lines, dates, per-guest
   figures and the vendor list are computed in code and _stated_ to the model. A
   successful injection can therefore change the wording of an idea; it cannot

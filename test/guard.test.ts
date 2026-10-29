@@ -87,6 +87,6 @@ describe('makeNonce', () => {
     const a = makeNonce();
     const b = makeNonce();
     expect(a).not.toBe(b);
-    expect(a).toMatch(/^UTSAV_[0-9a-f]{24}$/);
+    expect(a).toMatch(/^UTSAV_[0-9a-f]{32}$/);
   });
 });

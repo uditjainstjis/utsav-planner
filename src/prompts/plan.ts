@@ -1,3 +1,4 @@
+import { OCCASION_LABEL } from '../../public/js/shared.js';
 import { fenceUntrusted } from '../lib/guard';
 import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../lib/types';
 
@@ -18,7 +19,7 @@ import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../li
  * Bump PROMPT_VERSION whenever wording or a schema changes: it is part of the
  * cache key, so stale answers are never served against a new prompt.
  */
-export const PROMPT_VERSION = '2026-10-23.4';
+export const PROMPT_VERSION = '2026-10-29.1';
 
 export const SYSTEM_PROMPT = [
   'You are Utsav, a celebration planner for weddings, birthdays and community events in India.',
@@ -73,18 +74,12 @@ export const NOTES_SCHEMA = {
   required: ['budgetNotes'],
 } as const;
 
-export const SCHEMAS: Record<Part, object> = {
+export const SCHEMAS = {
   ideasA: IDEAS_SCHEMA,
   ideasB: IDEAS_SCHEMA,
   vendors: VENDORS_SCHEMA,
   notes: NOTES_SCHEMA,
-};
-
-const OCCASION_WORD: Record<Plan['request']['eventType'], string> = {
-  wedding: 'wedding',
-  birthday: 'birthday party',
-  community: 'community event',
-};
+} as const satisfies Record<Part, object>;
 
 /** The facts every ask is built on. Numbers are stated, never requested. */
 export function buildFacts(plan: Plan, nonce: string): string {
@@ -93,7 +88,7 @@ export function buildFacts(plan: Plan, nonce: string): string {
     ? `The user's own wishes, fenced:\n${fenceUntrusted(r.preferences, nonce)}`
     : 'The user gave no specific wishes.';
   return [
-    `Occasion: ${OCCASION_WORD[r.eventType]}${r.occasion ? ` — "${r.occasion}"` : ''}.`,
+    `Occasion: ${OCCASION_LABEL[r.eventType].toLowerCase()}${r.occasion ? ` — "${r.occasion}"` : ''}.`,
     `Where: ${r.city ?? 'not stated'}. Date: ${r.eventDate}. Days until the event: ${timeline.leadDays}${timeline.rushed ? ' (this is a rush)' : ''}.`,
     `Guests: ${r.guests}. Total budget: ₹${budget.total.toLocaleString('en-IN')}, about ₹${budget.perGuest.toLocaleString('en-IN')} per guest.`,
     wishes,

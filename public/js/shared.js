@@ -3,7 +3,7 @@
  * Values the page and the Worker must agree on, defined once.
  *
  * Plain JavaScript, so the browser loads this file as it is. The Worker imports
- * the same file (src/lib/validate.ts, src/lib/plan.ts), so there is no second
+ * the same file (src/index.ts and src/lib/), so there is no second
  * copy to drift; test/assets.dom.test.ts holds the form's own min, max and
  * maxlength attributes to these numbers.
  */
@@ -29,3 +29,12 @@ export const OCCASION_LABEL = Object.freeze({
   birthday: 'Birthday',
   community: 'Community event',
 });
+
+/**
+ * Today as YYYY-MM-DD in UTC: the day the form's date bounds and the Worker's
+ * planning day are both counted from, so the two agree on what "past" means.
+ * @param {Date} [now]
+ */
+export function todayIso(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}

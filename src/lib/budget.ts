@@ -1,3 +1,4 @@
+import { OCCASION_LABEL } from '../../public/js/shared.js';
 import type { Budget, BudgetFlag, BudgetLine, EventType } from './types';
 
 /**
@@ -167,7 +168,7 @@ function flagsFor(
       {
         code: 'tight_total',
         message:
-          `At ₹${perGuest.toLocaleString('en-IN')} per guest this is tight for a ${eventType}. ` +
+          `At ₹${perGuest.toLocaleString('en-IN')} per guest this is tight for a ${OCCASION_LABEL[eventType].toLowerCase()}. ` +
           `Fewer guests, a simpler venue, or a budget nearer ₹${enough} would give room to breathe.`,
       },
     ];

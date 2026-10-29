@@ -1,3 +1,4 @@
+import { OCCASION_LABEL } from '../../public/js/shared.js';
 import type { EventType, Idea, Personalisation, Plan } from './types';
 
 /**
@@ -191,10 +192,9 @@ export function fallbackPersonalisation(plan: Plan): Personalisation {
   const budgetNotes: Record<string, string> = {};
   for (const l of budget.lines) budgetNotes[l.id] = NOTE[l.id] ?? 'Spend only what the plan needs.';
 
-  const word = request.eventType === 'community' ? 'community event' : request.eventType;
   return {
     summary:
-      `A ${word} for ${request.guests} guests at about ₹${budget.perGuest.toLocaleString('en-IN')} a head. ` +
+      `A ${OCCASION_LABEL[request.eventType].toLowerCase()} for ${request.guests} guests at about ₹${budget.perGuest.toLocaleString('en-IN')} a head. ` +
       'The ideas below are general starting points; personalised suggestions were unavailable just now.',
     ideas,
     vendorQuestions,

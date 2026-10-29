@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fallbackPersonalisation } from '../src/lib/fallback';
-import { buildPlan, planIcs, todayIso } from '../src/lib/plan';
+import { todayIso } from '../public/js/shared.js';
+import { buildPlan, planIcs } from '../src/lib/plan';
 import { COST_TIERS, EVENT_TYPES, IDEA_CATEGORIES, type PlanRequest } from '../src/lib/types';
 import {
   buildFacts,
