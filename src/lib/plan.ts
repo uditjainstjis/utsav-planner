@@ -1,3 +1,4 @@
+import { OCCASION_LABEL } from '../../public/js/shared.js';
 import { buildBudget } from './budget';
 import { scanForInjection } from './guard';
 import { buildTimeline, toIcs } from './timeline';
@@ -29,11 +30,7 @@ export function buildPlan(request: PlanRequest, today: string): Plan {
 
 /** The calendar export for a plan. */
 export function planIcs(plan: Plan, stamp: string): string {
-  const label =
-    plan.request.occasion ??
-    { wedding: 'Wedding', birthday: 'Birthday', community: 'Community event' }[
-      plan.request.eventType
-    ];
+  const label = plan.request.occasion ?? OCCASION_LABEL[plan.request.eventType];
   return toIcs(plan.timeline, label, stamp);
 }
 

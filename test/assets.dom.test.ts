@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { LIMITS, OCCASION_LABEL } from '../public/js/shared.js';
+import { buildPlan, planIcs } from '../src/lib/plan';
+import { MAX_REFINE_CHARS } from '../src/lib/refine';
+import { LIMITS as SERVER_LIMITS } from '../src/lib/validate';
 
 /**
  * Invariants about the files actually served from public/.
@@ -52,5 +56,42 @@ describe('the shipped fonts', () => {
       // serve the old bytes for a year.
       expect(font).toContain(digest);
     }
+  });
+});
+
+describe('the limits the page and the Worker share', () => {
+  const form = new DOMParser().parseFromString(indexHtml, 'text/html');
+  const attr = (id: string, name: string): number =>
+    Number(form.getElementById(id)?.getAttribute(name) ?? Number.NaN);
+
+  it('are the one object the Worker validates against', () => {
+    expect(SERVER_LIMITS).toBe(LIMITS);
+  });
+
+  it('match the form controls, so the browser and the server refuse the same input', () => {
+    expect(attr('guests', 'min')).toBe(LIMITS.guests.min);
+    expect(attr('guests', 'max')).toBe(LIMITS.guests.max);
+    expect(attr('budget', 'min')).toBe(LIMITS.budget.min);
+    expect(attr('budget', 'max')).toBe(LIMITS.budget.max);
+    expect(attr('city', 'maxlength')).toBe(LIMITS.city);
+    expect(attr('occasion', 'maxlength')).toBe(LIMITS.occasion);
+    expect(attr('preferences', 'maxlength')).toBe(LIMITS.preferences);
+    expect(attr('refine', 'maxlength')).toBe(MAX_REFINE_CHARS);
+  });
+
+  it('name an unnamed occasion the same way in the calendar as on the page', () => {
+    const plan = buildPlan(
+      {
+        eventType: 'community',
+        eventDate: '2099-01-01',
+        guests: 10,
+        budget: 10_000,
+        city: null,
+        occasion: null,
+        preferences: null,
+      },
+      '2098-06-01',
+    );
+    expect(planIcs(plan, '2098-06-01T00:00:00Z')).toContain(`SUMMARY:${OCCASION_LABEL.community}`);
   });
 });

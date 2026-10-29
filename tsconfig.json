@@ -16,7 +16,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "resolveJsonModule": true,
-    "allowJs": false
+    "allowJs": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "worker-configuration.d.ts"],
   "exclude": ["node_modules", "dist", "test/**/*.dom.test.ts"]

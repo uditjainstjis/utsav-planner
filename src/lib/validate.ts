@@ -1,3 +1,4 @@
+import { LIMITS } from '../../public/js/shared.js';
 import { dateParts, daysBetween } from './dates';
 import { EVENT_TYPES, type PlanRequest } from './types';
 
@@ -21,15 +22,8 @@ export class InputError extends Error {
   }
 }
 
-export const LIMITS = {
-  guests: { min: 1, max: 5000 },
-  budget: { min: 1000, max: 100_000_000 },
-  /** How far ahead a plan may be made. Two years covers every real booking. */
-  maxLeadDays: 730,
-  city: 60,
-  occasion: 80,
-  preferences: 600,
-} as const;
+/** The request limits, defined once in public/js/shared.js so the form reads the same numbers. */
+export { LIMITS };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
