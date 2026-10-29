@@ -27,7 +27,7 @@ export interface PlanRequest {
   city: string | null;
   /** What the celebration is for — "Aarav's 5th birthday", "Diwali mela". */
   occasion: string | null;
-  /** Free-text wishes: theme, food, must-haves. Untrusted; screened before use. */
+  /** Free-text wishes: theme, food, must-haves. Untrusted; screened, stripped and fenced before a model sees them. */
   preferences: string | null;
 }
 
@@ -144,7 +144,17 @@ export interface Personalisation {
 
 // ---------------------------------------------------------------- plan
 
+/** The request fields written in a visitor's own words. Each reaches the model, so each is screened. */
+export const SCREENED_FIELDS = [
+  'occasion',
+  'city',
+  'preferences',
+] as const satisfies readonly (keyof PlanRequest)[];
+export type ScreenedField = (typeof SCREENED_FIELDS)[number];
+
 export interface InjectionFinding {
+  /** The field the text was found in. */
+  field: ScreenedField;
   kind: string;
   detail: string;
   excerpt: string;
@@ -158,6 +168,9 @@ export interface Plan {
   budget: Budget;
   timeline: Timeline;
   vendors: VendorItem[];
-  /** Findings from screening the free-text preferences. Shown, never hidden. */
+  /**
+   * Findings from screening the occasion name, city and wishes, field by field.
+   * Shown to the user; the sentences they sit in never reach a model.
+   */
   guard: { injectionFindings: InjectionFinding[] };
 }

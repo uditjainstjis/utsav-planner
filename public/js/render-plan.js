@@ -9,8 +9,12 @@ import { setCurrent } from './state.js';
 
 /** @typedef {import('../../src/lib/types').InjectionFinding} InjectionFinding */
 /** @typedef {import('../../src/lib/types').Plan} Plan */
+/** @typedef {import('../../src/lib/types').ScreenedField} ScreenedField */
 /** @typedef {import('./api.js').PlanReply} PlanReply */
 /** @typedef {import('./state.js').Current} Current */
+
+/** @type {Record<ScreenedField, string>} */
+const FIELD_NAME = { occasion: 'Occasion name', city: 'City', preferences: 'Wishes' };
 
 /** @param {InjectionFinding[]} findings */
 function renderGuard(findings) {
@@ -21,16 +25,16 @@ function renderGuard(findings) {
   }
   const head = document.createElement('p');
   const lead = document.createElement('strong');
-  lead.textContent = 'Your wishes contained text aimed at the AI, not at a planner.';
+  lead.textContent = 'Your brief contained text aimed at the AI, not at a planner.';
   head.append(
     lead,
-    ` It was fenced off and ignored, and the plan below was built from the rest. ${findings.length} finding${findings.length === 1 ? '' : 's'}:`,
+    ` Each sentence holding it was removed before the AI saw your brief; the AI was given only the rest. ${findings.length} finding${findings.length === 1 ? '' : 's'}:`,
   );
   const list = document.createElement('ul');
   for (const f of findings) {
     const li = document.createElement('li');
     const kind = document.createElement('strong');
-    kind.textContent = `${f.kind}: `;
+    kind.textContent = `${FIELD_NAME[f.field]}, ${f.kind}: `;
     const q = document.createElement('q');
     q.textContent = f.excerpt;
     li.append(kind, f.detail, ' ', q);

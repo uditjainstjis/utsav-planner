@@ -7,13 +7,13 @@ defended, in the order a request meets the controls.
 
 ## Threat model
 
-| Asset                                       | Threat                                               | Control                                                                                                                                                            |
-| ------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The visitor's inputs (budget, date, wishes) | Disclosure to a third party or an intermediary cache | No storage; `no-store` on every API response; no third-party origins; no analytics                                                                                 |
-| The model                                   | Prompt injection through the wishes field            | Deterministic screen + nonce fence; model never sees numbers it can change                                                                                         |
-| The page                                    | Script injection through model output                | `textContent` only; CSP without `unsafe-inline`; Trusted Types enforced by the browser                                                                             |
-| The service                                 | Abuse: cross-site requests, floods, oversized bodies | Content-type gate, `Sec-Fetch-Site` check, per-IP rate limit, bounded fields                                                                                       |
-| The supply chain                            | A compromised dependency or Action                   | One runtime dependency; lockfile; patched overrides and an install-script allowlist; CodeQL, dependency-review and Dependabot in CI; Actions pinned to commit SHAs |
+| Asset                                       | Threat                                                     | Control                                                                                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The visitor's inputs (budget, date, wishes) | Disclosure to a third party or an intermediary cache       | No storage; `no-store` on every API response; no third-party origins; no analytics                                                                                 |
+| The model                                   | Prompt injection through the occasion name, city or wishes | Deterministic screen whose flagged sentences never reach the model; nonce fence around the rest; model never sees numbers it can change                            |
+| The page                                    | Script injection through model output                      | `textContent` only; CSP without `unsafe-inline`; Trusted Types enforced by the browser                                                                             |
+| The service                                 | Abuse: cross-site requests, floods, oversized bodies       | Content-type gate, `Sec-Fetch-Site` check, per-IP rate limit, bounded fields                                                                                       |
+| The supply chain                            | A compromised dependency or Action                         | One runtime dependency; lockfile; patched overrides and an install-script allowlist; CodeQL, dependency-review and Dependabot in CI; Actions pinned to commit SHAs |
 
 There is no login, no session and no database. A visitor has nothing to steal
 from another visitor, and the service holds no credential that a request could
@@ -59,19 +59,24 @@ character strip is a single character class.
 
 ## 3. The model boundary (`src/lib/guard.ts`, `src/prompts/plan.ts`, `src/lib/ai.ts`)
 
-The wishes field is the only long free text a visitor can send (600 characters,
-and every refinement is folded into it). The occasion name and city also reach
-the model, quoted as labels in the facts block; they are at most 80 and 60
-characters with control characters stripped, and are neither screened nor
-fenced. Everything below applies to the wishes.
+Three fields reach the model in a visitor's own words: the occasion's name (at
+most 80 characters), the city (60) and the wishes (600, and every refinement is
+folded into them). All three are handled the same way.
 
 **On the way in:**
 
-- `scanForInjection` runs seven deterministic rules — instruction override, role
-  hijack, budget steering, suppression, prompt exfiltration, chat delimiter
-  tokens, runs of invisible characters. Findings are **shown to the user**, not
-  silently dropped: a planner should know their wishes contained text aimed at a
-  machine. The screen is pure code so it cannot be argued with.
+- `scanForInjection` runs seven deterministic rules over each field —
+  instruction override, role hijack, budget steering, suppression, prompt
+  exfiltration, chat delimiter tokens, runs of invisible characters. Findings
+  are **shown to the user**, with the field they were found in: a planner should
+  know their brief contained text aimed at a machine. The screen is pure code so
+  it cannot be argued with.
+- `withoutInjection` removes every sentence that holds a match — every match,
+  not only the 25 per field that are shown — before the prompt is built. A
+  sentence runs to the next full stop, `!`, `?` or line break; a field left
+  empty is sent as not given. `test/api.test.ts` asserts that no flagged
+  sentence appears in any of the four prompts sent. Text the rules do not
+  recognise still reaches the model, which is what the next two layers are for.
 - `fenceUntrusted` defangs chat control tokens and wraps the text in a delimiter
   generated per request from a random UUID (122 random bits). The text cannot
   guess the delimiter, so it cannot close the data section and start issuing
@@ -108,8 +113,8 @@ appended to the wishes as a labelled "Adjustment requested" line and re-bounded
 to the wishes limit: at most the three most recent adjustments are kept, older
 ones are dropped first, and the result can never exceed 600 characters, so the
 brief that reaches the model on the next `/api/personalise` call is subject to
-exactly the same screen, fence and validation as a fresh one. The refine route
-itself never calls a model, and `test/api.test.ts` asserts it.
+exactly the same screen, removal, fence and validation as a fresh one. The
+refine route itself never calls a model, and `test/api.test.ts` asserts it.
 
 ## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/js/`)
 

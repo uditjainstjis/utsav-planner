@@ -2,7 +2,7 @@ import { OCCASION_LABEL } from '../../public/js/shared.js';
 import { buildBudget } from './budget';
 import { scanForInjection } from './guard';
 import { buildTimeline, toIcs } from './timeline';
-import type { Plan, PlanRequest } from './types';
+import { SCREENED_FIELDS, type Plan, type PlanRequest } from './types';
 import { buildVendors } from './vendors';
 
 /**
@@ -23,7 +23,9 @@ export function buildPlan(request: PlanRequest, today: string): Plan {
     timeline,
     vendors,
     guard: {
-      injectionFindings: request.preferences ? scanForInjection(request.preferences) : [],
+      injectionFindings: SCREENED_FIELDS.flatMap((field) =>
+        scanForInjection(request[field] ?? '', field),
+      ),
     },
   };
 }

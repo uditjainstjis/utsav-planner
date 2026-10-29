@@ -27,9 +27,10 @@ Split the two completely.
 
 ## Consequences
 
-- A prompt injection through the wishes field can at most change the wording of
-  an idea. It cannot move money between lines or change a date. The injection
-  screen still runs, and its findings are shown to the user.
+- A prompt injection through the free text can at most change the wording of an
+  idea. It cannot move money between lines or change a date. The injection
+  screen still runs: its findings are shown to the user, and the sentences it
+  flags are removed before the prompt is built.
 - The plan is available in milliseconds and is complete without the model. A
   model outage degrades one section and is labelled (`source: "fallback"`).
 - Testing is straightforward: the deterministic 80% has exhaustive unit tests;

@@ -48,8 +48,9 @@ cannot change the budget. See [SECURITY.md](SECURITY.md).
    with no model call. The page renders them immediately.
 2. The browser then `POST`s the same form to **`/api/personalise`**. The Worker
    rebuilds the plan server-side (it never trusts a plan sent by the client),
-   fences the free-text wishes in a per-request nonce, and sends **four small
-   concurrent asks** to Workers AI — two halves of the ideas, the vendor
+   removes every sentence the injection screen flags from the occasion name,
+   city and wishes, fences what is left in a per-request nonce, and sends **four
+   small concurrent asks** to Workers AI — two halves of the ideas, the vendor
    questions, the budget notes — each with its own JSON schema. Replies are
    validated and merged; any part that fails falls back to deterministic
    guidance. Ideas, budget notes and AI-written vendor questions fill in.
@@ -79,8 +80,9 @@ repeat). The measurements and the model comparison are in
 - **Society Diwali mela, 400 people** — ₹1.8 lakh, eco-friendly. Permits, first
   aid and volunteers appear only for a community event.
 - **Wishes with hidden AI instructions** — the fourth example carries "ignore
-  all previous instructions…" in the wishes. The screen catches it, the page
-  shows you exactly what it found, and the plan is built from the rest.
+  all previous instructions…" in the wishes. The screen catches it and the page
+  shows you exactly what it found; those sentences are removed before the model
+  sees the brief, and it is given only the rest.
 
 Then: tick vendors as you book them (ticks persist on your device), download the
 timeline to your calendar, the budget as CSV, copy the whole plan as text, or
@@ -140,11 +142,12 @@ scoped to `/api/*`.
 
 Threat model and controls in [SECURITY.md](SECURITY.md). In short: content-type
 and `Sec-Fetch-Site` gate (CSRF), per-IP rate limit, bounded and typed inputs,
-deterministic prompt-injection screening that is _shown_ to the user, a nonce
-fence around the free-text wishes, a CSP with no `unsafe-*`, Trusted Types
-enforced by the browser, `no-store` on every API response, no server-side
-storage, no third-party origin, SHA-pinned Actions, CodeQL, dependency review
-and Dependabot in CI, and `/.well-known/security.txt`.
+deterministic prompt-injection screening of the occasion name, city and wishes
+that is _shown_ to the user and keeps flagged sentences from the model, a nonce
+fence around the rest, a CSP with no `unsafe-*`, Trusted Types enforced by the
+browser, `no-store` on every API response, no server-side storage, no
+third-party origin, SHA-pinned Actions, CodeQL, dependency review and Dependabot
+in CI, and `/.well-known/security.txt`.
 
 ## Accessibility
 
@@ -187,14 +190,16 @@ What is covered, and the property each test holds:
   schema-constrained call shape.
 - **api** — CSRF gate, cross-site rejection, rate limit by IP (and that it is
   not spent on rejected requests), identical security headers on API and assets,
-  no configuration leaked by `/api/health`, fenced wishes in the actual prompt
-  sent, 404 under `/api`.
+  no configuration leaked by `/api/health`, no flagged sentence in any of the
+  four prompts sent and the rest of the name, city and wishes fenced, 404 under
+  `/api`.
 - **refine** — Indian and Western magnitudes (lakh, crore, k, million),
   headcount phrasings, explicit/relative/month-only dates, all three at once, a
   sentence with no numbers, unchanged values reported as no change, out-of-range
   or past values named by field, the brief re-bounded across six turns.
-- **guard** — each injection rule, the finding cap, text order, fence defanging,
-  nonce forgery.
+- **guard** — each injection rule, the finding cap, text order, the field named;
+  sentence removal of every match, not only those shown; fence defanging, nonce
+  forgery.
 - **app** (jsdom, the real `index.html` and `public/js` modules) — a brief the
   server rejects is shown at its field and focused, also on a second submit with
   a plan already on screen; an ideas failure degrades only the ideas card; the
