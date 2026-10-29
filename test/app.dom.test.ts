@@ -3,15 +3,17 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fallbackPersonalisation } from '../src/lib/fallback';
 import { buildPlan, todayIso } from '../src/lib/plan';
+import { applyRefinement } from '../src/lib/refine';
 import type { PlanRequest } from '../src/lib/types';
 
 /**
- * The front end's error paths, driven through the real markup and app.js.
+ * The front end's request flows, driven through the real markup and app.js.
  *
- * The plan form talks to two endpoints, and an error from each belongs in a
- * different place: a rejected brief goes next to the field that failed, a
- * failed ideas call degrades only the ideas card. These tests hold that apart,
- * including on a second submit, when an earlier plan is still on screen.
+ * Each form talks to two endpoints, and an error from each belongs in a
+ * different place: a rejected brief or change goes next to the field that
+ * failed, a failed ideas call degrades only the ideas card. These tests hold
+ * that apart, including on a second submit, when an earlier plan is still on
+ * screen.
  */
 
 const APP = resolve(process.cwd(), 'public', 'app.js');
@@ -165,5 +167,64 @@ describe('the plan form', () => {
 
     expect($('form-error').hidden).toBe(true);
     expect($('event-date').getAttribute('aria-invalid')).toBeNull();
+  });
+});
+
+describe('the refine form', () => {
+  async function planFirst(...after: Reply[]): Promise<ReturnType<typeof vi.fn>> {
+    const fetch = stubFetch(
+      ok({ plan: PLAN, ics: '' }),
+      ok(fallbackPersonalisation(PLAN)),
+      ...after,
+    );
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+    return fetch;
+  }
+
+  function refine(text: string): void {
+    $('refine', HTMLInputElement).value = text;
+    $('refine-form', HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+
+  async function refineSettled(): Promise<void> {
+    await vi.waitFor(() => {
+      expect($('refine-btn').getAttribute('aria-disabled')).not.toBe('true');
+    });
+  }
+
+  it('applies a change, shows it, and writes the new brief back to the form', async () => {
+    const refined = applyRefinement(REQUEST, '30 guests', TODAY);
+    const plan = buildPlan(refined.request, TODAY);
+    await planFirst(
+      ok({ ...refined, plan, ics: '' }),
+      ok({ ...fallbackPersonalisation(plan), source: 'model', model: 'm', cached: true }),
+    );
+
+    refine('30 guests');
+    await refineSettled();
+
+    expect($('changes').textContent).toContain('Guests: 20 → 30');
+    expect($('guests', HTMLInputElement).value).toBe('30');
+    expect($('refine', HTMLInputElement).value).toBe('');
+    expect($('refine-btn').textContent).toBe('Update the plan');
+    expect($('ideas-status').textContent).toMatch(/ideas from m, cached/);
+    await vi.waitFor(() => {
+      expect($('progress').textContent).toMatch(/ideas rewritten/);
+    });
+  });
+
+  it('shows a rejected change next to the change field', async () => {
+    const message = 'Guests must be between 1 and 5,000.';
+    await planFirst({ status: 400, body: { error: message, code: 'range', field: 'refine' } });
+
+    refine('9000 guests');
+    await refineSettled();
+
+    expect($('refine-error').textContent).toBe(message);
+    expect($('refine').getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe($('refine'));
+    expect($('form-error').hidden).toBe(true);
   });
 });

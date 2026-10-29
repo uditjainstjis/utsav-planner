@@ -137,8 +137,22 @@ const SAMPLES = {
   },
 };
 
+/**
+ * The form's limits, in one place. The server holds the same numbers
+ * (`LIMITS` in src/lib/validate.ts) and re-checks every request.
+ */
+const LIMITS = {
+  guests: { min: 1, max: 5000 },
+  budget: { min: 1000, max: 100_000_000 },
+  maxLeadDays: 730,
+  preferences: 600,
+};
+
 const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const rupees = (n) => `₹${INR.format(n)}`;
+const percent = (share) => `${Math.round(share * 100)}%`;
+/** The name of a budget line, for text that refers to one by id. */
+const lineLabel = (plan, id) => plan.budget.lines.find((l) => l.id === id)?.label ?? id;
 const DATE_FMT = new Intl.DateTimeFormat('en-IN', {
   weekday: 'short',
   day: 'numeric',
@@ -191,11 +205,11 @@ function addDays(iso, days) {
 }
 
 els.date.min = todayIso();
-els.date.max = addDays(todayIso(), 730);
+els.date.max = addDays(todayIso(), LIMITS.maxLeadDays);
 
 function updateCount() {
   const n = els.preferences.value.length;
-  els.prefCount.textContent = `${n} of 600 characters`;
+  els.prefCount.textContent = `${n} of ${LIMITS.preferences} characters`;
 }
 els.preferences.addEventListener('input', updateCount);
 
@@ -280,19 +294,25 @@ function readForm() {
 function clientValidate(body) {
   if (!body.eventDate) return ['Choose the event date.', 'eventDate'];
   if (body.eventDate < todayIso()) return ['The event date is in the past.', 'eventDate'];
-  if (body.eventDate > addDays(todayIso(), 730)) {
+  if (body.eventDate > addDays(todayIso(), LIMITS.maxLeadDays)) {
     return ['Plans can be made up to two years ahead.', 'eventDate'];
   }
-  const g = Number(body.guests);
-  if (!body.guests || !Number.isFinite(g) || g < 1 || g > 5000) {
-    return ['Guests must be between 1 and 5,000.', 'guests'];
+  if (outOfRange(body.guests, LIMITS.guests)) {
+    return [rangeMessage('Guests', LIMITS.guests), 'guests'];
   }
-  const b = Number(body.budget);
-  if (!body.budget || !Number.isFinite(b) || b < 1000 || b > 100000000) {
-    return ['Budget must be between 1,000 and 10,00,00,000.', 'budget'];
+  if (outOfRange(body.budget, LIMITS.budget)) {
+    return [rangeMessage('Budget', LIMITS.budget), 'budget'];
   }
   return null;
 }
+
+function outOfRange(raw, { min, max }) {
+  const n = Number(raw);
+  return !raw || !Number.isFinite(n) || n < min || n > max;
+}
+/** Worded as the server words it, so the message does not change with who caught it. */
+const rangeMessage = (label, { min, max }) =>
+  `${label} must be between ${INR.format(min)} and ${INR.format(max)}.`;
 
 // ---------------------------------------------------------------- fetch
 
@@ -344,9 +364,30 @@ function announce(text) {
   });
 }
 
-function setBusy(busy) {
-  els.planBtn.setAttribute('aria-disabled', String(busy));
-  els.planBtn.textContent = busy ? 'Building…' : 'Build my plan';
+/** The two buttons that start a request, and what each says while it runs. */
+const BUSY = {
+  plan: { btn: els.planBtn, idle: 'Build my plan', working: 'Building…' },
+  refine: { btn: els.refineBtn, idle: 'Update the plan', working: 'Updating…' },
+};
+
+/** Busy controls use `aria-disabled`, not `disabled`, so focus is never dropped. */
+function setBusy(which, busy) {
+  const { btn, idle, working } = BUSY[which];
+  btn.setAttribute('aria-disabled', String(busy));
+  btn.textContent = busy ? working : idle;
+}
+const isBusy = (which) => BUSY[which].btn.getAttribute('aria-disabled') === 'true';
+
+function setIdeasStatus(text, state) {
+  els.ideasStatus.textContent = text;
+  els.ideasStatus.dataset.state = state;
+}
+
+/** Empty the ideas card and say new ideas are on their way. */
+function resetIdeas(status) {
+  setIdeasStatus(status, 'busy');
+  els.aiSummary.textContent = '';
+  els.ideasList.replaceChildren();
 }
 
 // ---------------------------------------------------------------- render: plan
@@ -404,7 +445,7 @@ function renderBudget(plan) {
     th.textContent = line.label;
     const share = document.createElement('td');
     share.className = 'num tabular';
-    share.textContent = `${Math.round(line.share * 100)}%`;
+    share.textContent = percent(line.share);
     const amount = document.createElement('td');
     amount.className = 'num tabular';
     amount.textContent = rupees(line.amount);
@@ -460,8 +501,7 @@ function saveDone(plan, set) {
 }
 
 function renderVendors(plan) {
-  const { vendors, budget } = plan;
-  const lineLabel = new Map(budget.lines.map((l) => [l.id, l.label]));
+  const { vendors } = plan;
   const done = loadDone(plan);
   els.vendorList.replaceChildren();
   for (const v of vendors) {
@@ -479,7 +519,7 @@ function renderVendors(plan) {
     li.dataset.done = String(check.checked);
     title.textContent = v.label;
     li.querySelector('.vendor__meta').textContent =
-      `Book by ${fmtDate(v.bookBy)} · paid from ${lineLabel.get(v.budgetLineId) ?? v.budgetLineId}`;
+      `Book by ${fmtDate(v.bookBy)} · paid from ${lineLabel(plan, v.budgetLineId)}`;
     const ul = li.querySelector('.vendor__questions');
     for (const q of v.questions) {
       const qi = document.createElement('li');
@@ -538,7 +578,6 @@ function renderPersonalisation(plan, p) {
 
   els.aiSummary.textContent = p.summary;
   els.ideasList.replaceChildren();
-  const lineLabel = new Map(plan.budget.lines.map((l) => [l.id, l.label]));
   for (const idea of p.ideas) {
     const li = els.ideaTpl.content.firstElementChild.cloneNode(true);
     li.dataset.tier = idea.costTier;
@@ -547,18 +586,39 @@ function renderPersonalisation(plan, p) {
     li.querySelector('.idea__detail').textContent = idea.detail;
     const tier = TIER[idea.costTier];
     const foot = [`${tier.glyph} ${tier.word}`];
-    if (idea.budgetLineId)
-      foot.push(`from ${lineLabel.get(idea.budgetLineId) ?? idea.budgetLineId}`);
+    if (idea.budgetLineId) foot.push(`from ${lineLabel(plan, idea.budgetLineId)}`);
     li.querySelector('.idea__foot').textContent = foot.join(' · ');
     els.ideasList.append(li);
   }
+}
+
+/**
+ * Ask the model for ideas about `request` and fill them in under `plan`. The
+ * plan is already on screen, so a rejection here is the caller's to report as
+ * an ideas failure only.
+ */
+async function loadIdeas(plan, request) {
+  const t0 = performance.now();
+  const p = await postJson('/api/personalise', request);
+  current.personalisation = p;
+  renderPersonalisation(plan, p);
+  const secs = ((performance.now() - t0) / 1000).toFixed(1);
+  if (p.source === 'model') {
+    setIdeasStatus(
+      `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`,
+      'ok',
+    );
+  } else {
+    setIdeasStatus('The AI was unavailable — showing general ideas instead.', 'degraded');
+  }
+  return p;
 }
 
 // ---------------------------------------------------------------- flow
 
 els.form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  if (els.planBtn.getAttribute('aria-disabled') === 'true') return;
+  if (isBusy('plan')) return;
   hideError();
 
   const body = readForm();
@@ -568,7 +628,7 @@ els.form.addEventListener('submit', async (ev) => {
     return;
   }
 
-  setBusy(true);
+  setBusy('plan', true);
   announce('Building your plan.');
   const started = performance.now();
   try {
@@ -585,36 +645,20 @@ els.form.addEventListener('submit', async (ev) => {
     const { plan, ics } = planned;
     current = { plan, ics, personalisation: null };
     renderPlan(plan);
-    els.ideasStatus.textContent = 'Writing ideas for your wishes…';
-    els.ideasStatus.dataset.state = 'busy';
-    els.aiSummary.textContent = '';
-    els.ideasList.replaceChildren();
+    resetIdeas('Writing ideas for your wishes…');
     announce(
       `Plan ready: ${plan.budget.lines.length} budget lines, ${plan.timeline.milestones.length} milestones, ${plan.vendors.length} vendors. Personalised ideas are being written.`,
     );
     els.resultsTitle.focus();
 
-    const t0 = performance.now();
-    const p = await postJson('/api/personalise', body);
-    current.personalisation = p;
-    renderPersonalisation(plan, p);
-    const secs = ((performance.now() - t0) / 1000).toFixed(1);
-    if (p.source === 'model') {
-      els.ideasStatus.textContent = `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`;
-      els.ideasStatus.dataset.state = 'ok';
-    } else {
-      els.ideasStatus.textContent = 'The AI was unavailable — showing general ideas instead.';
-      els.ideasStatus.dataset.state = 'degraded';
-    }
+    const p = await loadIdeas(plan, body);
     announce(
       `${p.ideas.length} ideas added. Whole plan ready in ${((performance.now() - started) / 1000).toFixed(1)} seconds.`,
     );
   } catch {
-    els.ideasStatus.textContent =
-      'Ideas could not be written just now. The rest of the plan stands.';
-    els.ideasStatus.dataset.state = 'degraded';
+    setIdeasStatus('Ideas could not be written just now. The rest of the plan stands.', 'degraded');
   } finally {
-    setBusy(false);
+    setBusy('plan', false);
   }
 });
 
@@ -661,15 +705,14 @@ function hideRefineError() {
  */
 els.refineForm.addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  if (!current || els.refineBtn.getAttribute('aria-disabled') === 'true') return;
+  if (!current || isBusy('refine')) return;
   hideRefineError();
   const text = els.refine.value.trim();
   if (!text) {
     showRefineError('Say what you would like to change.');
     return;
   }
-  els.refineBtn.setAttribute('aria-disabled', 'true');
-  els.refineBtn.textContent = 'Updating…';
+  setBusy('refine', true);
   announce('Updating your plan.');
   try {
     const body = { ...current.plan.request, refine: text };
@@ -694,10 +737,7 @@ els.refineForm.addEventListener('submit', async (ev) => {
     els.preferences.value = request.preferences ?? '';
     updateCount();
     els.refine.value = '';
-    els.ideasStatus.textContent = 'Rewriting ideas for the change…';
-    els.ideasStatus.dataset.state = 'busy';
-    els.aiSummary.textContent = '';
-    els.ideasList.replaceChildren();
+    resetIdeas('Rewriting ideas for the change…');
     const applied = changes
       .filter((c) => c.field !== 'wishes')
       .map((c) => `${CHANGE_LABEL[c.field]} ${c.field === 'date' ? fmtDate(c.to) : c.to}`)
@@ -705,23 +745,12 @@ els.refineForm.addEventListener('submit', async (ev) => {
     announce(`Plan updated${applied ? `: ${applied}` : ''}. Ideas are being rewritten.`);
     els.resultsTitle.focus();
 
-    const t0 = performance.now();
-    const p = await postJson('/api/personalise', request);
-    current.personalisation = p;
-    renderPersonalisation(plan, p);
-    const secs = ((performance.now() - t0) / 1000).toFixed(1);
-    els.ideasStatus.textContent =
-      p.source === 'model'
-        ? `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`
-        : 'The AI was unavailable — showing general ideas instead.';
-    els.ideasStatus.dataset.state = p.source === 'model' ? 'ok' : 'degraded';
+    const p = await loadIdeas(plan, request);
     announce(`${p.ideas.length} ideas rewritten.`);
   } catch {
-    els.ideasStatus.textContent = 'Ideas could not be rewritten just now. The updated plan stands.';
-    els.ideasStatus.dataset.state = 'degraded';
+    setIdeasStatus('Ideas could not be rewritten just now. The updated plan stands.', 'degraded');
   } finally {
-    els.refineBtn.removeAttribute('aria-disabled');
-    els.refineBtn.textContent = 'Update the plan';
+    setBusy('refine', false);
   }
 });
 
@@ -747,13 +776,7 @@ els.csvBtn.addEventListener('click', () => {
   const notes = current.personalisation?.budgetNotes ?? {};
   const rows = [['Category', 'Share', 'Amount (INR)', 'Per guest (INR)', 'Note']];
   for (const l of budget.lines) {
-    rows.push([
-      l.label,
-      `${Math.round(l.share * 100)}%`,
-      l.amount,
-      l.perGuest ?? '',
-      notes[l.id] ?? '',
-    ]);
+    rows.push([l.label, percent(l.share), l.amount, l.perGuest ?? '', notes[l.id] ?? '']);
   }
   rows.push(['Total', '100%', budget.total, budget.perGuest, '']);
   download(
@@ -784,7 +807,7 @@ function planAsText() {
   out.push('', 'BUDGET');
   for (const l of plan.budget.lines) {
     out.push(
-      `- ${l.label}: ${rupees(l.amount)} (${Math.round(l.share * 100)}%)${p?.budgetNotes[l.id] ? ` — ${p.budgetNotes[l.id]}` : ''}`,
+      `- ${l.label}: ${rupees(l.amount)} (${percent(l.share)})${p?.budgetNotes[l.id] ? ` — ${p.budgetNotes[l.id]}` : ''}`,
     );
   }
   out.push('', 'TIMELINE');
