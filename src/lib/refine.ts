@@ -1,4 +1,4 @@
-import { dateToMs, daysBetween, msToDate } from './timeline';
+import { DAY_MS, dateToMs, daysBetween, msToDate } from './dates';
 import { InputError, LIMITS, validateDate } from './validate';
 import type { PlanRequest } from './types';
 
@@ -151,7 +151,7 @@ export function parseDate(
       iso = nextOccurrence(month0 % 12, d, year, today);
     } else {
       const days = unit.startsWith('week') ? n * 7 : n;
-      iso = msToDate(dateToMs(today) + days * 86_400_000);
+      iso = msToDate(dateToMs(today) + days * DAY_MS);
     }
     return { iso, span: [m.index, m.index + m[0].length] };
   }

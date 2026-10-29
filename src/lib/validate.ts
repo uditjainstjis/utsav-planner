@@ -1,4 +1,4 @@
-import { daysBetween } from './timeline';
+import { daysBetween } from './dates';
 import { EVENT_TYPES, type EventType, type PlanRequest } from './types';
 
 /**
