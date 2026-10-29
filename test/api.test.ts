@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 import type { Env } from '../src/lib/ai';
-import { SECURITY_HEADERS } from '../src/lib/headers';
+import { harden } from '../src/lib/headers';
 import type { Personalisation, Plan } from '../src/lib/types';
-import headersFile from '../public/_headers?raw';
 
 /**
  * Integration tests for the Worker's HTTP surface.
@@ -106,11 +105,12 @@ describe('GET /api/health', () => {
 });
 
 describe('security headers', () => {
+  /** The policy, as `harden` sets it. */
+  const POLICY = [...harden(new Response()).headers];
+
   it('applies every hardening header to API responses', async () => {
     const res = await get('/api/health');
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-      expect(res.headers.get(name)).toBe(value);
-    }
+    for (const [name, value] of POLICY) expect(res.headers.get(name)).toBe(value);
   });
 
   it('answers an unexpected fault with a hardened 500 that discloses nothing', async () => {
@@ -125,9 +125,7 @@ describe('security headers', () => {
     const res = await get('/index.html', env);
     expect(res.status).toBe(500);
     expect(await res.text()).toBe('Internal Server Error');
-    expect(res.headers.get('content-security-policy')).toBe(
-      SECURITY_HEADERS['content-security-policy'],
-    );
+    for (const [name, value] of POLICY) expect(res.headers.get(name)).toBe(value);
     expect(logged).toHaveBeenCalledOnce();
     logged.mockRestore();
   });
@@ -137,35 +135,10 @@ describe('security headers', () => {
     expect(res.headers.get('cache-control')).toContain('no-store');
   });
 
-  it('applies the identical policy to statically served assets', () => {
-    const block = headersFile.split(/^\/\*$/m)[1] ?? '';
-    const declared = new Map(
-      block
-        .split('\n')
-        .map((line) => /^\s{2}([A-Za-z-]+):\s*(.+)$/.exec(line))
-        .filter((m): m is RegExpExecArray => m !== null)
-        .map((m) => [m[1]!.toLowerCase(), m[2]!.trim()]),
-    );
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
-      expect(declared.get(name), `public/_headers is missing ${name}`).toBe(value);
-    }
-  });
-
-  it('ships a content security policy with no unsafe escape hatches', () => {
-    const csp = SECURITY_HEADERS['content-security-policy']!;
-    expect(csp).not.toContain('unsafe-inline');
-    expect(csp).not.toContain('unsafe-eval');
-    expect(csp).toContain("object-src 'none'");
-    expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toContain("require-trusted-types-for 'script'");
-  });
-
   it('serves the front end for non-API paths with the same headers', async () => {
     const res = await get('/');
     expect(res.status).toBe(200);
-    expect(res.headers.get('content-security-policy')).toBe(
-      SECURITY_HEADERS['content-security-policy'],
-    );
+    for (const [name, value] of POLICY) expect(res.headers.get(name)).toBe(value);
   });
 });
 

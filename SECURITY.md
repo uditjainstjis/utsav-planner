@@ -119,11 +119,13 @@ reaches the model on the next `/api/personalise` call is subject to exactly the
 same screen, removal, fence and validation as a fresh one. The refine route
 itself never calls a model, and `test/api.test.ts` asserts it.
 
-## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/js/`)
+## 4. The page (`src/lib/headers.ts`, `public/js/`)
 
-Every response, API or asset, carries the same policy. `test/api.test.ts`
-asserts that the Worker's headers and the static `_headers` file are identical,
-so neither can be hardened without the other.
+Every response, API or asset, carries the same policy, defined once in
+`src/lib/headers.ts`: the Worker applies it to what it answers, and
+`scripts/build-assets.mjs` writes it to `public/_headers` for the static assets
+the Worker never sees. `test/headers.test.ts` reads that file's text back and
+asserts it states exactly the headers the Worker sets.
 
 - **CSP**: `default-src 'self'`; scripts and styles only from this origin (there
   is no inline script or style anywhere, so no `unsafe-inline`);

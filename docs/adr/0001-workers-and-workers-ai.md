@@ -24,8 +24,8 @@ with a key.
   and the plan itself costs none because it never calls a model.
 - Static assets never invoke the Worker (`run_worker_first: ["/api/*"]`), so
   CSS, JS and fonts are served from the edge cache; the same security headers
-  are applied to them through `public/_headers`, and a test keeps the two copies
-  identical.
+  are applied to them through `public/_headers`, which is generated from the
+  Worker's own definition in `src/lib/headers.ts`.
 - The test suite runs inside **workerd** through
   `@cloudflare/vitest-pool-workers`, so Request/Response, the Cache API,
   HTMLRewriter and `crypto` behave in tests exactly as in production. The AI

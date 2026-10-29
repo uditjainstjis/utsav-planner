@@ -115,7 +115,7 @@ src/lib/guard      deterministic prompt-injection screen + nonce fence
 src/prompts/plan   the facts block and the four schema-constrained asks
 src/lib/ai         Workers AI client: concurrency, fallback, validation, cache
 src/lib/fallback   deterministic guidance when no model answers
-src/lib/headers    CSP, Trusted Types, COOP/COEP/CORP, HSTS, permissions policy
+src/lib/headers    CSP, Trusted Types, COOP/COEP/CORP, HSTS, permissions policy; the _headers text
 src/lib/cache      content-addressed Workers Cache API wrapper
 
 public/            static single-page app: index.html, styles.css, _headers, fonts/, js/
@@ -140,10 +140,11 @@ Runs on Cloudflare Workers with one runtime dependency (`hono`). Static assets
 are served from the edge without invoking the Worker; `run_worker_first` is
 scoped to `/api/*`.
 
-`public/js/constants.js` is a build output, not a source file: it is compiled
-from `src/shared/constants.ts` by `scripts/build-assets.mjs`, which npm runs
-before typechecking and tests and wrangler runs as its `build.command` before
-`dev` and `deploy`, and it is gitignored so it cannot drift from its source.
+`public/js/constants.js` (with its `.d.ts`) and `public/_headers` are build
+outputs, generated from `src/shared/constants.ts` and `src/lib/headers.ts` by
+`scripts/build-assets.mjs`, which npm runs before typechecking and tests and
+wrangler runs as its `build.command` before `dev` and `deploy`; they are
+gitignored, so they cannot drift from their sources.
 
 ## Security
 
@@ -198,10 +199,12 @@ What is covered, and the property each test holds:
   the others answer, cache hit and cache bypass on any generic section,
   schema-constrained call shape.
 - **api** — CSRF gate, cross-site rejection, rate limit by IP (and that it is
-  not spent on rejected requests), identical security headers on API and assets,
-  no configuration leaked by `/api/health`, no flagged sentence in any of the
-  four prompts sent and the rest of the name, city and wishes fenced, 404 under
-  `/api`.
+  not spent on rejected requests), the full security policy on API responses,
+  faults and the front end, no configuration leaked by `/api/health`, no flagged
+  sentence in any of the four prompts sent and the rest of the name, city and
+  wishes fenced, 404 under `/api`.
+- **headers** — `public/_headers` states exactly the headers the Worker sets,
+  plus caching for fonts and `security.txt` only; no `unsafe-*` in the CSP.
 - **refine** — Indian and Western magnitudes (lakh, crore, k, million),
   headcount phrasings, explicit/relative/month-only dates, all three at once, a
   sentence with no numbers, unchanged values reported as no change, out-of-range

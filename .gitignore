@@ -20,3 +20,4 @@ worker-configuration.d.ts
 # deploy run, so they cannot drift from their source.
 public/js/constants.js
 public/js/constants.d.ts
+public/_headers
