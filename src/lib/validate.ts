@@ -65,6 +65,16 @@ function wholeNumber(v: unknown, field: string, min: number, max: number): numbe
   return whole;
 }
 
+/** Headcount: a whole number within `LIMITS.guests`. */
+export function validateGuests(v: unknown): number {
+  return wholeNumber(v, 'guests', LIMITS.guests.min, LIMITS.guests.max);
+}
+
+/** Total budget in rupees: a whole number within `LIMITS.budget`. */
+export function validateBudget(v: unknown): number {
+  return wholeNumber(v, 'budget', LIMITS.budget.min, LIMITS.budget.max);
+}
+
 /**
  * Validate a calendar date string and check it is a real date.
  * `new Date('2026-02-30')` would roll over to March; this rejects it.
@@ -111,8 +121,8 @@ export function validatePlanRequest(body: unknown, today: string): PlanRequest {
   return {
     eventType: eventType as EventType,
     eventDate: validateDate(b.eventDate, today),
-    guests: wholeNumber(b.guests, 'guests', LIMITS.guests.min, LIMITS.guests.max),
-    budget: wholeNumber(b.budget, 'budget', LIMITS.budget.min, LIMITS.budget.max),
+    guests: validateGuests(b.guests),
+    budget: validateBudget(b.budget),
     city: optionalText(b.city, 'city', LIMITS.city),
     occasion: optionalText(b.occasion, 'occasion', LIMITS.occasion),
     preferences: optionalText(b.preferences, 'preferences', LIMITS.preferences),
