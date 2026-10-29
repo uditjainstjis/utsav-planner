@@ -1,0 +1,169 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fallbackPersonalisation } from '../src/lib/fallback';
+import { buildPlan, todayIso } from '../src/lib/plan';
+import type { PlanRequest } from '../src/lib/types';
+
+/**
+ * The front end's error paths, driven through the real markup and app.js.
+ *
+ * The plan form talks to two endpoints, and an error from each belongs in a
+ * different place: a rejected brief goes next to the field that failed, a
+ * failed ideas call degrades only the ideas card. These tests hold that apart,
+ * including on a second submit, when an earlier plan is still on screen.
+ */
+
+const APP = resolve(process.cwd(), 'public', 'app.js');
+const html = readFileSync(resolve(process.cwd(), 'public', 'index.html'), 'utf8');
+
+const TODAY = todayIso();
+const inDays = (n: number): string =>
+  new Date(Date.parse(`${TODAY}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+const REQUEST: PlanRequest = {
+  eventType: 'birthday',
+  eventDate: inDays(40),
+  guests: 20,
+  budget: 25_000,
+  city: null,
+  occasion: null,
+  preferences: null,
+};
+const PLAN = buildPlan(REQUEST, TODAY);
+
+type Reply = { status: number; body: unknown };
+const ok = (body: unknown): Reply => ({ status: 200, body });
+
+/** Answer each fetch with the next reply in order, and record what was asked. */
+function stubFetch(...replies: Reply[]): ReturnType<typeof vi.fn> {
+  const fetch = vi.fn(async () => {
+    const next = replies.shift();
+    if (!next) throw new Error('unexpected fetch');
+    return new Response(JSON.stringify(next.body), {
+      status: next.status,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+}
+
+function $<T extends HTMLElement>(id: string, type: new () => T): T;
+function $(id: string): HTMLElement;
+function $(id: string, type: new () => HTMLElement = HTMLElement): HTMLElement {
+  const el = document.getElementById(id);
+  if (!(el instanceof type)) throw new Error(`#${id} is missing`);
+  return el;
+}
+
+function fill(eventDate: string): void {
+  $('event-date', HTMLInputElement).value = eventDate;
+  $('guests', HTMLInputElement).value = String(REQUEST.guests);
+  $('budget', HTMLInputElement).value = String(REQUEST.budget);
+}
+
+function submit(): void {
+  $('plan-form', HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
+/** Wait until the build button is no longer busy, i.e. the handler has finished. */
+async function settled(): Promise<void> {
+  await vi.waitFor(() => {
+    expect($('plan-btn').getAttribute('aria-disabled')).toBe('false');
+  });
+}
+
+beforeEach(async () => {
+  // A fresh page and a fresh copy of app.js for every test, so no listener or
+  // module state carries over. The script tag is dropped: the module is
+  // imported below instead of being fetched by jsdom.
+  document.documentElement.innerHTML = html
+    .replace(/^[\s\S]*?<html[^>]*>/, '')
+    .replace('<script src="/app.js" type="module"></script>', '');
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: false })),
+  );
+  vi.resetModules();
+  await import(/* @vite-ignore */ APP);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('the plan form', () => {
+  it('shows a rejected brief next to its field, even with an earlier plan on screen', async () => {
+    const message = 'Plans can be made up to two years ahead.';
+    const fetch = stubFetch(
+      ok({ plan: PLAN, ics: '' }),
+      ok({ ...fallbackPersonalisation(PLAN), source: 'model', model: 'm', cached: true }),
+      { status: 400, body: { error: message, code: 'too_far', field: 'eventDate' } },
+    );
+
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+    expect($('results').hidden).toBe(false);
+    const ideasStatus = $('ideas-status').textContent;
+    expect(ideasStatus).toMatch(/ideas from m, cached/);
+
+    // The second brief passes the client's checks; the server rejects it.
+    fill(inDays(41));
+    submit();
+    await settled();
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    const error = $('form-error');
+    expect(error.hidden).toBe(false);
+    expect(error.textContent).toBe(message);
+    const date = $('event-date');
+    expect(date.getAttribute('aria-invalid')).toBe('true');
+    expect(date.getAttribute('aria-describedby')).toContain('form-error');
+    expect(document.activeElement).toBe(date);
+    await vi.waitFor(() => {
+      expect($('progress').textContent).toBe('The plan could not be built.');
+    });
+    // The ideas card is not blamed for a failure that was not its own, and the
+    // earlier plan stays on screen.
+    expect($('ideas-status').textContent).toBe(ideasStatus);
+    expect($('results').hidden).toBe(false);
+  });
+
+  it('degrades only the ideas card when the ideas call fails', async () => {
+    stubFetch(ok({ plan: PLAN, ics: '' }), { status: 500, body: { error: 'boom' } });
+
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+
+    expect($('results').hidden).toBe(false);
+    expect($('form-error').hidden).toBe(true);
+    expect($('ideas-status').textContent).toMatch(/could not be written/);
+    expect($('ideas-status').dataset.state).toBe('degraded');
+  });
+
+  it('refuses a date more than two years ahead without a round trip', async () => {
+    const fetch = stubFetch();
+
+    fill(inDays(731));
+    submit();
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect($('form-error').textContent).toBe('Plans can be made up to two years ahead.');
+    expect($('event-date').getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe($('event-date'));
+  });
+
+  it('accepts a date exactly two years ahead', async () => {
+    stubFetch(ok({ plan: PLAN, ics: '' }), ok(fallbackPersonalisation(PLAN)));
+
+    fill(inDays(730));
+    submit();
+    await settled();
+
+    expect($('form-error').hidden).toBe(true);
+    expect($('event-date').getAttribute('aria-invalid')).toBeNull();
+  });
+});

@@ -280,6 +280,9 @@ function readForm() {
 function clientValidate(body) {
   if (!body.eventDate) return ['Choose the event date.', 'eventDate'];
   if (body.eventDate < todayIso()) return ['The event date is in the past.', 'eventDate'];
+  if (body.eventDate > addDays(todayIso(), 730)) {
+    return ['Plans can be made up to two years ahead.', 'eventDate'];
+  }
   const g = Number(body.guests);
   if (!body.guests || !Number.isFinite(g) || g < 1 || g > 5000) {
     return ['Guests must be between 1 and 5,000.', 'guests'];
@@ -569,7 +572,17 @@ els.form.addEventListener('submit', async (ev) => {
   announce('Building your plan.');
   const started = performance.now();
   try {
-    const { plan, ics } = await postJson('/api/plan', body);
+    let planned;
+    try {
+      planned = await postJson('/api/plan', body);
+    } catch (err) {
+      // Any rejection of the brief belongs next to the field that failed, even
+      // when an earlier plan is still on screen.
+      showError(err.message || 'Something went wrong. Please try again.', err.field);
+      announce('The plan could not be built.');
+      return;
+    }
+    const { plan, ics } = planned;
     current = { plan, ics, personalisation: null };
     renderPlan(plan);
     els.ideasStatus.textContent = 'Writing ideas for your wishes…';
@@ -596,15 +609,10 @@ els.form.addEventListener('submit', async (ev) => {
     announce(
       `${p.ideas.length} ideas added. Whole plan ready in ${((performance.now() - started) / 1000).toFixed(1)} seconds.`,
     );
-  } catch (err) {
-    if (!current) {
-      showError(err.message || 'Something went wrong. Please try again.', err.field);
-      announce('The plan could not be built.');
-    } else {
-      els.ideasStatus.textContent =
-        'Ideas could not be written just now. The rest of the plan stands.';
-      els.ideasStatus.dataset.state = 'degraded';
-    }
+  } catch {
+    els.ideasStatus.textContent =
+      'Ideas could not be written just now. The rest of the plan stands.';
+    els.ideasStatus.dataset.state = 'degraded';
   } finally {
     setBusy(false);
   }
