@@ -1,8 +1,9 @@
 // @ts-check
 /**
  * Every element the page script touches, looked up once and checked to be the
- * kind the code expects. Every id is in index.html, so a miss is a bug and
- * fails loudly at load.
+ * kind the code expects, and the one element two renderers both create: the
+ * AI badge. Every id is in index.html, so a miss is a bug and fails loudly at
+ * load.
  */
 
 /**
