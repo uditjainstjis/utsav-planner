@@ -42,9 +42,10 @@ light `ink-faint` on `surface-2` at 4.70 and the light focus ring at 3.03.
 Three fixes came out of the corrected numbers. Placeholders had `opacity: 0.7`
 on top of `ink-faint`, which took them to 2.83–2.92:1 in the light theme; they
 now use the token at full strength (5.07:1 on the field backgrounds). Input
-borders used `rule`, a hairline at 1.35:1 (light) and 1.43:1 (dark), too faint
-to show where a field is (WCAG 1.4.11); they now use `field-border`, and the
-hover border darkens to `ink-faint` rather than lightening. Links turned
+borders used `rule`, a hairline at 1.18–1.35:1 (light) and 1.24–1.43:1 (dark),
+too faint to show where a field is (WCAG 1.4.11); they now use `field-border`,
+and the textarea and select hover border is `ink-faint` (4.70:1 or more) instead
+of `n-300`, which fell to 1.65:1 in the light theme. Links turned
 `accent-bright` on hover, which is 3.03:1 as text in the light theme; they now
 turn `ink`. The contrast test reads each of these rules from the stylesheet, so
 it checks what is shipped.
