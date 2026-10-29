@@ -38,7 +38,7 @@ const RULES: Rule[] = [
   {
     kind: 'instruction-override',
     detail: 'Text telling an AI system to disregard its instructions.',
-    re: /\b(?:ignore|disregard|forget|override)\b[^.\n]{0,40}\b(?:previous|prior|above|earlier|all)\b[^.\n]{0,20}\b(?:instruction|prompt|rule|direction)/gi,
+    re: /\b(?:ignore|disregard|forget|override)\b[^.\n]{0,40}\b(?:previous|prior|above|earlier|all)\b[^.\n]{0,20}\b(?:instructions?|prompts?|rules?|directions?)\b/gi,
   },
   {
     kind: 'role-hijack',
@@ -53,12 +53,12 @@ const RULES: Rule[] = [
   {
     kind: 'suppression',
     detail: 'Text instructing an AI system to withhold information from you.',
-    re: /\b(?:do not|don’t|never|avoid)\b[^.\n]{0,30}\b(?:mention|disclose|reveal|flag|warn|highlight|tell the (?:user|planner|host))\b/gi,
+    re: /\b(?:do not|don[’']t|never|avoid)\b[^.\n]{0,30}\b(?:mention|disclose|reveal|flag|warn|highlight|tell the (?:user|planner|host))\b/gi,
   },
   {
     kind: 'prompt-exfiltration',
     detail: 'Text attempting to extract the system’s own instructions.',
-    re: /\b(?:print|reveal|repeat|output|show)\b[^.\n]{0,30}\b(?:system prompt|your instructions|initial prompt)\b/gi,
+    re: /\b(?:print|reveal|repeat|output|show)\b[^.\n]{0,30}\b(?:system prompts?|your instructions?|initial prompts?)\b/gi,
   },
   {
     kind: 'delimiter-injection',
