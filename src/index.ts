@@ -1,8 +1,9 @@
-import { Hono, type MiddlewareHandler } from 'hono';
+import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { personalise, type Env } from './lib/ai';
 import { harden } from './lib/headers';
 import { buildPlan, planIcs, todayIso } from './lib/plan';
 import { applyRefinement } from './lib/refine';
+import type { Plan } from './lib/types';
 import { InputError, LIMITS, validatePlanRequest } from './lib/validate';
 
 /**
@@ -78,52 +79,31 @@ const guardApi: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
 /** Liveness probe. Reports build identity and public limits only. */
 app.get('/api/health', (c) => c.json({ status: 'ok', service: 'utsav-planner', limits: LIMITS }));
 
-/** Parse and validate a request body into a plan, or a 400 with the field named. */
-async function readPlan(c: {
-  req: { json(): Promise<unknown> };
-}): Promise<{ ok: true; plan: ReturnType<typeof buildPlan> } | { ok: false; res: Response }> {
-  let body: unknown;
+/** The request body as JSON. A body that is not JSON is the client's error, named as such. */
+async function readJson(c: Context): Promise<unknown> {
   try {
-    body = await c.req.json();
+    return await c.req.json();
   } catch {
-    return {
-      ok: false,
-      res: Response.json(
-        { error: 'Expected a JSON body.', code: 'bad_json', field: 'body' },
-        { status: 400 },
-      ),
-    };
-  }
-  try {
-    return { ok: true, plan: buildPlan(validatePlanRequest(body, todayIso()), todayIso()) };
-  } catch (err) {
-    if (err instanceof InputError) {
-      return {
-        ok: false,
-        res: Response.json(
-          { error: err.message, code: err.code, field: err.field },
-          { status: 400 },
-        ),
-      };
-    }
-    throw err;
+    throw new InputError('Expected a JSON body.', 'bad_json', 'body');
   }
 }
 
+/** Validate a request body into a plan. `today` is read once, so both steps agree on it. */
+async function readPlan(c: Context): Promise<Plan> {
+  const today = todayIso();
+  return buildPlan(validatePlanRequest(await readJson(c), today), today);
+}
+
 app.post('/api/plan', guardApi, async (c) => {
-  const read = await readPlan(c);
-  if (!read.ok) return read.res;
-  const plan = read.plan;
+  const plan = await readPlan(c);
   return c.json({ plan, ics: planIcs(plan, new Date().toISOString()) });
 });
 
 app.post('/api/personalise', guardApi, async (c) => {
-  const read = await readPlan(c);
-  if (!read.ok) return read.res;
   // Rebuilt server-side from the validated request rather than trusting a
   // plan object the client sends back; the client never gets to tell the
   // model what the numbers are.
-  return c.json(await personalise(c.env, read.plan));
+  return c.json(await personalise(c.env, await readPlan(c)));
 });
 
 /**
@@ -134,25 +114,27 @@ app.post('/api/personalise', guardApi, async (c) => {
  * request the client should send to `/api/personalise` for new ideas.
  */
 app.post('/api/refine', guardApi, async (c) => {
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Expected a JSON body.', code: 'bad_json', field: 'body' }, 400);
+  const today = todayIso();
+  const body = await readJson(c);
+  const original = validatePlanRequest(body, today);
+  const refine = (body as { refine?: unknown }).refine;
+  const { request, changes } = applyRefinement(original, refine, today);
+  const plan = buildPlan(request, today);
+  return c.json({ request, changes, plan, ics: planIcs(plan, new Date().toISOString()) });
+});
+
+/**
+ * Every route reports bad input the same way: a 400 naming the field, so the
+ * client can put the message next to the control that failed. Anything else
+ * is a fault, answered as Hono's default handler would.
+ */
+app.onError((err, c) => {
+  if (err instanceof InputError) {
+    return c.json({ error: err.message, code: err.code, field: err.field }, 400);
   }
-  try {
-    const today = todayIso();
-    const original = validatePlanRequest(body, today);
-    const refine = (body as { refine?: unknown }).refine;
-    const { request, changes } = applyRefinement(original, refine, today);
-    const plan = buildPlan(request, today);
-    return c.json({ request, changes, plan, ics: planIcs(plan, new Date().toISOString()) });
-  } catch (err) {
-    if (err instanceof InputError) {
-      return c.json({ error: err.message, code: err.code, field: err.field }, 400);
-    }
-    throw err;
-  }
+  // eslint-disable-next-line no-console -- the one place a fault is logged, as Hono's default does
+  console.error(err);
+  return c.text('Internal Server Error', 500);
 });
 
 app.all('/api/*', (c) => c.json({ error: 'Not found', code: 'not_found' }, 404));

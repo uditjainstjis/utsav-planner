@@ -113,6 +113,25 @@ describe('security headers', () => {
     }
   });
 
+  it('answers an unexpected fault with a hardened 500 that discloses nothing', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const env = stubEnv({
+      ASSETS: {
+        fetch: async () => {
+          throw new Error('secret internals');
+        },
+      } as unknown as Fetcher,
+    });
+    const res = await get('/index.html', env);
+    expect(res.status).toBe(500);
+    expect(await res.text()).toBe('Internal Server Error');
+    expect(res.headers.get('content-security-policy')).toBe(
+      SECURITY_HEADERS['content-security-policy'],
+    );
+    expect(logged).toHaveBeenCalledOnce();
+    logged.mockRestore();
+  });
+
   it('marks API responses as not cacheable', async () => {
     const res = await post('/api/plan', GOOD);
     expect(res.headers.get('cache-control')).toContain('no-store');
