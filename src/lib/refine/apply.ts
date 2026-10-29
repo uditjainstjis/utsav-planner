@@ -79,9 +79,10 @@ function takeGuests(text: string): Taken<number> {
   return { value: asChange(() => validateGuests(g.value)), rest: without(text, g.span) };
 }
 
-function readBudget(text: string): number | null {
-  const budget = parseBudget(text);
-  return budget === null ? null : asChange(() => validateBudget(budget));
+function takeBudget(text: string): Taken<number> {
+  const b = parseBudget(text);
+  if (!b) return { value: null, rest: text };
+  return { value: asChange(() => validateBudget(b.value)), rest: without(text, b.span) };
 }
 
 /** What changed, in a stable order for the UI: money, people, the date, then words. */
@@ -116,7 +117,7 @@ export function applyRefinement(request: PlanRequest, textRaw: unknown, today: s
   // Headcount next, and removed from the text before the budget is read, so
   // "total 300 guests" is a headcount and never a ₹300 budget.
   const guests = takeGuests(date.rest);
-  const budget = readBudget(guests.rest);
+  const budget = takeBudget(guests.rest);
 
   // The whole sentence goes to the model, numbers included: "cut decor" is
   // wording, and "12 lakh" is useful context for the notes even though the
@@ -127,7 +128,7 @@ export function applyRefinement(request: PlanRequest, textRaw: unknown, today: s
     ...request,
     eventDate: date.value ?? request.eventDate,
     guests: guests.value ?? request.guests,
-    budget: budget ?? request.budget,
+    budget: budget.value ?? request.budget,
     preferences: assembleWishes(base, [...adjustments, text]),
   };
   return { request: next, changes: listChanges(request, next, text) };

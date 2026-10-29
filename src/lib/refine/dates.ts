@@ -36,7 +36,8 @@ interface DateMatch {
   span: [number, number];
 }
 
-const spanOf = (m: RegExpExecArray): [number, number] => [m.index, m.index + m[0].length];
+/** Where in the sentence a match was, start inclusive and end exclusive. */
+export const spanOf = (m: RegExpExecArray): [number, number] => [m.index, m.index + m[0].length];
 
 function monthIndex(word: string | undefined): number {
   return MONTHS.indexOf((word ?? '').slice(0, 3).toLowerCase());

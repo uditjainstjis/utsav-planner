@@ -1,4 +1,5 @@
 /** Reading a budget and a headcount out of a sentence, in Indian or Western magnitudes. */
+import { spanOf } from './dates';
 
 /** Indian and Western magnitudes, lower-cased, matched as a whole word after a number. */
 const MAGNITUDE: Record<string, number> = {
@@ -37,18 +38,20 @@ function toNumber(raw: string, magnitude: string | undefined): number {
   return Math.round(n * factor);
 }
 
-/** A headcount read from the sentence, and where in the sentence it was. */
-export function parseGuests(text: string): { value: number; span: [number, number] } | null {
+/** A number read from the sentence, and where in the sentence it was. */
+interface Found {
+  value: number;
+  span: [number, number];
+}
+
+/** A headcount read from the sentence. */
+export function parseGuests(text: string): Found | null {
   const g = GUESTS_RE.exec(text);
-  if (!g) return null;
-  return {
-    value: toNumber(g[1] ?? g[2] ?? '0', undefined),
-    span: [g.index, g.index + g[0].length],
-  };
+  return g ? { value: toNumber(g[1] ?? g[2] ?? '0', undefined), span: spanOf(g) } : null;
 }
 
 /** A budget in rupees read from the sentence. */
-export function parseBudget(text: string): number | null {
+export function parseBudget(text: string): Found | null {
   const b = BUDGET_RE.exec(text) ?? BARE_BUDGET_RE.exec(text);
-  return b ? toNumber(b[1] ?? '0', b[2]) : null;
+  return b ? { value: toNumber(b[1] ?? '0', b[2]), span: spanOf(b) } : null;
 }
