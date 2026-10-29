@@ -189,12 +189,12 @@ npm run check     # Worker types and generated files, typecheck (strict, noUnche
 npm run coverage  # istanbul report
 ```
 
-351 tests across 25 files. 288 run inside **workerd** (the deployed runtime);
+354 tests across 25 files. 291 run inside **workerd** (the deployed runtime);
 the 63 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
 the file references, and the front end's plan form, refine form and AI marks)
 run in jsdom, because they need a DOM or read files off disk. Coverage of
-`src/`: 99.46% statements, 92.19% branches, 100% functions, 99.59% lines. 26 of
-333 branches are uncovered, 16 of them in the model-reply handling
+`src/`: 99.46% statements, 92.44% branches, 100% functions, 99.59% lines. 25 of
+331 branches are uncovered, 16 of them in the model-reply handling
 (`src/lib/ai/`) and the refine parser (`src/lib/refine/`), mostly `??` fallbacks
 and defensive checks. The suite is hermetic: the AI binding is a stub, so it
 runs identically on a laptop and on a CI runner holding no credentials.
