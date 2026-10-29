@@ -5,14 +5,10 @@ import { buildPlan, planIcs } from '../src/lib/plan';
 import { COST_TIERS, EVENT_TYPES, IDEA_CATEGORIES, type PlanRequest } from '../src/lib/types';
 import {
   buildFacts,
-  buildIdeasPrompt,
-  buildNotesPrompt,
-  buildVendorsPrompt,
-  IDEAS_SCHEMA,
   MAX_TOKENS,
-  NOTES_SCHEMA,
+  PROMPT_BUILDERS,
+  SCHEMAS,
   SYSTEM_PROMPT,
-  VENDORS_SCHEMA,
 } from '../src/prompts/plan';
 
 const TODAY = '2026-10-23';
@@ -105,10 +101,10 @@ describe('fallbackPersonalisation', () => {
 describe('the prompts', () => {
   const plan = buildPlan(REQ, TODAY);
   const facts = buildFacts(plan, 'UTSAV_nonce123');
-  const ideas = buildIdeasPrompt(plan, 'UTSAV_nonce123', 'a');
-  const ideasB = buildIdeasPrompt(plan, 'UTSAV_nonce123', 'b');
-  const vendors = buildVendorsPrompt(plan, 'UTSAV_nonce123');
-  const notes = buildNotesPrompt(plan, 'UTSAV_nonce123');
+  const ideas = PROMPT_BUILDERS.ideasA(plan, 'UTSAV_nonce123');
+  const ideasB = PROMPT_BUILDERS.ideasB(plan, 'UTSAV_nonce123');
+  const vendors = PROMPT_BUILDERS.vendors(plan, 'UTSAV_nonce123');
+  const notes = PROMPT_BUILDERS.notes(plan, 'UTSAV_nonce123');
 
   it('state every number and never ask the model to produce one', () => {
     expect(facts).toContain('₹1,80,000');
@@ -163,12 +159,13 @@ describe('the prompts', () => {
   });
 
   it('declare schemas whose enums and keys match the code', () => {
-    const ideaProps = IDEAS_SCHEMA.properties.ideas.items.properties;
+    const ideaProps = SCHEMAS.ideasA.properties.ideas.items.properties;
     expect(ideaProps.category.enum).toEqual(IDEA_CATEGORIES);
     expect(ideaProps.costTier.enum).toEqual(COST_TIERS);
-    expect(IDEAS_SCHEMA.required).toEqual(['summary', 'ideas']);
-    expect(VENDORS_SCHEMA.required).toEqual(['vendorQuestions']);
-    expect(NOTES_SCHEMA.required).toEqual(['budgetNotes']);
+    expect(SCHEMAS.ideasB).toBe(SCHEMAS.ideasA);
+    expect(SCHEMAS.ideasA.required).toEqual(['summary', 'ideas']);
+    expect(SCHEMAS.vendors.required).toEqual(['vendorQuestions']);
+    expect(SCHEMAS.notes.required).toEqual(['budgetNotes']);
   });
 
   it('split the ideas over two disjoint category sets', () => {

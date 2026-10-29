@@ -1,3 +1,4 @@
+import { rupees } from '../../public/js/shared.js';
 import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from './dates';
 import { InputError, LIMITS, validateBudget, validateDate, validateGuests } from './validate';
 import type { PlanRequest } from './types';
@@ -8,9 +9,9 @@ import type { PlanRequest } from './types';
  * After seeing a plan, the user says what to change in plain words —
  * "budget 12 lakh", "300 guests", "more budget-friendly, add a mehndi night".
  * The numbers in that sentence are parsed here, deterministically, and applied
- * to the request so the budget and timeline are recomputed by code. Whatever
- * is left is appended to the wishes as a labelled adjustment, so the model
- * rewrites the ideas, questions and notes around it. The user is told exactly
+ * to the request so the budget and timeline are recomputed by code. The whole
+ * sentence is then appended to the wishes as a labelled adjustment, so the
+ * model rewrites the ideas, questions and notes around it. The user is told exactly
  * what was applied, so a misread number is visible rather than silent.
  */
 
@@ -20,13 +21,10 @@ export interface Change {
   to: string;
 }
 
-export interface Refinement {
+interface Refinement {
   request: PlanRequest;
   changes: Change[];
 }
-
-/** Longest change sentence accepted; the change box's maxlength is held to it by a test. */
-export const MAX_REFINE_CHARS = 200;
 
 /** Indian and Western magnitudes, lower-cased, matched after a number. */
 const MAGNITUDE: Record<string, number> = {
@@ -56,8 +54,6 @@ function toNumber(raw: string, magnitude: string | undefined): number {
   return Math.round(n * factor);
 }
 
-const inr = (n: number): string => `₹${n.toLocaleString('en-IN')}`;
-
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const MONTH = '(?<month>jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
 /** 2027-03-15 */
@@ -78,7 +74,7 @@ const MONTH_ONLY_RE = new RegExp(`\\b(?:to|in|for|on)\\s+${MONTH}\\b(?!\\s*\\d)`
 const RELATIVE_RE = /\bin\s+(?<n>\d{1,2})\s+(?<unit>days?|weeks?|months?)\b/i;
 
 /** A date read from the sentence, and where in the sentence it was. */
-export interface DateMatch {
+interface DateMatch {
   iso: string;
   span: [number, number];
 }
@@ -255,9 +251,9 @@ function readChange(raw: unknown): string {
   }
   const text = raw.replace(/\s+/g, ' ').trim();
   if (!text) throw new InputError('Say what you would like to change.', 'missing', 'refine');
-  if (text.length > MAX_REFINE_CHARS) {
+  if (text.length > LIMITS.refine) {
     throw new InputError(
-      `Keep the change under ${MAX_REFINE_CHARS} characters.`,
+      `Keep the change under ${LIMITS.refine} characters.`,
       'too_long',
       'refine',
     );
@@ -309,7 +305,7 @@ function asChange<T>(validate: () => T): T {
 function listChanges(before: PlanRequest, after: PlanRequest, text: string): Change[] {
   const changes: Change[] = [];
   if (after.budget !== before.budget) {
-    changes.push({ field: 'budget', from: inr(before.budget), to: inr(after.budget) });
+    changes.push({ field: 'budget', from: rupees(before.budget), to: rupees(after.budget) });
   }
   if (after.guests !== before.guests) {
     changes.push({ field: 'guests', from: String(before.guests), to: String(after.guests) });

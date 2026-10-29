@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applyRefinement,
-  assembleWishes,
-  MAX_REFINE_CHARS,
-  parseDate,
-  splitWishes,
-} from '../src/lib/refine';
-import { LIMITS } from '../src/lib/validate';
-import { InputError } from '../src/lib/validate';
+import { applyRefinement, assembleWishes, parseDate, splitWishes } from '../src/lib/refine';
+import { InputError, LIMITS } from '../src/lib/validate';
 import type { PlanRequest } from '../src/lib/types';
 
 const TODAY = '2026-10-23';
@@ -112,7 +105,7 @@ describe('applyRefinement', () => {
   it('rejects an empty, non-string or over-long change', () => {
     expect(() => applyRefinement(REQ, '', TODAY)).toThrow(/would like to change/);
     expect(() => applyRefinement(REQ, 42, TODAY)).toThrow(InputError);
-    expect(() => applyRefinement(REQ, 'x'.repeat(MAX_REFINE_CHARS + 1), TODAY)).toThrow(/under/);
+    expect(() => applyRefinement(REQ, 'x'.repeat(LIMITS.refine + 1), TODAY)).toThrow(/under/);
   });
 
   it('does not mutate the original request', () => {

@@ -1,4 +1,4 @@
-import { OCCASION_LABEL } from '../../public/js/shared.js';
+import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
 import { fenceUntrusted, withoutInjection } from '../lib/guard';
 import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../lib/types';
 
@@ -35,7 +35,7 @@ export const SYSTEM_PROMPT = [
 export type Part = 'ideasA' | 'ideasB' | 'vendors' | 'notes';
 
 /** Workers AI json_schema per part. Enumerations are enforced again in code. */
-export const IDEAS_SCHEMA = {
+const IDEAS_SCHEMA = {
   type: 'object',
   properties: {
     summary: { type: 'string' },
@@ -57,7 +57,7 @@ export const IDEAS_SCHEMA = {
   required: ['summary', 'ideas'],
 } as const;
 
-export const VENDORS_SCHEMA = {
+const VENDORS_SCHEMA = {
   type: 'object',
   properties: {
     vendorQuestions: {
@@ -68,7 +68,7 @@ export const VENDORS_SCHEMA = {
   required: ['vendorQuestions'],
 } as const;
 
-export const NOTES_SCHEMA = {
+const NOTES_SCHEMA = {
   type: 'object',
   properties: {
     budgetNotes: { type: 'object', additionalProperties: { type: 'string' } },
@@ -103,15 +103,13 @@ export function buildFacts(plan: Plan, nonce: string): string {
     name ? `What the user calls it, fenced:\n${name}` : 'The user gave it no name.',
     city ? `Where, fenced:\n${city}` : 'Where: not stated.',
     `Date: ${r.eventDate}. Days until the event: ${timeline.leadDays}${timeline.rushed ? ' (this is a rush)' : ''}.`,
-    `Guests: ${r.guests}. Total budget: ₹${budget.total.toLocaleString('en-IN')}, about ₹${budget.perGuest.toLocaleString('en-IN')} per guest.`,
+    `Guests: ${r.guests}. Total budget: ${rupees(budget.total)}, about ${rupees(budget.perGuest)} per guest.`,
     wishes ? `The user's own wishes, fenced:\n${wishes}` : 'The user gave no specific wishes.',
   ].join('\n');
 }
 
 function lineList(plan: Plan): string {
-  return plan.budget.lines
-    .map((l) => `  - ${l.id}: ₹${l.amount.toLocaleString('en-IN')} (${l.label})`)
-    .join('\n');
+  return plan.budget.lines.map((l) => `  - ${l.id}: ${rupees(l.amount)} (${l.label})`).join('\n');
 }
 
 function vendorList(plan: Plan): string {
@@ -128,7 +126,7 @@ const IDEA_HALVES = {
   b: ['activity', 'favour', 'invite'],
 } as const satisfies Record<'a' | 'b', readonly IdeaCategory[]>;
 
-export function buildIdeasPrompt(plan: Plan, nonce: string, half: 'a' | 'b' = 'a'): string {
+function buildIdeasPrompt(plan: Plan, nonce: string, half: 'a' | 'b'): string {
   const cats = IDEA_HALVES[half].join(', ');
   return [
     buildFacts(plan, nonce),
@@ -145,7 +143,7 @@ export function buildIdeasPrompt(plan: Plan, nonce: string, half: 'a' | 'b' = 'a
 }
 
 /** One or two questions per vendor, from the wishes, season and city. */
-export function buildVendorsPrompt(plan: Plan, nonce: string): string {
+function buildVendorsPrompt(plan: Plan, nonce: string): string {
   return [
     buildFacts(plan, nonce),
     'Vendors (use exactly these ids as keys):',
@@ -157,7 +155,7 @@ export function buildVendorsPrompt(plan: Plan, nonce: string): string {
 }
 
 /** One sentence per budget line on where to spend and where to save. */
-export function buildNotesPrompt(plan: Plan, nonce: string): string {
+function buildNotesPrompt(plan: Plan, nonce: string): string {
   return [
     buildFacts(plan, nonce),
     'Budget lines (use exactly these ids as keys):',

@@ -152,7 +152,7 @@ export function withoutInjection(text: string): string {
 function excerpt(text: string, offset: number, length: number): string {
   const raw = text.slice(offset, offset + Math.min(length, 120));
   // Render invisible characters visibly, otherwise the excerpt looks empty.
-  return raw.replace(new RegExp(INVISIBLE, 'g'), '□') || '□';
+  return raw.replace(new RegExp(INVISIBLE, 'g'), '□');
 }
 
 /**

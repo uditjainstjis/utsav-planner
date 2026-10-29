@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LIMITS, OCCASION_LABEL } from '../public/js/shared.js';
 import { buildPlan, planIcs } from '../src/lib/plan';
-import { MAX_REFINE_CHARS } from '../src/lib/refine';
 import { LIMITS as SERVER_LIMITS } from '../src/lib/validate';
 
 /**
@@ -76,7 +75,7 @@ describe('the limits the page and the Worker share', () => {
     expect(attr('city', 'maxlength')).toBe(LIMITS.city);
     expect(attr('occasion', 'maxlength')).toBe(LIMITS.occasion);
     expect(attr('preferences', 'maxlength')).toBe(LIMITS.preferences);
-    expect(attr('refine', 'maxlength')).toBe(MAX_REFINE_CHARS);
+    expect(attr('refine', 'maxlength')).toBe(LIMITS.refine);
   });
 
   it('name an unnamed occasion the same way in the calendar as on the page', () => {

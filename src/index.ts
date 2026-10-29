@@ -21,7 +21,7 @@ import { InputError, isRecord, LIMITS, validatePlanRequest } from './lib/validat
  *                          change; numbers are parsed and recomputed in code,
  *                          the wording is handed to the model on the next
  *                          personalise call.
- *   GET  /api/health       liveness, build identity only.
+ *   GET  /api/health       liveness: the service name and the public request limits.
  *
  * The client calls the first and renders it, then calls the second and fills
  * in. A user never waits on a model to see their numbers, and a model outage
@@ -41,7 +41,7 @@ app.use('*', async (c, next) => {
 });
 
 /**
- * Gate for both POST routes: content type, origin, rate limit — in that order.
+ * Gate for every POST route: content type, origin, rate limit — in that order.
  *
  * Requiring `application/json` is the CSRF control: a cross-origin fetch can
  * send `text/plain` without a preflight, but cannot claim JSON without one,
@@ -77,7 +77,7 @@ const guardApi: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   return undefined;
 };
 
-/** Liveness probe. Reports build identity and public limits only. */
+/** Liveness probe. Reports the service name and the public request limits only. */
 app.get('/api/health', (c) => c.json({ status: 'ok', service: 'utsav-planner', limits: LIMITS }));
 
 /** The request body as JSON. A body that is not JSON is the client's error, named as such. */

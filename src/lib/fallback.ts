@@ -1,4 +1,4 @@
-import { OCCASION_LABEL } from '../../public/js/shared.js';
+import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
 import type { BudgetLineId } from './budget';
 import type { EventType, Idea, Personalisation, Plan } from './types';
 
@@ -195,7 +195,7 @@ export function fallbackPersonalisation(plan: Plan): Personalisation {
 
   return {
     summary:
-      `A ${OCCASION_LABEL[request.eventType].toLowerCase()} for ${request.guests} guests at about ₹${budget.perGuest.toLocaleString('en-IN')} a head. ` +
+      `A ${OCCASION_LABEL[request.eventType].toLowerCase()} for ${request.guests} guests at about ${rupees(budget.perGuest)} a head. ` +
       'The ideas below are general starting points; personalised ideas were unavailable just now.',
     ideas: [...IDEAS[request.eventType]],
     vendorQuestions,

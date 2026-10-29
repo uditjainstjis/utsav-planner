@@ -1,4 +1,4 @@
-import { OCCASION_LABEL } from '../../public/js/shared.js';
+import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
 import type { Budget, BudgetFlag, BudgetLine, EventType } from './types';
 
 /**
@@ -171,13 +171,12 @@ function flagsFor(
   const { floor } = TEMPLATES[eventType];
   const cateringPerGuest = lines.find((l) => l.id === 'catering')?.perGuest ?? null;
   if (perGuest < floor.total) {
-    const enough = (floor.total * guests).toLocaleString('en-IN');
     return [
       {
         code: 'tight_total',
         message:
-          `At ₹${perGuest.toLocaleString('en-IN')} per guest this is tight for a ${OCCASION_LABEL[eventType].toLowerCase()}. ` +
-          `Fewer guests, a simpler venue, or a budget nearer ₹${enough} would give room to breathe.`,
+          `At ${rupees(perGuest)} per guest this is tight for a ${OCCASION_LABEL[eventType].toLowerCase()}. ` +
+          `Fewer guests, a simpler venue, or a budget nearer ${rupees(floor.total * guests)} would give room to breathe.`,
       },
     ];
   }
@@ -186,8 +185,8 @@ function flagsFor(
       {
         code: 'tight_catering',
         message:
-          `Catering works out to ₹${cateringPerGuest.toLocaleString('en-IN')} a head. ` +
-          `Below about ₹${floor.catering} the menu gets thin — consider moving a little from decor or entertainment.`,
+          `Catering works out to ${rupees(cateringPerGuest)} a head. ` +
+          `Below about ${rupees(floor.catering)} the menu gets thin — consider moving a little from decor or entertainment.`,
       },
     ];
   }

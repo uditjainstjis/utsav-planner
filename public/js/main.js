@@ -5,8 +5,9 @@
  * Three rules hold throughout the modules it wires together:
  *
  *  1. **Model output is untrusted.** Every string from the server is written
- *     with `textContent`. There is no `innerHTML` in the front end, and the
- *     CSP's Trusted Types directive makes the browser refuse one if it appears.
+ *     as text, through `textContent` or `append()` of a string, never parsed
+ *     as markup. There is no `innerHTML` in the front end, and the CSP's
+ *     Trusted Types directive makes the browser refuse one if it appears.
  *  2. **Numbers first, words second.** `/api/plan` is pure computation and
  *     answers in milliseconds; it is rendered immediately. `/api/personalise`
  *     is the model and may take seconds; it fills in afterwards, and if it

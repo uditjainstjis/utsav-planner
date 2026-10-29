@@ -5,9 +5,9 @@
  * every field again; these checks are a convenience, not a control.
  */
 import { els } from './dom.js';
-import { addDays, INR } from './format.js';
+import { addDays } from './format.js';
 import { SAMPLES } from './samples.js';
-import { LIMITS, todayIso } from './shared.js';
+import { LIMITS, rangeMessage, todayIso } from './shared.js';
 
 /** @typedef {import('./samples.js').Sample} Sample */
 
@@ -124,14 +124,6 @@ function outOfRange(raw, { min, max }) {
   const n = Number(raw);
   return !raw || !Number.isFinite(n) || n < min || n > max;
 }
-
-/**
- * Worded as the server words it, so the message does not change with who caught it.
- * @param {string} label
- * @param {Range} range
- */
-const rangeMessage = (label, { min, max }) =>
-  `${label} must be between ${INR.format(min)} and ${INR.format(max)}.`;
 
 /** @param {Sample} s */
 function fillSample(s) {

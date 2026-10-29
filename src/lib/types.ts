@@ -1,11 +1,11 @@
 /**
  * Domain types for Utsav Planner.
  *
- * Everything the user receives is one `Plan`. Three of its four parts —
- * budget, timeline, vendor checklist — are computed by pure functions from the
- * request alone, so they are correct, instant and testable without a model.
- * The fourth, `Personalisation`, is the one place generative AI contributes,
- * and it is validated like any other untrusted input before it is shown.
+ * The user receives a `Plan` — budget, timeline, vendor checklist — computed
+ * by pure functions from the request alone, so it is correct, instant and
+ * testable without a model. Then a `Personalisation` arrives, the one place
+ * generative AI contributes, validated like any other untrusted input before
+ * it is shown.
  */
 
 import type { BudgetLineId } from './budget';
@@ -15,7 +15,7 @@ import type { VendorId } from './vendors';
 export const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
-/** A validated, normalised planning request. Produced only by `validate.ts`. */
+/** A validated, normalised planning request: from `validate.ts`, or from `refine.ts` through the same validators. */
 export interface PlanRequest {
   eventType: EventType;
   /** ISO calendar date, YYYY-MM-DD, in the user's local calendar. */
@@ -45,7 +45,7 @@ export interface BudgetLine {
   perGuest: number | null;
 }
 
-export type BudgetFlagCode = 'tight_total' | 'tight_catering' | 'generous';
+type BudgetFlagCode = 'tight_total' | 'tight_catering' | 'generous';
 
 export interface BudgetFlag {
   code: BudgetFlagCode;
@@ -126,7 +126,7 @@ export interface Idea {
 }
 
 /** Who wrote a section of a personalisation: a model, or the deterministic fallback. */
-export type Source = 'model' | 'fallback';
+type Source = 'model' | 'fallback';
 
 export interface Personalisation {
   /** One-paragraph brief back to the user, in their own terms. */

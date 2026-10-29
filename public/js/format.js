@@ -1,12 +1,7 @@
 // @ts-check
-/** Money, share and date formatting, and the calendar arithmetic the form needs. */
+/** Share and date formatting, and the calendar arithmetic the form needs. Money is in shared.js. */
 
 /** @typedef {import('../../src/lib/types').Plan} Plan */
-
-export const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
-
-/** @param {number} n */
-export const rupees = (n) => `₹${INR.format(n)}`;
 
 /** @param {number} share */
 export const percent = (share) => `${Math.round(share * 100)}%`;

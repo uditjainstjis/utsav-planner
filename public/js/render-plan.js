@@ -1,10 +1,10 @@
 // @ts-check
 /** The deterministic plan: the injection notice, the summary figures and the three sections. */
 import { els } from './dom.js';
-import { rupees } from './format.js';
 import { renderBudget } from './render-budget.js';
 import { renderTimeline } from './render-timeline.js';
 import { renderVendors } from './render-vendors.js';
+import { rupees } from './shared.js';
 import { setCurrent } from './state.js';
 
 /** @typedef {import('../../src/lib/types').InjectionFinding} InjectionFinding */

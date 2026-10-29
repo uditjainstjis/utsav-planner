@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * Values the page and the Worker must agree on, defined once.
+ * Values and wording the page and the Worker must agree on, defined once.
  *
  * Plain JavaScript, so the browser loads this file as it is. The Worker imports
  * the same file (src/index.ts and src/lib/), so there is no second
@@ -17,6 +17,8 @@ export const LIMITS = Object.freeze({
   city: 60,
   occasion: 80,
   preferences: 600,
+  /** The "Change something" sentence. */
+  refine: 200,
 });
 
 /**
@@ -29,6 +31,24 @@ export const OCCASION_LABEL = Object.freeze({
   birthday: 'Birthday',
   community: 'Community event',
 });
+
+const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+
+/**
+ * Whole rupees in Indian digit grouping, "₹12,00,000": how the page and the
+ * Worker both write money.
+ * @param {number} n
+ */
+export const rupees = (n) => `₹${INR.format(n)}`;
+
+/**
+ * The message for a number outside its range, worded once so it reads the
+ * same whether the form or the Worker caught it.
+ * @param {string} label  the field, as the sentence starts with it
+ * @param {{ min: number, max: number }} range
+ */
+export const rangeMessage = (label, { min, max }) =>
+  `${label} must be between ${INR.format(min)} and ${INR.format(max)}.`;
 
 /**
  * Today as YYYY-MM-DD in UTC: the day the form's date bounds and the Worker's

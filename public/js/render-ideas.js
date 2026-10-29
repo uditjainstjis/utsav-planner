@@ -58,7 +58,7 @@ export function renderIdeas(plan, p) {
   for (const idea of p.ideas) {
     const li = cloneTemplate(els.ideaTpl);
     li.dataset.tier = idea.costTier;
-    part(li, '.idea__category', HTMLElement).textContent = CATEGORY[idea.category] ?? 'Idea';
+    part(li, '.idea__category', HTMLElement).textContent = CATEGORY[idea.category];
     part(li, '.idea__title', HTMLElement).textContent = idea.title;
     part(li, '.idea__detail', HTMLElement).textContent = idea.detail;
     const tier = TIER[idea.costTier];

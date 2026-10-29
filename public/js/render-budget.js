@@ -1,7 +1,8 @@
 // @ts-check
 /** The budget table, and the notes the personalisation adds to it. */
 import { els, part } from './dom.js';
-import { percent, rupees } from './format.js';
+import { percent } from './format.js';
+import { rupees } from './shared.js';
 
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
 /** @typedef {import('../../src/lib/types').Plan} Plan */

@@ -363,7 +363,8 @@ async function askAll(env: Env, plan: Plan, timeoutMs: number): Promise<Answers>
 /**
  * The answers as one raw reply, unchecked, and the model that wrote its ideas
  * (null when neither idea half answered). A section no model answered is
- * absent, and its contents are checked later, by coercePersonalisation.
+ * absent; what is there is checked later, by coercePersonalisation and
+ * withReplySections.
  */
 function mergeAnswers(answers: Answers): { reply: Record<string, unknown>; model: string | null } {
   // Either half alone is still a personalisation; both together is the aim.
@@ -379,8 +380,8 @@ function mergeAnswers(answers: Answers): { reply: Record<string, unknown>; model
 
 /**
  * Personalise a plan: cache, then four concurrent model asks (each with its
- * own fallback model), then deterministic guidance for any part no model
- * answered. Never throws, and always returns ideas.
+ * own fallback model), then deterministic guidance for any section no model
+ * answered usably. Never throws, and always returns ideas.
  */
 export async function personalise(
   env: Env,

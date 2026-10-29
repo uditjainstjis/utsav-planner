@@ -11,7 +11,8 @@
 /** @typedef {{ '/api/plan': PlanReply, '/api/refine': RefineReply, '/api/personalise': Personalisation }} Replies */
 
 /**
- * Server-side the model is capped at 20 s per call; the client allows a little more.
+ * Server-side each model call is capped at 20 s and a part tries two models, so
+ * a personalisation can take 40 s; the client allows 45.
  * @type {Record<keyof Replies, number>}
  */
 const TIMEOUT_MS = { '/api/plan': 10_000, '/api/refine': 10_000, '/api/personalise': 45_000 };

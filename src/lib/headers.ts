@@ -11,9 +11,10 @@
  * `require-trusted-types-for 'script'` with `trusted-types 'none'` makes the
  * browser refuse every assignment to a DOM sink that parses markup —
  * `innerHTML`, `outerHTML`, `document.write`, `insertAdjacentHTML`. The front
- * end already writes exclusively through `textContent`, which is the property
- * that stops a model reply, or a visitor's wishes echoed back in one, from
- * smuggling markup into the page. Before this, that property was a convention
+ * end already writes every string as text, through `textContent` or `append()`
+ * of a string (which makes a text node), and that is the property that stops a
+ * model reply, or a visitor's wishes echoed back in one, from smuggling markup
+ * into the page. Before this, that property was a convention
  * held by code review. Now it is enforced by the
  * browser, and a future commit that reaches for `innerHTML` breaks loudly
  * instead of silently widening the attack surface.
@@ -23,10 +24,10 @@
  * nothing because the page loads no cross-origin subresources at all, and it
  * forecloses a class of side-channel that would otherwise stay open.
  *
- * `permissions-policy` denies every feature rather than the five most obvious
- * ones. A planning form needs none of them, and an allowlist that enumerates
- * only what someone thought of is an allowlist that grows a hole each time the
- * platform adds a capability.
+ * `permissions-policy` denies, by name, the 25 policy-controlled features
+ * below rather than the five most obvious ones. A planning form needs none of
+ * them. The header can only deny what it names: a feature a browser adds later
+ * keeps its default until it is added to the list.
  */
 
 const CSP = [
@@ -50,10 +51,7 @@ const CSP = [
   'upgrade-insecure-requests',
 ].join('; ');
 
-/**
- * Every powerful feature, denied. Enumerated rather than inferred, so adding a
- * capability to the platform cannot quietly grant it here.
- */
+/** The features denied, each set to an empty allowlist. */
 const PERMISSIONS_POLICY = [
   'accelerometer',
   'ambient-light-sensor',

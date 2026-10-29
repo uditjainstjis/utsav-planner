@@ -1,4 +1,4 @@
-import { LIMITS } from '../../public/js/shared.js';
+import { LIMITS, rangeMessage } from '../../public/js/shared.js';
 import { dateParts, daysBetween } from './dates';
 import { EVENT_TYPES, type PlanRequest } from './types';
 
@@ -32,7 +32,7 @@ export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Strip C0/C1 control characters, which have no place in any of these fields. */
+/** Strip C0/C1 control characters other than tab and line breaks; the wishes keep their lines. */
 function clean(s: string): string {
   // eslint-disable-next-line no-control-regex
   return s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g, '').trim();
@@ -55,11 +55,8 @@ function wholeNumber(v: unknown, field: string, min: number, max: number): numbe
   }
   const whole = Math.round(n);
   if (whole < min || whole > max) {
-    throw new InputError(
-      `${field.charAt(0).toUpperCase()}${field.slice(1)} must be between ${min.toLocaleString('en-IN')} and ${max.toLocaleString('en-IN')}.`,
-      'range',
-      field,
-    );
+    const label = `${field.charAt(0).toUpperCase()}${field.slice(1)}`;
+    throw new InputError(rangeMessage(label, { min, max }), 'range', field);
   }
   return whole;
 }

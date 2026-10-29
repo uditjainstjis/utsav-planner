@@ -1,9 +1,9 @@
 // @ts-check
 /** Taking the plan away: budget as CSV, timeline as .ics, the whole plan as text, or print. */
 import { els } from './dom.js';
-import { fmtDate, percent, rupees } from './format.js';
+import { fmtDate, percent } from './format.js';
 import { TIER } from './render-ideas.js';
-import { OCCASION_LABEL } from './shared.js';
+import { OCCASION_LABEL, rupees } from './shared.js';
 import { getCurrent } from './state.js';
 
 /** @typedef {import('./state.js').Current} Current */
