@@ -7,13 +7,13 @@ meets the controls.
 
 ## Threat model
 
-| Asset                                       | Threat                                               | Control                                                                                                         |
-| ------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| The visitor's inputs (budget, date, wishes) | Disclosure to a third party or an intermediary cache | No storage; `no-store` on every API response; no third-party origins; no analytics                              |
-| The model                                   | Prompt injection through the wishes field            | Deterministic screen + nonce fence; model never sees numbers it can change                                      |
-| The page                                    | Script injection through model output                | `textContent` only; CSP without `unsafe-inline`; Trusted Types enforced by the browser                          |
-| The service                                 | Abuse: cross-site requests, floods, oversized bodies | Content-type gate, `Sec-Fetch-Site` check, per-IP rate limit, bounded fields                                    |
-| The supply chain                            | A compromised dependency or Action                   | One runtime dependency; lockfile; CodeQL, dependency-review and Dependabot in CI; Actions pinned to commit SHAs |
+| Asset                                       | Threat                                               | Control                                                                                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The visitor's inputs (budget, date, wishes) | Disclosure to a third party or an intermediary cache | No storage; `no-store` on every API response; no third-party origins; no analytics                                                                                 |
+| The model                                   | Prompt injection through the wishes field            | Deterministic screen + nonce fence; model never sees numbers it can change                                                                                         |
+| The page                                    | Script injection through model output                | `textContent` only; CSP without `unsafe-inline`; Trusted Types enforced by the browser                                                                             |
+| The service                                 | Abuse: cross-site requests, floods, oversized bodies | Content-type gate, `Sec-Fetch-Site` check, per-IP rate limit, bounded fields                                                                                       |
+| The supply chain                            | A compromised dependency or Action                   | One runtime dependency; lockfile; patched overrides and an install-script allowlist; CodeQL, dependency-review and Dependabot in CI; Actions pinned to commit SHAs |
 
 There is no login, no session and no database. A visitor has nothing to steal
 from another visitor, and the service holds no credential that a request could
@@ -147,6 +147,15 @@ so a model outage is retried on the next request rather than remembered.
 
 - One runtime dependency (`hono`). The lockfile is committed; `npm ci` is used
   everywhere.
+- Transitive development dependencies with a published advisory are pinned to a
+  patched release through `overrides` in `package.json`: `undici` 7.30.1,
+  `sharp` 0.35.5, and `zod` 4.6.7 (GHSA-mrhx-c7xc-m3w5, reached through
+  `@cloudflare/vitest-pool-workers`). `npm audit` reports no vulnerabilities.
+- `allowScripts` in `package.json` lists the install scripts npm may run, pinned
+  by version: `esbuild` 0.28.1 and 0.28.2 and `workerd` 1.20260815.1 and
+  1.20261019.1, each of which installs its platform binary. `fsevents` is
+  denied; it ships a prebuilt binary. npm releases that read the field (11.x)
+  warn about any install script not listed and never run a denied one.
 - `.github/workflows/ci.yml`: typecheck, lint, format check, tests with
   coverage, `npm audit --audit-level=high`.
 - `.github/workflows/codeql.yml`: CodeQL on every push and weekly.
