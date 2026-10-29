@@ -33,10 +33,10 @@ function keyToRequest(key: string): Request {
 /**
  * Read a cached value.
  *
- * @returns the parsed value, or null on miss or on any cache error — the
- *   caller always has a working path that recomputes.
+ * @returns the parsed value, unchecked, or null on miss or on any cache error —
+ *   the caller checks its shape, and always has a working path that recomputes.
  */
-export async function cacheGet<T>(key: string): Promise<T | null> {
+export async function cacheGet(key: string): Promise<unknown> {
   try {
     const hit = await caches.default.match(keyToRequest(key));
     return hit ? await hit.json() : null;

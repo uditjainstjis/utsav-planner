@@ -262,7 +262,22 @@ describe('personalise', () => {
     const second = await personalise(env(run as never), buildPlan(req, TODAY));
     expect(first.cached).toBe(false);
     expect(second.cached).toBe(true);
+    expect(second.model).toBe(PRIMARY_MODEL);
     expect(run).toHaveBeenCalledTimes(4);
+  });
+
+  it('labels a cache hit with the model that actually wrote the answer', async () => {
+    const run = vi.fn(async (model: string) => {
+      if (model === PRIMARY_MODEL) throw new Error('capacity');
+      return { response: REPLY };
+    });
+    const req = request();
+    const first = await personalise(env(run as never), buildPlan(req, TODAY));
+    const second = await personalise(env(run as never), buildPlan(req, TODAY));
+    expect(first.model).toBe(FALLBACK_MODEL);
+    expect(second.cached).toBe(true);
+    expect(second.model).toBe(FALLBACK_MODEL);
+    expect(run).toHaveBeenCalledTimes(8);
   });
 
   it('does not cache a fallback answer, so the model is retried next time', async () => {

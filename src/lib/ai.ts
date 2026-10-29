@@ -246,6 +246,22 @@ async function callModel(env: Env, model: Model, part: Part, plan: Plan, nonce: 
   });
 }
 
+/**
+ * A cached personalisation: the merged model reply, and the model that wrote
+ * its ideas, which may be the fallback. An entry without a model name predates
+ * this shape and is treated as a miss.
+ */
+interface CachedReply {
+  model: string;
+  reply: Record<string, unknown>;
+}
+
+function asCachedReply(v: unknown): CachedReply | null {
+  return isRecord(v) && typeof v.model === 'string' && isRecord(v.reply)
+    ? { model: v.model, reply: v.reply }
+    : null;
+}
+
 interface PartResult {
   obj: Record<string, unknown>;
   model: string;
@@ -327,9 +343,9 @@ export async function personalise(
 ): Promise<Personalisation> {
   const timeoutMs = options.timeoutMs ?? MODEL_TIMEOUT_MS;
   const key = await contentKey(cacheParts(plan));
-  const hit = await cacheGet<Record<string, unknown>>(key);
+  const hit = asCachedReply(await cacheGet(key));
   if (hit) {
-    const cached = coercePersonalisation(hit, plan, { model: PRIMARY_MODEL, cached: true });
+    const cached = coercePersonalisation(hit.reply, plan, { model: hit.model, cached: true });
     if (cached) return cached;
   }
 
@@ -358,7 +374,7 @@ export async function personalise(
   const result = ideas
     ? coercePersonalisation(merged, plan, { model: ideas.model, cached: false })
     : null;
-  if (!result) {
+  if (!ideas || !result) {
     // Still validate the model-written parts we did get, through the same gate.
     const partial = coercePersonalisation({ ...merged, ideas: generic.ideas }, plan, {
       model: '',
@@ -371,7 +387,10 @@ export async function personalise(
     };
   }
   // Only a complete model answer is durable. A fallback must be retried.
-  if (ideasA && ideasB && vendors && notes) await cachePut(key, merged);
+  if (ideasA && ideasB && vendors && notes) {
+    const entry: CachedReply = { model: ideas.model, reply: merged };
+    await cachePut(key, entry);
+  }
   return result;
 }
 
