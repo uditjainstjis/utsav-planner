@@ -64,6 +64,9 @@
   --ink-soft: var(--n-600);
   --ink-faint: var(--n-500);
   --rule: var(--n-200);
+  /* Input borders identify the control, so they need 3:1 against the
+     surfaces (WCAG 1.4.11); --rule is a hairline and does not reach it. */
+  --field-border: oklch(60% 0.012 var(--hue));
   --accent: var(--c-700);
   --accent-bright: var(--c-500);
 
@@ -112,6 +115,7 @@
     --ink-soft: oklch(82% 0.012 var(--hue));
     --ink-faint: oklch(78% 0.013 var(--hue));
     --rule: oklch(30% 0.014 var(--hue-deep));
+    --field-border: oklch(52% 0.014 var(--hue-deep));
     --accent: var(--c-300);
     --accent-bright: var(--c-400);
     --risk-high: oklch(77% 0.13 27);
@@ -136,6 +140,7 @@
   --ink-soft: oklch(82% 0.012 var(--hue));
   --ink-faint: oklch(78% 0.013 var(--hue));
   --rule: oklch(30% 0.014 var(--hue-deep));
+  --field-border: oklch(52% 0.014 var(--hue-deep));
   --accent: var(--c-300);
   --accent-bright: var(--c-400);
   --risk-high: oklch(77% 0.13 27);
@@ -196,8 +201,9 @@ a {
   text-underline-offset: 0.18em;
   text-decoration-thickness: from-font;
 }
+/* accent-bright is too light for text in the light theme (3.03:1). */
 a:hover {
-  color: var(--accent-bright);
+  color: var(--ink);
 }
 
 :focus-visible {
@@ -404,7 +410,7 @@ select {
   font-size: var(--t-sm);
   color: var(--ink);
   background: var(--surface-0);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--field-border);
   border-radius: 10px;
   padding: 14px 16px;
   transition:
@@ -419,7 +425,7 @@ textarea {
 }
 textarea:hover,
 select:hover {
-  border-color: var(--n-300);
+  border-color: var(--ink-faint);
 }
 textarea:focus-visible,
 select:focus-visible {
@@ -428,7 +434,6 @@ select:focus-visible {
 }
 ::placeholder {
   color: var(--ink-faint);
-  opacity: 0.7;
 }
 
 .field__foot {
@@ -727,7 +732,7 @@ input[type='date'] {
   font-size: var(--t-base);
   color: var(--ink);
   background: var(--surface-1);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--field-border);
   border-radius: var(--r);
   box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.03);
 }

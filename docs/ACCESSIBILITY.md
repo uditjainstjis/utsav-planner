@@ -8,27 +8,28 @@ hand and is recorded here.
 
 ## What is enforced in CI
 
-| Claim                                                                                                                                                   | Where it is enforced                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes    | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                               |
-| Every text colour reaches **4.5:1** on every surface, in both themes; body text reaches 7:1; the focus ring reaches 3:1                                 | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
-| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                         | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
-| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend | `test/a11y.test.ts`                                                                                                                                  |
-| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                             | `test/a11y.test.ts`                                                                                                                                  |
-| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                       | `test/a11y.test.ts`                                                                                                                                  |
+| Claim                                                                                                                                                                          | Where it is enforced                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes                           | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                               |
+| Every text colour reaches **4.5:1** on every surface, in both themes, including link hover and placeholders; body text reaches 7:1; the focus ring and input borders reach 3:1 | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
+| One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                                                | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
+| Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend                        | `test/a11y.test.ts`                                                                                                                                  |
+| Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                                                    | `test/a11y.test.ts`                                                                                                                                  |
+| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                                              | `test/a11y.test.ts`                                                                                                                                  |
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
-| Token                                      | Light theme | Dark theme | Needs | Used for                     |
-| ------------------------------------------ | ----------- | ---------- | ----- | ---------------------------- |
-| `ink`                                      | 15.09       | 14.62      | 4.5   | body text, headings, values  |
-| `ink-soft`                                 | 5.58        | 9.68       | 4.5   | supporting copy, table notes |
-| `ink-faint`                                | 4.70        | 8.44       | 4.5   | labels, metadata, counters   |
-| `accent`                                   | 6.65        | 8.79       | 4.5   | links, the AI badge border   |
-| `risk-high`                                | 5.56        | 7.76       | 4.5   | budget warnings              |
-| `risk-low`                                 | 5.70        | 8.59       | 4.5   | "generous budget" note       |
-| page colour on `accent` (the **AI** badge) | 7.16        | 10.15      | 4.5   | AI-authored markers          |
-| `accent-bright`                            | 3.03        | 6.52       | 3     | the focus ring (non-text)    |
+| Token                                      | Light theme | Dark theme | Needs | Used for                                    |
+| ------------------------------------------ | ----------- | ---------- | ----- | ------------------------------------------- |
+| `ink`                                      | 15.09       | 14.62      | 4.5   | body text, headings, values, links on hover |
+| `ink-soft`                                 | 5.58        | 9.68       | 4.5   | supporting copy, table notes                |
+| `ink-faint`                                | 4.70        | 8.44       | 4.5   | labels, metadata, counters, placeholders    |
+| `accent`                                   | 6.65        | 8.79       | 4.5   | links, the AI badge border                  |
+| `risk-high`                                | 5.56        | 7.76       | 4.5   | budget warnings                             |
+| `risk-low`                                 | 5.70        | 8.59       | 4.5   | "generous budget" note                      |
+| page colour on `accent` (the **AI** badge) | 7.16        | 10.15      | 4.5   | AI-authored markers                         |
+| `accent-bright`                            | 3.03        | 6.52       | 3     | the focus ring (non-text)                   |
+| `field-border`                             | 3.37        | 3.06       | 3     | input, select and textarea borders          |
 
 These figures were corrected when a defect in the test's converter was found: it
 applied the sRGB transfer curve to colours that were already linear, which
@@ -37,6 +38,16 @@ understated the dark ones. White, black and identical pairs come out the same
 either way, so the old self-check could not see it; the test now also checks two
 published mid-tone ratios (#ff0000 on white is 4.00:1). The tightest pairs are
 light `ink-faint` on `surface-2` at 4.70 and the light focus ring at 3.03.
+
+Three fixes came out of the corrected numbers. Placeholders had `opacity: 0.7`
+on top of `ink-faint`, which took them to 2.83–2.92:1 in the light theme; they
+now use the token at full strength (5.07:1 on the field backgrounds). Input
+borders used `rule`, a hairline at 1.35:1 (light) and 1.43:1 (dark), too faint
+to show where a field is (WCAG 1.4.11); they now use `field-border`, and the
+hover border darkens to `ink-faint` rather than lightening. Links turned
+`accent-bright` on hover, which is 3.03:1 as text in the light theme; they now
+turn `ink`. The contrast test reads each of these rules from the stylesheet, so
+it checks what is shipped.
 
 ## Design decisions, and why
 

@@ -112,6 +112,38 @@ export function contrast(fg: string, bg: string, tokens: Tokens): number {
 const TEXT = ['ink', 'ink-soft', 'ink-faint', 'accent', 'risk-high', 'risk-low'] as const;
 const SURFACES = ['surface-0', 'surface-1', 'surface-2'] as const;
 
+/** The body of the first rule whose selector list is exactly `selector`. */
+function rule(selector: string): string {
+  const start = css.indexOf(`\n${selector} {`);
+  if (start === -1) throw new Error(`no rule for ${selector}`);
+  return css.slice(start, css.indexOf('}', start));
+}
+
+/** The token a declaration in `body` sets, e.g. `color: var(--ink)` gives `ink`. */
+function tokenIn(body: string, property: string): string {
+  const m = new RegExp(`\\n\\s*${property}: var\\(--([a-z0-9-]+)\\);`).exec(body);
+  if (!m?.[1]) throw new Error(`no ${property} token in ${body}`);
+  return m[1];
+}
+
+// Read from the stylesheet, so changing the rule changes what is checked.
+const LINK_HOVER = tokenIn(rule('a:hover'), 'color');
+const HOVER_BORDER = tokenIn(rule('textarea:hover,\nselect:hover'), 'border-color');
+const PLACEHOLDER = tokenIn(rule('::placeholder'), 'color');
+
+describe('form fields and placeholders', () => {
+  it('draw their borders with the field-border token', () => {
+    expect(rule("input[type='text'],\ninput[type='number'],\ninput[type='date']")).toContain(
+      'border: 1px solid var(--field-border);',
+    );
+    expect(rule('textarea,\nselect')).toContain('border: 1px solid var(--field-border);');
+  });
+
+  it('show placeholder text at full strength, so its measured contrast is its real contrast', () => {
+    expect(rule('::placeholder')).not.toMatch(/opacity/);
+  });
+});
+
 describe.each([
   ['light', LIGHT],
   ['dark (system)', DARK],
@@ -133,6 +165,31 @@ describe.each([
         contrast('accent-bright', bg, tokens),
         `accent-bright on ${bg}`,
       ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('form field borders reach 3:1 against every surface (WCAG 1.4.11)', () => {
+    for (const bg of SURFACES) {
+      expect(contrast('field-border', bg, tokens), `field-border on ${bg}`).toBeGreaterThanOrEqual(
+        3,
+      );
+      expect(contrast(HOVER_BORDER, bg, tokens), `hover border on ${bg}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('link hover text reaches AA on every surface', () => {
+    for (const bg of SURFACES) {
+      expect(contrast(LINK_HOVER, bg, tokens), `${LINK_HOVER} on ${bg}`).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+  });
+
+  it('placeholder text reaches AA on the field backgrounds', () => {
+    for (const bg of ['surface-0', 'surface-1']) {
+      expect(contrast(PLACEHOLDER, bg, tokens), `${PLACEHOLDER} on ${bg}`).toBeGreaterThanOrEqual(
+        4.5,
+      );
     }
   });
 
