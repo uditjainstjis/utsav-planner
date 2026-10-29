@@ -25,6 +25,7 @@ beforeEach(loadApp);
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 describe('the refine form', () => {
@@ -116,6 +117,22 @@ describe('the refine form', () => {
       expect($('ideas-status').textContent).toMatch(/ideas from fresh/);
       expect($('ideas-status').dataset.state).toBe('ok');
     });
+  });
+
+  it('keeps the booked ticks when a change moves the headcount', async () => {
+    const refined = applyRefinement(REQUEST, '30 guests', TODAY);
+    const plan = buildPlan(refined.request, TODAY);
+    await planFirst(ok({ ...refined, plan, ics: '' }), ok(fallbackPersonalisation(plan)));
+    const id = PLAN.vendors[0]!.id;
+    expect(plan.vendors.map((v) => v.id)).toContain(id);
+    $(`vendor-${id}`, HTMLInputElement).click();
+
+    refine('30 guests');
+    await refineSettled();
+
+    expect($('guests', HTMLInputElement).value).toBe('30');
+    expect($(`vendor-${id}`, HTMLInputElement).checked).toBe(true);
+    expect($('vendor-progress').textContent).toBe(`1 of ${plan.vendors.length} booked`);
   });
 
   it('shows a rejected change next to the change field', async () => {

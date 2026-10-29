@@ -6,9 +6,13 @@ import { fmtDate, lineLabel } from './format.js';
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
 /** @typedef {import('../../src/lib/types').Plan} Plan */
 
-/** @param {Plan} plan */
+/**
+ * The plan's ticks are keyed by the occasion and its date, which name the event;
+ * a refined headcount or budget is the same event, so its ticks stay.
+ * @param {Plan} plan
+ */
 function doneKey(plan) {
-  return `utsav:done:${plan.request.eventType}:${plan.request.eventDate}:${plan.request.guests}`;
+  return `utsav:done:${plan.request.eventType}:${plan.request.eventDate}`;
 }
 
 /**
