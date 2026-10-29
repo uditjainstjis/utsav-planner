@@ -32,6 +32,12 @@ export default tseslint.config(
     },
   },
   {
+    // Shipped code keeps every function to a screen; tests are exempt, since a
+    // describe block is a list of cases, not a unit of logic.
+    files: ['src/**/*.ts', 'public/**/*.js'],
+    rules: { 'max-lines-per-function': ['error', { max: 40 }] },
+  },
+  {
     // Front-end code runs in the browser and is plain JavaScript, typechecked
     // through JSDoc by tsconfig.app.json rather than linted with type information.
     files: ['public/**/*.js'],

@@ -17,23 +17,17 @@
    Tokens
    Direction: a wedding planner's ledger. Ink on warm card stock, marigold
    accent, one moment of drama reserved for the per-guest figure.
-   Ramp is OKLCH with arcing chroma and a hue rotation toward the dark end, so
-   it reads as pigment rather than as arithmetic.
+   The accent ramp is OKLCH with arcing chroma and a hue rotation toward the
+   dark end, so it reads as pigment rather than as arithmetic.
    ========================================================================= */
 :root {
   --hue: 42;
   --hue-deep: calc(var(--hue) - 14); /* shadows cool as they darken */
 
-  --c-50: oklch(97.5% 0.014 var(--hue));
-  --c-100: oklch(94% 0.034 var(--hue));
-  --c-200: oklch(88% 0.064 var(--hue));
   --c-300: oklch(80% 0.1 var(--hue));
   --c-400: oklch(72% 0.132 var(--hue));
   --c-500: oklch(64% 0.146 var(--hue));
-  --c-600: oklch(55% 0.132 calc(var(--hue) - 4));
   --c-700: oklch(45% 0.108 calc(var(--hue) - 8));
-  --c-800: oklch(34% 0.076 calc(var(--hue) - 11));
-  --c-900: oklch(24% 0.046 var(--hue-deep));
 
   /* Neutrals tinted toward the brand hue — pure grey reads broken beside it. */
   --n-0: oklch(99% 0.005 var(--hue));
@@ -50,11 +44,8 @@
   /* Severity. Always paired with a glyph and a word — never colour alone. */
   --risk-high: oklch(50% 0.168 27);
   --risk-high-bg: oklch(95.5% 0.028 27);
-  --risk-medium: oklch(48% 0.108 62);
-  --risk-medium-bg: oklch(95.5% 0.036 68);
   --risk-low: oklch(47% 0.086 235);
   --risk-low-bg: oklch(95.5% 0.024 235);
-  --risk-info: oklch(46% 0.014 var(--hue));
   --risk-info-bg: oklch(95.5% 0.008 var(--hue));
 
   --surface-0: var(--n-50);
@@ -76,18 +67,13 @@
   --elev-2:
     0 1px 1px hsl(var(--sh) / 0.04), 0 2px 4px hsl(var(--sh) / 0.04),
     0 4px 8px hsl(var(--sh) / 0.035), 0 8px 16px hsl(var(--sh) / 0.03);
-  --elev-3:
-    0 1px 2px hsl(var(--sh) / 0.03), 0 4px 8px hsl(var(--sh) / 0.03),
-    0 8px 16px hsl(var(--sh) / 0.03), 0 16px 32px hsl(var(--sh) / 0.028),
-    0 32px 64px hsl(var(--sh) / 0.025);
   --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.7);
 
-  /* Type scale, ratio 1.25 */
+  /* Type scale */
   --t-xs: 0.8125rem;
   --t-sm: 0.875rem;
   --t-base: 1rem;
   --t-md: 1.125rem;
-  --t-lg: 1.5rem;
   --t-xl: 1.9375rem;
   --t-2xl: 2.4375rem;
   --t-display: clamp(2.125rem, 1.5rem + 2.8vw, 3.25rem);
@@ -97,7 +83,6 @@
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
 
   --font-display: 'Fraunces', ui-serif, 'Iowan Old Style', Georgia, serif;
   --font-body: 'InterVar', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -120,16 +105,12 @@
     --accent-bright: var(--c-400);
     --risk-high: oklch(77% 0.13 27);
     --risk-high-bg: oklch(27% 0.062 27);
-    --risk-medium: oklch(80% 0.1 70);
-    --risk-medium-bg: oklch(27% 0.05 62);
     --risk-low: oklch(78% 0.078 235);
     --risk-low-bg: oklch(27% 0.042 235);
-    --risk-info: oklch(72% 0.014 var(--hue));
     --risk-info-bg: oklch(25% 0.01 var(--hue));
     --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.06);
     --elev-1: 0 1px 2px hsl(var(--sh) / 0.3);
     --elev-2: 0 2px 6px hsl(var(--sh) / 0.34), 0 8px 20px hsl(var(--sh) / 0.26);
-    --elev-3: 0 4px 12px hsl(var(--sh) / 0.36), 0 20px 48px hsl(var(--sh) / 0.3);
   }
 }
 :root[data-theme='dark'] {
@@ -145,16 +126,12 @@
   --accent-bright: var(--c-400);
   --risk-high: oklch(77% 0.13 27);
   --risk-high-bg: oklch(27% 0.062 27);
-  --risk-medium: oklch(80% 0.1 70);
-  --risk-medium-bg: oklch(27% 0.05 62);
   --risk-low: oklch(78% 0.078 235);
   --risk-low-bg: oklch(27% 0.042 235);
-  --risk-info: oklch(72% 0.014 var(--hue));
   --risk-info-bg: oklch(25% 0.01 var(--hue));
   --edge-top: inset 0 1px 0 oklch(100% 0 0 / 0.06);
   --elev-1: 0 1px 2px hsl(var(--sh) / 0.3);
   --elev-2: 0 2px 6px hsl(var(--sh) / 0.34), 0 8px 20px hsl(var(--sh) / 0.26);
-  --elev-3: 0 4px 12px hsl(var(--sh) / 0.36), 0 20px 48px hsl(var(--sh) / 0.3);
 }
 
 /* ========================================================================= */
@@ -593,12 +570,6 @@ select:focus-visible {
   .summary {
     grid-template-columns: 1fr;
   }
-  .score {
-    border-right: 0;
-    border-bottom: 1px solid var(--rule);
-    padding-right: 0;
-    padding-bottom: 20px;
-  }
   .wrap {
     padding-block: 36px 64px;
   }
@@ -621,18 +592,24 @@ select:focus-visible {
 @media print {
   .masthead,
   .footer,
+  .skip-link,
+  .panel,
   form,
-  .samples,
-  .btn,
-  .skip-link {
+  .summary__actions,
+  .btn {
     display: none !important;
   }
+  .results {
+    margin-top: 0;
+  }
   .card,
-  .summary,
-  .panel {
+  .summary {
     box-shadow: none;
     border: 1px solid #999;
     break-inside: avoid;
+  }
+  .vendor__check {
+    -webkit-appearance: checkbox;
   }
 }
 
@@ -1149,30 +1126,6 @@ textarea[aria-invalid='true'] {
   .milestone {
     grid-template-columns: 1fr;
     gap: 0.15rem;
-  }
-}
-
-/* --- print -------------------------------------------------------------- */
-@media print {
-  .masthead,
-  .skip-link,
-  .panel,
-  .summary__actions,
-  .card__head .btn,
-  .footer,
-  #theme-toggle {
-    display: none !important;
-  }
-  .results {
-    margin-top: 0;
-  }
-  .card,
-  .summary {
-    box-shadow: none;
-    break-inside: avoid;
-  }
-  .vendor__check {
-    -webkit-appearance: checkbox;
   }
 }
 
