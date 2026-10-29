@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
-import type { Env } from '../src/lib/ai';
+import type { Env } from '../src/env';
 import { harden } from '../src/lib/headers';
 import type { Personalisation, Plan } from '../src/lib/types';
 

@@ -1,5 +1,6 @@
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
-import { personalise, type Env } from './lib/ai';
+import type { Env } from './env';
+import { personalise } from './lib/ai/personalise';
 import { harden } from './lib/headers';
 import { LIMITS, todayIso } from './shared/constants';
 import { buildPlan, planIcs } from './lib/plan';

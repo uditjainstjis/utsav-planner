@@ -58,7 +58,7 @@ There is no regular expression in the validation path that can backtrack
 polynomially: the date pattern is anchored and fixed-width, and the control
 character strip is a single character class.
 
-## 3. The model boundary (`src/lib/guard.ts`, `src/prompts/plan.ts`, `src/lib/ai.ts`)
+## 3. The model boundary (`src/lib/guard.ts`, `src/prompts/plan.ts`, `src/lib/ai/`)
 
 Three fields reach the model in a visitor's own words: the occasion's name (at
 most 80 characters), the city (60) and the wishes (600, and every refinement is
