@@ -56,6 +56,17 @@ describe('applyRefinement', () => {
     expect(request.guests).toBe(300);
   });
 
+  it.each([
+    'two speakers 3000 watts each',
+    'add 2 dancers 4 hours',
+    'invite the townspeople 2 days early',
+    'more lakes 5 km away',
+  ])('reads a keyword only as a whole word in "%s"', (text) => {
+    const { request, changes } = applyRefinement(REQ, text, TODAY);
+    expect(request).toMatchObject({ budget: REQ.budget, guests: REQ.guests });
+    expect(changes.map((c) => c.field)).toEqual(['wishes']);
+  });
+
   it('does not confuse a headcount with a budget', () => {
     expect(applyRefinement(REQ, '300 guests', TODAY).request.budget).toBe(REQ.budget);
     const total = applyRefinement(REQ, 'total 300 guests', TODAY);
