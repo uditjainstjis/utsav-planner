@@ -58,6 +58,7 @@ export function stubEnv(overrides: Partial<Env> = {}, reply: unknown = MODEL_REP
       fetch: async () =>
         new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } }),
     } as unknown as Fetcher,
+    RATE_LIMITER: { limit: async () => ({ success: true }) },
     ...overrides,
   };
 }

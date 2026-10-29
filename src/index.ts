@@ -64,15 +64,13 @@ const guardApi: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   if (site !== undefined && site !== 'same-origin' && site !== 'none') {
     return c.json({ error: 'Cross-site requests are not accepted.', code: 'cross_origin' }, 403);
   }
-  if (c.env.RATE_LIMITER) {
-    const ip = c.req.header('cf-connecting-ip') ?? 'local';
-    const { success } = await c.env.RATE_LIMITER.limit({ key: ip });
-    if (!success) {
-      return c.json(
-        { error: 'Too many requests. Please wait a minute and try again.', code: 'rate_limited' },
-        429,
-      );
-    }
+  const ip = c.req.header('cf-connecting-ip') ?? 'local';
+  const { success } = await c.env.RATE_LIMITER.limit({ key: ip });
+  if (!success) {
+    return c.json(
+      { error: 'Too many requests. Please wait a minute and try again.', code: 'rate_limited' },
+      429,
+    );
   }
   await next();
   return undefined;

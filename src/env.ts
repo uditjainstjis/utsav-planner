@@ -1,6 +1,6 @@
-/** Bindings this Worker requires. `AI` is the only external dependency. */
-export interface Env {
-  AI: Ai;
-  ASSETS: Fetcher;
-  RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> };
-}
+/**
+ * The Worker's bindings, as `wrangler types` generates them from wrangler.jsonc
+ * into worker-configuration.d.ts (run before every typecheck and lint), so the
+ * type cannot drift from the deployed configuration.
+ */
+export type Env = Cloudflare.Env;

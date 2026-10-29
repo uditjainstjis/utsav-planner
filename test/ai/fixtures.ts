@@ -71,7 +71,11 @@ export const REPLY = {
 
 /** An environment whose AI binding is `run`. */
 export function env(run: Env['AI']['run']): Env {
-  return { AI: { run } as unknown as Ai, ASSETS: {} as Fetcher };
+  return {
+    AI: { run } as unknown as Ai,
+    ASSETS: {} as Fetcher,
+    RATE_LIMITER: { limit: async () => ({ success: true }) },
+  };
 }
 
 /**

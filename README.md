@@ -102,7 +102,7 @@ the deployed bundle.
 
 ```
 src/index.ts                Hono router: /api/health, /api/plan, /api/refine, /api/personalise, assets
-src/env.ts                  the Worker's bindings
+src/env.ts                  the Worker's bindings, as `wrangler types` generates them
 src/shared/constants.ts     event types, limits, labels, messages, money, today: for page and Worker
 src/lib/types.ts            the domain types: request, plan, personalisation
 src/lib/validate.ts         field-level validation, named errors
