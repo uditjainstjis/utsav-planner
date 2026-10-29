@@ -8,6 +8,7 @@
 
 /** The three occasions named in the brief: the form's radio values. */
 export const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
+/** One of {@link EVENT_TYPES}. */
 export type EventType = (typeof EVENT_TYPES)[number];
 
 /** Bounds on a planning request. The Worker enforces them; the form checks them first. */

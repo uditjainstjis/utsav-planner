@@ -23,6 +23,7 @@ import type { IdeaCategory, Plan } from '../lib/types';
  */
 export const PROMPT_VERSION = '2026-10-29.2';
 
+/** The standing instructions every part is asked under, user text treated as data. */
 export const SYSTEM_PROMPT = [
   'You are Utsav, a celebration planner for weddings, birthdays and community events in India.',
   'You are warm, practical and specific. You know local vendors, seasons, customs and prices.',
@@ -33,6 +34,7 @@ export const SYSTEM_PROMPT = [
   'Reply with one JSON object that matches the schema exactly, with no prose around it.',
 ].join(' ');
 
+/** The four asks of a personalisation: two halves of ideas, vendor questions, budget notes. */
 export type Part = 'ideasA' | 'ideasB' | 'vendors' | 'notes';
 
 /** Workers AI json_schema per part. Enumerations are enforced again in code. */
@@ -77,6 +79,7 @@ const NOTES_SCHEMA = {
   required: ['budgetNotes'],
 } as const;
 
+/** The JSON schema each part's reply must match, by part. */
 export const SCHEMAS = {
   ideasA: IDEAS_SCHEMA,
   ideasB: IDEAS_SCHEMA,
@@ -166,6 +169,7 @@ function buildNotesPrompt(plan: Plan, nonce: string): string {
   ].join('\n');
 }
 
+/** The prompt for each part, built from the plan's facts under the request's nonce. */
 export const PROMPT_BUILDERS: Record<Part, (plan: Plan, nonce: string) => string> = {
   ideasA: (plan, nonce) => buildIdeasPrompt(plan, nonce, 'a'),
   ideasB: (plan, nonce) => buildIdeasPrompt(plan, nonce, 'b'),

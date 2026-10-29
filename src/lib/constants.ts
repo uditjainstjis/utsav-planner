@@ -16,6 +16,7 @@ export const IDEA_CATEGORIES = [
   'other',
 ] as const;
 
+/** How expensive an idea is, as the model may say it and the page shows it. */
 export const COST_TIERS = ['low', 'medium', 'high'] as const;
 
 /** The request fields written in a visitor's own words. Each reaches the model, so each is screened. */

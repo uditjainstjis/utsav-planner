@@ -17,6 +17,7 @@ const CONTINGENCY = {
   scalesWithGuests: false,
 } as const;
 
+/** Every occasion's budget template; the `satisfies` clause makes a missing one a type error. */
 export const TEMPLATES = {
   wedding: {
     lines: [

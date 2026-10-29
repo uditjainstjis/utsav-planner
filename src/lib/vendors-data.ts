@@ -11,6 +11,7 @@ interface VendorTemplate<E extends EventType> {
   questions: readonly string[];
 }
 
+/** The vendor checklist of every occasion; a missing occasion is a type error. */
 export const VENDORS = {
   wedding: [
     {

@@ -35,6 +35,7 @@ export interface PlanRequest {
 
 // ---------------------------------------------------------------- budget
 
+/** One budget category: its share of the total and its whole-rupee amount. */
 export interface BudgetLine {
   /** Stable id, referenced by vendors and ideas: "catering", "venue", … */
   id: BudgetLineId;
@@ -49,11 +50,13 @@ export interface BudgetLine {
 
 type BudgetFlagCode = 'tight_total' | 'tight_catering' | 'generous';
 
+/** The one warning a budget may earn, with the sentence the page shows. */
 export interface BudgetFlag {
   code: BudgetFlagCode;
   message: string;
 }
 
+/** The user's total split into lines that sum to it exactly, with any warning. */
 export interface Budget {
   currency: 'INR';
   total: number;
@@ -64,8 +67,10 @@ export interface Budget {
 
 // ---------------------------------------------------------------- timeline
 
+/** Where in the run-up a milestone falls. */
 export type Phase = 'foundation' | 'booking' | 'details' | 'final' | 'event';
 
+/** One dated step of the timeline. */
 export interface Milestone {
   id: string;
   title: string;
@@ -78,6 +83,7 @@ export interface Milestone {
   vendorId: VendorId | null;
 }
 
+/** The milestones counted back from the event date, compressed when time is short. */
 export interface Timeline {
   /** Days between planning day and the event. */
   leadDays: number;
@@ -88,6 +94,7 @@ export interface Timeline {
 
 // ---------------------------------------------------------------- vendors
 
+/** One vendor to book: who, paid from which line, by when, and what to ask. */
 export interface VendorItem {
   id: VendorId;
   label: string;
@@ -103,9 +110,12 @@ export interface VendorItem {
 
 // ---------------------------------------------------------------- AI output
 
+/** What an idea is about; one of `IDEA_CATEGORIES`. */
 export type IdeaCategory = (typeof IDEA_CATEGORIES)[number];
+/** How expensive an idea is; one of `COST_TIERS`. */
 export type CostTier = (typeof COST_TIERS)[number];
 
+/** One personalised idea: what to do, how, and the budget line it draws on. */
 export interface Idea {
   title: string;
   detail: string;
@@ -118,6 +128,7 @@ export interface Idea {
 /** Who wrote a section of a personalisation: a model, or the deterministic fallback. */
 type Source = 'model' | 'fallback';
 
+/** The generative part of a plan, checked against it, with who wrote each section. */
 export interface Personalisation {
   /** One-paragraph brief back to the user, in their own terms. */
   summary: string;
@@ -139,8 +150,10 @@ export interface Personalisation {
 
 // ---------------------------------------------------------------- plan
 
+/** A request field written in the visitor's own words; one of `SCREENED_FIELDS`. */
 export type ScreenedField = (typeof SCREENED_FIELDS)[number];
 
+/** One stretch of the brief aimed at an AI reader, shown to the user. */
 export interface InjectionFinding {
   /** The field the text was found in. */
   field: ScreenedField;
@@ -150,6 +163,7 @@ export interface InjectionFinding {
   offset: number;
 }
 
+/** All a request yields without a model: budget, timeline, vendors, screen findings. */
 export interface Plan {
   request: PlanRequest;
   /** ISO date the plan was generated on; the timeline's "today". */

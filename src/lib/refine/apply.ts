@@ -17,6 +17,7 @@ import { assembleWishes, splitWishes } from './wishes';
  * what was applied, so a misread number is visible rather than silent.
  */
 
+/** One change a refinement made, as the page lists it: the field, before and after. */
 export interface Change {
   field: 'budget' | 'guests' | 'date' | 'wishes';
   from: string;
