@@ -7,6 +7,18 @@ import { rupees } from './constants.js';
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
 /** @typedef {import('../../src/lib/types').Plan} Plan */
 
+/**
+ * @param {'th' | 'td'} tag
+ * @param {string} text
+ * @param {string} [className]
+ */
+function cell(tag, text, className) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  el.textContent = text;
+  return el;
+}
+
 /** @param {Plan} plan */
 export function renderBudget(plan) {
   const { budget, request } = plan;
@@ -15,22 +27,15 @@ export function renderBudget(plan) {
   for (const line of budget.lines) {
     const tr = document.createElement('tr');
     tr.dataset.line = line.id;
-    const th = document.createElement('th');
+    const th = cell('th', line.label);
     th.scope = 'row';
-    th.textContent = line.label;
-    const share = document.createElement('td');
-    share.className = 'num tabular';
-    share.textContent = percent(line.share);
-    const amount = document.createElement('td');
-    amount.className = 'num tabular';
-    amount.textContent = rupees(line.amount);
-    const per = document.createElement('td');
-    per.className = 'num tabular';
-    per.textContent = line.perGuest === null ? '—' : rupees(line.perGuest);
-    const note = document.createElement('td');
-    note.className = 'budget__note';
-    note.textContent = '…';
-    tr.append(th, share, amount, per, note);
+    tr.append(
+      th,
+      cell('td', percent(line.share), 'num tabular'),
+      cell('td', rupees(line.amount), 'num tabular'),
+      cell('td', line.perGuest === null ? '—' : rupees(line.perGuest), 'num tabular'),
+      cell('td', '…', 'budget__note'),
+    );
     els.budgetBody.append(tr);
   }
   els.budgetTotal.textContent = rupees(budget.total);
