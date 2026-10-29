@@ -1,0 +1,91 @@
+import { describe, expect, it, vi } from 'vitest';
+import { MODELS } from '../../src/lib/ai/ask';
+import { personalise } from '../../src/lib/ai/personalise';
+import { buildPlan } from '../../src/lib/plan';
+import { ctx, env, REPLY, request, TODAY } from './fixtures';
+
+const [PRIMARY_MODEL, FALLBACK_MODEL] = MODELS;
+
+describe('personalise and the cache', () => {
+  it('writes a complete answer through waitUntil, so the response does not wait on it', async () => {
+    const run = vi.fn(async () => ({ response: REPLY }));
+    const req = request();
+    const waitUntil = vi.fn();
+    const first = await personalise(env(run as never), buildPlan(req, TODAY), { waitUntil });
+    expect(first.cached).toBe(false);
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    await waitUntil.mock.calls[0]![0];
+    const second = await personalise(env(run as never), buildPlan(req, TODAY), { waitUntil });
+    expect(second.cached).toBe(true);
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands waitUntil nothing for an answer it does not cache', async () => {
+    const waitUntil = vi.fn();
+    const down = vi.fn(async () => {
+      throw new Error('down');
+    });
+    await personalise(env(down as never), buildPlan(request(), TODAY), { waitUntil });
+    expect(waitUntil).not.toHaveBeenCalled();
+  });
+
+  it('does not cache an answer with a generic section, so that part is retried', async () => {
+    const req = request();
+    const c = ctx();
+    // Every part answers, but no vendor id in the reply is in the plan.
+    const strays = vi.fn(async () => ({
+      response: { ...REPLY, vendorQuestions: { unicorn: ['?'] } },
+    }));
+    const first = await personalise(env(strays as never), buildPlan(req, TODAY), c);
+    expect(first.sources.vendorQuestions).toBe('fallback');
+    await c.settled();
+    const good = vi.fn(async () => ({ response: REPLY }));
+    const p = await personalise(env(good as never), buildPlan(req, TODAY), c);
+    expect(p.cached).toBe(false);
+    expect(p.sources.vendorQuestions).toBe('model');
+  });
+
+  it('serves a repeat request from cache without a model call', async () => {
+    const run = vi.fn(async () => ({ response: REPLY }));
+    const req = request();
+    const c = ctx();
+    const first = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    await c.settled();
+    const second = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    expect(first.cached).toBe(false);
+    expect(second.cached).toBe(true);
+    expect(second.model).toBe(PRIMARY_MODEL);
+    expect(second.sources).toEqual(first.sources);
+    expect(run).toHaveBeenCalledTimes(4);
+  });
+
+  it('labels a cache hit with the model that actually wrote the answer', async () => {
+    const run = vi.fn(async (model: string) => {
+      if (model === PRIMARY_MODEL) throw new Error('capacity');
+      return { response: REPLY };
+    });
+    const req = request();
+    const c = ctx();
+    const first = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    await c.settled();
+    const second = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    expect(first.model).toBe(FALLBACK_MODEL);
+    expect(second.cached).toBe(true);
+    expect(second.model).toBe(FALLBACK_MODEL);
+    expect(run).toHaveBeenCalledTimes(8);
+  });
+
+  it('does not cache a fallback answer, so the model is retried next time', async () => {
+    const req = request();
+    const c = ctx();
+    const bad = vi.fn(async () => {
+      throw new Error('down');
+    });
+    await personalise(env(bad as never), buildPlan(req, TODAY), c);
+    await c.settled();
+    const good = vi.fn(async () => ({ response: REPLY }));
+    const p = await personalise(env(good as never), buildPlan(req, TODAY), c);
+    expect(p.sources.ideas).toBe('model');
+    expect(good).toHaveBeenCalledTimes(4);
+  });
+});

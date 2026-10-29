@@ -105,7 +105,7 @@ app.post('/api/personalise', guardApi, async (c) => {
   // Rebuilt server-side from the validated request rather than trusting a
   // plan object the client sends back; the client never gets to tell the
   // model what the numbers are.
-  return c.json(await personalise(c.env, await readPlan(c)));
+  return c.json(await personalise(c.env, await readPlan(c), c.executionCtx));
 });
 
 /**

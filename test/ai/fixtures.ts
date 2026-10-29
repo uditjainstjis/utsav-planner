@@ -1,3 +1,4 @@
+import type { Env } from '../../src/env';
 import type { PlanRequest } from '../../src/lib/types';
 
 /** Shared by the ai/ suites: a planning day, fresh requests, and a reply to check. */
@@ -67,3 +68,25 @@ export const REPLY = {
   },
   budgetNotes: { decor: 'One colour, many balloons.', mandap: 'dropped' },
 };
+
+/** An environment whose AI binding is `run`. */
+export function env(run: Env['AI']['run']): Env {
+  return { AI: { run } as unknown as Ai, ASSETS: {} as Fetcher };
+}
+
+/**
+ * An execution context that keeps what is handed to `waitUntil`, so a test
+ * can let the cache write finish before it asks again.
+ */
+export function ctx(): {
+  waitUntil: (p: Promise<unknown>) => void;
+  settled: () => Promise<unknown>;
+} {
+  const pending: Promise<unknown>[] = [];
+  return {
+    waitUntil: (p) => {
+      pending.push(p);
+    },
+    settled: () => Promise.all(pending),
+  };
+}

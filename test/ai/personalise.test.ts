@@ -1,24 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Env } from '../../src/env';
 import { MODELS } from '../../src/lib/ai/ask';
 import { personalise } from '../../src/lib/ai/personalise';
 import { fallbackPersonalisation } from '../../src/lib/fallback';
 import { buildPlan } from '../../src/lib/plan';
-import { REPLY, request, TODAY } from './fixtures';
+import { ctx, env, REPLY, request, TODAY } from './fixtures';
 
 const [PRIMARY_MODEL, FALLBACK_MODEL] = MODELS;
 
 type Calls = Array<[string, Record<string, unknown>]>;
 const callsOf = (fn: { mock: { calls: unknown[] } }): Calls => fn.mock.calls as unknown as Calls;
 
-function env(run: Env['AI']['run']): Env {
-  return { AI: { run } as unknown as Ai, ASSETS: {} as Fetcher };
-}
-
 describe('personalise', () => {
   it('uses the primary model when it answers well', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({ ideas: 'model', vendorQuestions: 'model', budgetNotes: 'model' });
     expect(p.model).toBe(PRIMARY_MODEL);
     expect(run).toHaveBeenCalledTimes(4);
@@ -30,7 +25,7 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) throw new Error('capacity');
       return { response: REPLY };
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.model).toBe(FALLBACK_MODEL);
     expect(run).toHaveBeenCalledTimes(8);
   });
@@ -39,7 +34,7 @@ describe('personalise', () => {
     const run = vi.fn(async (model: string) =>
       model === PRIMARY_MODEL ? { response: 'I cannot help with that.' } : { response: REPLY },
     );
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.model).toBe(FALLBACK_MODEL);
   });
 
@@ -47,7 +42,7 @@ describe('personalise', () => {
     const run = vi.fn(async () => {
       throw new Error('down');
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({
       ideas: 'fallback',
       vendorQuestions: 'fallback',
@@ -60,7 +55,7 @@ describe('personalise', () => {
 
   it('ships generic ideas but keeps checked model questions and notes when no idea is usable', async () => {
     const run = vi.fn(async () => ({ response: { ...REPLY, ideas: [] } }));
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({
       ideas: 'fallback',
       vendorQuestions: 'model',
@@ -78,7 +73,9 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined); // never settles
       return { response: REPLY };
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+      timeoutMs: 50,
+    });
     expect(p.sources.ideas).toBe('model');
     expect(p.model).toBe(FALLBACK_MODEL);
   });
@@ -90,7 +87,9 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined);
       return { response: REPLY };
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+      timeoutMs: 50,
+    });
     expect(p.model).toBe(FALLBACK_MODEL);
     const byModel = (m: string) => signals.filter((_, i) => callsOf(run)[i]![0] === m);
     expect(byModel(PRIMARY_MODEL).map((s) => s.aborted)).toEqual([true, true, true, true]);
@@ -100,7 +99,9 @@ describe('personalise', () => {
   it('ships deterministic guidance when every model hangs', async () => {
     const run = vi.fn(() => new Promise<never>(() => undefined));
     const started = Date.now();
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+      timeoutMs: 50,
+    });
     expect(p.sources.ideas).toBe('fallback');
     expect(Date.now() - started).toBeLessThan(2000);
   });
@@ -114,7 +115,7 @@ describe('personalise', () => {
 
   it('labels each section by who wrote it when the vendor ask alone fails', async () => {
     const plan = buildPlan(request(), TODAY);
-    const p = await personalise(env(failing('vendorQuestions') as never), plan);
+    const p = await personalise(env(failing('vendorQuestions') as never), plan, ctx());
     expect(p.sources).toEqual({
       ideas: 'model',
       vendorQuestions: 'fallback',
@@ -127,7 +128,7 @@ describe('personalise', () => {
 
   it('labels each section by who wrote it when the notes ask alone fails', async () => {
     const plan = buildPlan(request(), TODAY);
-    const p = await personalise(env(failing('budgetNotes') as never), plan);
+    const p = await personalise(env(failing('budgetNotes') as never), plan, ctx());
     expect(p.sources).toEqual({
       ideas: 'model',
       vendorQuestions: 'model',
@@ -136,61 +137,9 @@ describe('personalise', () => {
     expect(p.budgetNotes).toEqual(fallbackPersonalisation(plan).budgetNotes);
   });
 
-  it('does not cache an answer with a generic section, so that part is retried', async () => {
-    const req = request();
-    // Every part answers, but no vendor id in the reply is in the plan.
-    const strays = vi.fn(async () => ({
-      response: { ...REPLY, vendorQuestions: { unicorn: ['?'] } },
-    }));
-    const first = await personalise(env(strays as never), buildPlan(req, TODAY));
-    expect(first.sources.vendorQuestions).toBe('fallback');
-    const good = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(good as never), buildPlan(req, TODAY));
-    expect(p.cached).toBe(false);
-    expect(p.sources.vendorQuestions).toBe('model');
-  });
-
-  it('serves a repeat request from cache without a model call', async () => {
-    const run = vi.fn(async () => ({ response: REPLY }));
-    const req = request();
-    const first = await personalise(env(run as never), buildPlan(req, TODAY));
-    const second = await personalise(env(run as never), buildPlan(req, TODAY));
-    expect(first.cached).toBe(false);
-    expect(second.cached).toBe(true);
-    expect(second.model).toBe(PRIMARY_MODEL);
-    expect(second.sources).toEqual(first.sources);
-    expect(run).toHaveBeenCalledTimes(4);
-  });
-
-  it('labels a cache hit with the model that actually wrote the answer', async () => {
-    const run = vi.fn(async (model: string) => {
-      if (model === PRIMARY_MODEL) throw new Error('capacity');
-      return { response: REPLY };
-    });
-    const req = request();
-    const first = await personalise(env(run as never), buildPlan(req, TODAY));
-    const second = await personalise(env(run as never), buildPlan(req, TODAY));
-    expect(first.model).toBe(FALLBACK_MODEL);
-    expect(second.cached).toBe(true);
-    expect(second.model).toBe(FALLBACK_MODEL);
-    expect(run).toHaveBeenCalledTimes(8);
-  });
-
-  it('does not cache a fallback answer, so the model is retried next time', async () => {
-    const req = request();
-    const bad = vi.fn(async () => {
-      throw new Error('down');
-    });
-    await personalise(env(bad as never), buildPlan(req, TODAY));
-    const good = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(good as never), buildPlan(req, TODAY));
-    expect(p.sources.ideas).toBe('model');
-    expect(good).toHaveBeenCalledTimes(4);
-  });
-
   it('asks for schema-constrained JSON at a modest temperature', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
-    await personalise(env(run as never), buildPlan(request(), TODAY));
+    await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
     const opts = callsOf(run)[0]![1];
     expect(opts.response_format).toMatchObject({ type: 'json_schema' });
     expect(opts.temperature).toBeLessThanOrEqual(0.6);

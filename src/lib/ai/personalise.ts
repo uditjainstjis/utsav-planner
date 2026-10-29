@@ -52,10 +52,14 @@ function cacheParts(plan: Plan): string[] {
  * Personalise a plan: cache, then four concurrent model asks (each with its
  * own fallback model), then deterministic guidance for any section no model
  * answered usably. Never throws, and always returns ideas.
+ *
+ * @param ctx the request's execution context: a complete answer is written to
+ *   the cache through its `waitUntil`, after the response has gone.
  */
 export async function personalise(
   env: Env,
   plan: Plan,
+  ctx: Pick<ExecutionContext, 'waitUntil'>,
   options: { timeoutMs?: number } = {},
 ): Promise<Personalisation> {
   const key = await contentKey(cacheParts(plan));
@@ -77,7 +81,7 @@ export async function personalise(
     Object.values(result.sources).every((s) => s === 'model');
   if (complete) {
     const entry: CachedReply = { model, reply };
-    await cachePut(key, entry);
+    ctx.waitUntil(cachePut(key, entry));
   }
   return result;
 }

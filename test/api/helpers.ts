@@ -62,6 +62,9 @@ export function stubEnv(overrides: Partial<Env> = {}, reply: unknown = MODEL_REP
   };
 }
 
+/** An execution context: what the Worker hands to waitUntil still runs, unawaited. */
+const CTX = { waitUntil: () => undefined, passThroughOnException: () => undefined };
+
 export async function post(
   path: string,
   body: unknown,
@@ -79,9 +82,9 @@ export async function post(
       body: typeof body === 'string' ? body : JSON.stringify(body),
     }),
     env,
-    {} as ExecutionContext,
+    CTX as unknown as ExecutionContext,
   );
 }
 
 export const get = (path: string, env: Env = stubEnv()) =>
-  worker.fetch(new Request(`https://utsav.test${path}`), env, {} as ExecutionContext);
+  worker.fetch(new Request(`https://utsav.test${path}`), env, CTX as unknown as ExecutionContext);
