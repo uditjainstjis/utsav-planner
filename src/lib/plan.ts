@@ -1,7 +1,8 @@
 import { OCCASION_LABEL } from '../shared/constants';
 import { buildBudget } from './budget';
 import { scanForInjection } from './guard';
-import { buildTimeline, toIcs } from './timeline';
+import { toIcs } from './ics';
+import { buildTimeline } from './timeline';
 import { SCREENED_FIELDS, type Plan, type PlanRequest } from './types';
 import { buildVendors } from './vendors';
 

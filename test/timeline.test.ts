@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dateToMs, daysBetween, msToDate } from '../src/lib/dates';
-import { bookByFor, buildTimeline, toIcs } from '../src/lib/timeline';
+import { toIcs } from '../src/lib/ics';
+import { bookByFor, buildTimeline } from '../src/lib/timeline';
 import { EVENT_TYPES } from '../src/shared/constants';
 
 const TODAY = '2026-10-23';
