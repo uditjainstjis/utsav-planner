@@ -29,6 +29,7 @@ Two routes, called in sequence by the client:
   which the client tells the model what the numbers are.
 - The calendar export and CSV are generated from the first response, so they
   work even when the model does not.
-- The client has to coordinate two requests and two states; `public/app.js`
-  keeps a single `current` object and renders the AI parts into cells and lists
-  that already exist, so there is no layout shift when they arrive.
+- The client has to coordinate two requests and two states; the front end
+  (`public/js/state.js`) keeps a single current plan and renders the AI parts
+  into cells and lists that already exist, so there is no layout shift when they
+  arrive.

@@ -7,7 +7,7 @@ import { applyRefinement } from '../src/lib/refine';
 import type { PlanRequest } from '../src/lib/types';
 
 /**
- * The front end's request flows, driven through the real markup and app.js.
+ * The front end's request flows, driven through the real markup and modules.
  *
  * Each form talks to two endpoints, and an error from each belongs in a
  * different place: a rejected brief or change goes next to the field that
@@ -16,7 +16,7 @@ import type { PlanRequest } from '../src/lib/types';
  * screen.
  */
 
-const APP = resolve(process.cwd(), 'public', 'app.js');
+const APP = resolve(process.cwd(), 'public', 'js', 'main.js');
 const html = readFileSync(resolve(process.cwd(), 'public', 'index.html'), 'utf8');
 
 const TODAY = todayIso();
@@ -77,12 +77,12 @@ async function settled(): Promise<void> {
 }
 
 beforeEach(async () => {
-  // A fresh page and a fresh copy of app.js for every test, so no listener or
-  // module state carries over. The script tag is dropped: the module is
-  // imported below instead of being fetched by jsdom.
+  // A fresh page and fresh copies of the modules for every test, so no
+  // listener or module state carries over. The script tag is dropped: the
+  // entry module is imported below instead of being fetched by jsdom.
   document.documentElement.innerHTML = html
     .replace(/^[\s\S]*?<html[^>]*>/, '')
-    .replace('<script src="/app.js" type="module"></script>', '');
+    .replace(/<script\b[^>]*><\/script>/g, '');
   vi.stubGlobal(
     'matchMedia',
     vi.fn(() => ({ matches: false })),

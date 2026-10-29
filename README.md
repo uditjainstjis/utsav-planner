@@ -99,7 +99,8 @@ the deployed bundle.
 ## Architecture
 
 ```
-public/            static single-page app: index.html, app.js, styles.css
+public/            static single-page app: index.html, styles.css, js/ (ES modules)
+public/js/shared   request limits and occasion labels, imported by the page and the Worker
 src/index.ts       Hono router: /api/health, /api/plan, /api/refine, /api/personalise, assets
 src/lib/validate   field-level validation, named errors
 src/lib/budget     shares → whole-rupee lines that sum exactly; warnings
@@ -139,7 +140,7 @@ are in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 ## Testing
 
 ```
-npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; app.js via JSDoc), lint, format check, tests
+npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; public/js via JSDoc), lint, format check, tests
 npm run coverage  # istanbul report
 ```
 
@@ -178,11 +179,12 @@ What is covered, and the property each test holds:
   or past values named by field, the brief re-bounded across six turns.
 - **guard** — each injection rule, the finding cap, text order, fence defanging,
   nonce forgery.
-- **app** (jsdom, the real `index.html` and `app.js`) — a brief the server
-  rejects is shown at its field and focused, also on a second submit with a plan
-  already on screen; an ideas failure degrades only the ideas card; the 730-day
-  limit is enforced before any request; a refinement is applied, announced and
-  written back to the form, and a rejected one is shown at the change field.
+- **app** (jsdom, the real `index.html` and `public/js` modules) — a brief the
+  server rejects is shown at its field and focused, also on a second submit with
+  a plan already on screen; an ideas failure degrades only the ideas card; the
+  730-day limit is enforced before any request; a refinement is applied,
+  announced and written back to the form, and a rejected one is shown at the
+  change field.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally

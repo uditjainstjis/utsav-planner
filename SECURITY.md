@@ -108,7 +108,7 @@ brief that reaches the model on the next `/api/personalise` call is subject to
 exactly the same screen, fence and validation as a fresh one. The refine route
 itself never calls a model, and `test/api.test.ts` asserts it.
 
-## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/app.js`)
+## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/js/`)
 
 Every response, API or asset, carries the same policy. `test/api.test.ts`
 asserts that the Worker's headers and the static `_headers` file are identical,

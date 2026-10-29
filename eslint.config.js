@@ -51,7 +51,7 @@ export default tseslint.config(
         setTimeout: 'readonly',
         Intl: 'readonly',
         AbortSignal: 'readonly',
-        // Element classes app.js checks its lookups against (see `$` there).
+        // Element classes the front end checks its lookups against (see public/js/dom.js).
         HTMLElement: 'readonly',
         HTMLButtonElement: 'readonly',
         HTMLFormElement: 'readonly',

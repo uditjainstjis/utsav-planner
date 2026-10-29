@@ -7,5 +7,5 @@
     "checkJs": true,
     "moduleDetection": "force"
   },
-  "include": ["public/app.js"]
+  "include": ["public/js/**/*.js"]
 }
