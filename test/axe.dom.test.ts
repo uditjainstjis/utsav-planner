@@ -16,10 +16,8 @@ const css = read('styles.css');
  * The accessibility claim, enforced.
  *
  * README and docs/ACCESSIBILITY.md state that axe-core finds no violations in
- * either theme. Before this file existed that was true but unenforced — axe was
- * a devDependency that a human ran by hand, so nothing stopped a later commit
- * from quietly breaking it. This runs the real engine over the real shipped
- * markup on every `npm test` and in CI.
+ * either theme. This runs the real engine over the real shipped markup on
+ * every `npm test` and in CI, so a commit that breaks the claim fails.
  *
  * It runs in jsdom rather than workerd because axe needs a DOM and workerd has
  * none. The shipped stylesheet is injected too: axe ignores hidden elements, so
@@ -27,9 +25,9 @@ const css = read('styles.css');
  *
  * jsdom does no layout, so `color-contrast` cannot be decided here and axe
  * returns it as "incomplete" rather than passing or failing it. Contrast is
- * therefore checked separately against a real engine and recorded with measured
- * ratios in docs/ACCESSIBILITY.md; `test/a11y.test.ts` covers the structural
- * rules inside workerd using the same HTMLRewriter the runtime parses with.
+ * checked by `test/contrast.dom.test.ts`, which computes the WCAG ratio of every
+ * token pair; `test/a11y.test.ts` covers the structural rules inside workerd
+ * using the same HTMLRewriter the runtime parses with.
  */
 
 /** Rules axe cannot decide without layout. Asserted elsewhere; see above. */

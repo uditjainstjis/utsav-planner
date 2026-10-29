@@ -9,8 +9,8 @@ import html from '../public/index.html?raw';
  * They cover the failures that are mechanically detectable — unlabelled
  * controls, missing landmarks, focus traps, inline handlers. The judgement
  * calls that no parser can make (is the focus order sensible, does the live
- * region say something useful) were checked by hand against a screen reader and
- * recorded in docs/ACCESSIBILITY.md.
+ * region say something useful) are checked by hand against a screen reader, as
+ * docs/ACCESSIBILITY.md records.
  */
 
 interface Element {

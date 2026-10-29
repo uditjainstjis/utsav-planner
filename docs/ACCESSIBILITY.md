@@ -31,24 +31,20 @@ hand and is recorded here.
 | `accent-bright`                            | 3.03        | 6.52       | 3     | the focus ring (non-text)                   |
 | `field-border`                             | 3.37        | 3.06       | 3     | input, select and textarea borders          |
 
-These figures were corrected when a defect in the test's converter was found: it
-applied the sRGB transfer curve to colours that were already linear, which
-overstated every light-theme ratio (it reported `ink-soft` at 11.80) and
-understated the dark ones. White, black and identical pairs come out the same
-either way, so the old self-check could not see it; the test now also checks two
-published mid-tone ratios (#ff0000 on white is 4.00:1). The tightest pairs are
-light `ink-faint` on `surface-2` at 4.70 and the light focus ring at 3.03.
+The converter that computes these figures is itself checked against two
+published mid-tone ratios (#ff0000 on white is 4.00:1): applying the sRGB
+transfer curve to colours that are already linear would distort exactly those,
+while white, black and identical pairs come out the same either way. The
+tightest pairs are light `ink-faint` on `surface-2` at 4.70 and the light focus
+ring at 3.03.
 
-Three fixes came out of the corrected numbers. Placeholders had `opacity: 0.7`
-on top of `ink-faint`, which took them to 2.83–2.92:1 in the light theme; they
-now use the token at full strength (5.07:1 on the field backgrounds). Input
-borders used `rule`, a hairline at 1.18–1.35:1 (light) and 1.24–1.43:1 (dark),
-too faint to show where a field is (WCAG 1.4.11); they now use `field-border`,
-and the textarea and select hover border is `ink-faint` (4.70:1 or more) instead
-of `n-300`, which fell to 1.65:1 in the light theme. Links turned
-`accent-bright` on hover, which is 3.03:1 as text in the light theme; they now
-turn `ink`. The contrast test reads each of these rules from the stylesheet, so
-it checks what is shipped.
+Four rules follow from these numbers. Placeholders use `ink-faint` at full
+strength, with no opacity (5.07:1 on the field backgrounds). Input borders use
+`field-border`, not the `rule` hairline, which reaches only 1.18–1.43:1 and
+would not show where a field is (WCAG 1.4.11). The textarea and select hover
+border is `ink-faint` (4.70:1 or more). Links turn `ink` on hover, not
+`accent-bright`, which is 3.03:1 as text in the light theme. The contrast test
+reads each of these rules from the stylesheet, so it checks what is shipped.
 
 ## Design decisions, and why
 

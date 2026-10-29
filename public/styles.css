@@ -488,8 +488,8 @@ select:focus-visible {
   transition-duration: 90ms;
 }
 /* Busy controls report aria-disabled rather than `disabled`, so that the
-   element the user just activated keeps focus (see setBusy in js/state.js). The
-   styling has to follow the attribute that is now actually set. */
+   element the user just activated keeps focus (see setBusy in js/state.js);
+   the busy styling therefore keys on either attribute. */
 .btn:disabled,
 .btn[aria-disabled='true'] {
   opacity: 0.5;

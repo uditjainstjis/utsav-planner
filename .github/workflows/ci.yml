@@ -70,8 +70,8 @@ jobs:
       - run: npm ci
       # Hard gate on the WHOLE tree, dev dependencies included. No suppression,
       # no `|| true`, no `--omit=dev` escape hatch: a high or critical advisory
-      # anywhere fails the build. See SECURITY.md > Dependencies for how the one
-      # transitive advisory this project inherited was actually resolved.
+      # anywhere fails the build. SECURITY.md (Supply chain and CI) lists the
+      # overrides that pin transitive dependencies to patched releases.
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
