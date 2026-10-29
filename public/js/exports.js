@@ -47,7 +47,7 @@ function planAsText({ plan, personalisation: p }) {
   const r = plan.request;
   const out = [];
   out.push(
-    `${r.occasion ?? OCCASION_LABEL[r.eventType]} — ${OCCASION_LABEL[r.eventType]} on ${fmtDate(r.eventDate)}${r.city ? `, ${r.city}` : ''}`,
+    `${r.occasion ? `${r.occasion} — ` : ''}${OCCASION_LABEL[r.eventType]} on ${fmtDate(r.eventDate)}${r.city ? `, ${r.city}` : ''}`,
   );
   out.push(
     `${r.guests} guests · ${rupees(plan.budget.total)} total · ${rupees(plan.budget.perGuest)} per guest`,

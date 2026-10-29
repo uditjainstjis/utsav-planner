@@ -154,3 +154,27 @@ describe('the sample briefs', () => {
     expect(document.activeElement).toBe($('plan-btn'));
   });
 });
+
+describe('the plan copied as text', () => {
+  it.each([
+    [null, /^Birthday on \w/],
+    ['Aarav turns 5', /^Aarav turns 5 — Birthday on \w/],
+  ])('heads with the occasion once, named %s', async (occasion, heading) => {
+    const plan = buildPlan({ ...REQUEST, occasion }, TODAY);
+    stubFetch(ok({ plan, ics: '' }), ok(fallbackPersonalisation(plan)));
+    const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+
+    $('copy-btn').click();
+
+    await vi.waitFor(() => {
+      expect($('copy-status').textContent).toBe('Copied the whole plan.');
+    });
+    const [firstLine] = (writeText.mock.calls[0]?.[0] ?? '').split('\n');
+    expect(firstLine).toMatch(heading);
+    expect(firstLine).not.toMatch(/Birthday — Birthday/);
+  });
+});
