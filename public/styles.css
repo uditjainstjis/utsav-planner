@@ -449,31 +449,6 @@ select:focus-visible {
   font-weight: 600;
 }
 
-.file-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-size: var(--t-sm);
-  color: var(--accent);
-  cursor: pointer;
-  font-weight: 500;
-}
-.file-btn input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.file-btn:hover span {
-  color: var(--accent-bright);
-}
-.file-btn:focus-within {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
 .samples {
   border: 0;
   padding: 0;
@@ -534,13 +509,6 @@ select:focus-visible {
   flex-wrap: wrap;
   margin-top: 32px;
 }
-.field--inline {
-  flex: 1 1 240px;
-  max-width: 300px;
-}
-.field--inline .field__label {
-  margin-bottom: 6px;
-}
 
 .btn {
   font-family: inherit;
@@ -592,31 +560,6 @@ select:focus-visible {
   border-color: var(--accent);
   color: var(--ink);
 }
-.btn--block {
-  width: 100%;
-  margin-top: 16px;
-}
-
-/* --- loading ------------------------------------------------------------ */
-
-.skeleton {
-  height: 96px;
-  border-radius: var(--r);
-  background: linear-gradient(
-    100deg,
-    var(--surface-2) 30%,
-    color-mix(in oklch, var(--surface-2) 55%, var(--surface-1)) 50%,
-    var(--surface-2) 70%
-  );
-  background-size: 220% 100%;
-  animation: sweep 1.4s var(--ease-out-quart) infinite;
-}
-@keyframes sweep {
-  to {
-    background-position: -120% 0;
-  }
-}
-
 /* --- footer ------------------------------------------------------------- */
 
 .footer {
