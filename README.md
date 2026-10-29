@@ -155,9 +155,9 @@ scoped to `/api/*`.
 
 `public/js/constants.js` (with its `.d.ts`) and `public/_headers` are build
 outputs, generated from `src/shared/constants.ts` and `src/lib/headers.ts` by
-`scripts/build-assets.mjs`, which npm runs before typechecking and tests and
-wrangler runs as its `build.command` before `dev` and `deploy`; they are
-gitignored, so they cannot drift from their sources.
+`scripts/build-assets.mjs`, which npm runs before typechecking, linting and
+tests and wrangler runs as its `build.command` before `dev` and `deploy`; they
+are gitignored, so they cannot drift from their sources.
 
 ## Security
 

@@ -6,9 +6,9 @@
  *   public/js/constants.d.ts  its declarations, which type the front end
  *   public/_headers           headersFile() from src/lib/headers.ts
  *
- * Generated files are gitignored. npm's pretypecheck, pretest and precoverage
- * hooks run this script, and wrangler runs it as build.command before `dev`
- * and `deploy`.
+ * Generated files are gitignored. npm's pretypecheck, prelint, pretest and
+ * precoverage hooks run this script, and wrangler runs it as build.command
+ * before `dev` and `deploy`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import ts from 'typescript';
