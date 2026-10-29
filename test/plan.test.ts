@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fallbackPersonalisation } from '../src/lib/fallback';
 import { buildPlan, planIcs, todayIso } from '../src/lib/plan';
-import { EVENT_TYPES, type PlanRequest } from '../src/lib/types';
+import { COST_TIERS, EVENT_TYPES, IDEA_CATEGORIES, type PlanRequest } from '../src/lib/types';
 import {
   buildFacts,
   buildIdeasPrompt,
@@ -139,16 +139,8 @@ describe('the prompts', () => {
 
   it('declare schemas whose enums and keys match the code', () => {
     const ideaProps = IDEAS_SCHEMA.properties.ideas.items.properties;
-    expect(ideaProps.category.enum).toEqual([
-      'theme',
-      'decor',
-      'food',
-      'activity',
-      'favour',
-      'invite',
-      'other',
-    ]);
-    expect(ideaProps.costTier.enum).toEqual(['low', 'medium', 'high']);
+    expect(ideaProps.category.enum).toEqual(IDEA_CATEGORIES);
+    expect(ideaProps.costTier.enum).toEqual(COST_TIERS);
     expect(IDEAS_SCHEMA.required).toEqual(['summary', 'ideas']);
     expect(VENDORS_SCHEMA.required).toEqual(['vendorQuestions']);
     expect(NOTES_SCHEMA.required).toEqual(['budgetNotes']);

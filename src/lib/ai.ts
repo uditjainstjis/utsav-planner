@@ -9,7 +9,8 @@ import {
   SYSTEM_PROMPT,
   type Part,
 } from '../prompts/plan';
-import type { CostTier, Idea, IdeaCategory, Personalisation, Plan } from './types';
+import { COST_TIERS, IDEA_CATEGORIES, type Idea, type Personalisation, type Plan } from './types';
+import { isRecord } from './validate';
 
 /**
  * Workers AI client for the one generative step: personalising a plan.
@@ -42,17 +43,6 @@ export interface Env {
   RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> };
 }
 
-const CATEGORIES: readonly IdeaCategory[] = [
-  'theme',
-  'decor',
-  'food',
-  'activity',
-  'favour',
-  'invite',
-  'other',
-];
-const TIERS: readonly CostTier[] = ['low', 'medium', 'high'];
-
 /**
  * Upper bound on one model call. Measured p95 for a part is well under 15 s
  * (docs/EVALUATION.md); a call still running after this is treated as failed
@@ -81,10 +71,6 @@ const PART_KEYS: Record<Part, string> = {
 
 /** Keys a reply part carries. An object with none of them is not a reply. */
 const REPLY_KEYS = ['ideas', 'summary', 'vendorQuestions', 'budgetNotes'];
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
 
 /**
  * Extract a JSON object from a model reply.
@@ -199,8 +185,8 @@ function coerceIdea(raw: unknown, lineIds: ReadonlySet<string>): Idea | null {
   return {
     title,
     detail,
-    category: oneOf(raw.category, CATEGORIES, 'other'),
-    costTier: oneOf(raw.costTier, TIERS, 'medium'),
+    category: oneOf(raw.category, IDEA_CATEGORIES, 'other'),
+    costTier: oneOf(raw.costTier, COST_TIERS, 'medium'),
     budgetLineId: lineIds.has(lineId) ? lineId : null,
   };
 }
@@ -398,8 +384,10 @@ export async function personalise(
 function mergeIdeas(a: PartResult | null, b: PartResult | null): PartResult | null {
   const first = a ?? b;
   if (!first) return null;
-  const list = (r: PartResult | null): unknown[] =>
-    Array.isArray(r?.obj.ideas) ? (r.obj.ideas as unknown[]) : [];
+  const list = (r: PartResult | null): unknown[] => {
+    const ideas = r?.obj.ideas;
+    return Array.isArray(ideas) ? ideas : [];
+  };
   return {
     model: first.model,
     obj: { summary: a?.obj.summary ?? b?.obj.summary, ideas: [...list(a), ...list(b)] },

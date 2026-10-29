@@ -1,5 +1,5 @@
 import { fenceUntrusted } from '../lib/guard';
-import type { Plan } from '../lib/types';
+import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../lib/types';
 
 /**
  * The prompts.
@@ -42,11 +42,8 @@ export const IDEAS_SCHEMA = {
         properties: {
           title: { type: 'string' },
           detail: { type: 'string' },
-          category: {
-            type: 'string',
-            enum: ['theme', 'decor', 'food', 'activity', 'favour', 'invite', 'other'],
-          },
-          costTier: { type: 'string', enum: ['low', 'medium', 'high'] },
+          category: { type: 'string', enum: IDEA_CATEGORIES },
+          costTier: { type: 'string', enum: COST_TIERS },
           budgetLineId: { type: ['string', 'null'] },
         },
         required: ['title', 'detail', 'category', 'costTier', 'budgetLineId'],
@@ -120,7 +117,7 @@ function vendorList(plan: Plan): string {
 export const IDEA_HALVES = {
   a: ['theme', 'decor', 'food'],
   b: ['activity', 'favour', 'invite'],
-} as const;
+} as const satisfies Record<'a' | 'b', readonly IdeaCategory[]>;
 
 export function buildIdeasPrompt(plan: Plan, nonce: string, half: 'a' | 'b' = 'a'): string {
   const cats = IDEA_HALVES[half].join(', ');

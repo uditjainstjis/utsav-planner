@@ -1,5 +1,5 @@
-import { daysBetween } from './dates';
-import { EVENT_TYPES, type EventType, type PlanRequest } from './types';
+import { dateParts, daysBetween } from './dates';
+import { EVENT_TYPES, type PlanRequest } from './types';
 
 /**
  * Request validation.
@@ -31,7 +31,12 @@ export const LIMITS = {
   preferences: 600,
 } as const;
 
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A plain JSON object: not null, not an array. */
+export function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
 
 /** Strip C0/C1 control characters, which have no place in any of these fields. */
 function clean(s: string): string {
@@ -80,21 +85,20 @@ export function validateBudget(v: unknown): number {
  * `new Date('2026-02-30')` would roll over to March; this rejects it.
  */
 export function validateDate(v: unknown, today: string): string {
-  const match = typeof v === 'string' ? ISO_DATE.exec(v) : null;
-  if (!match) {
+  if (typeof v !== 'string' || !ISO_DATE.test(v)) {
     throw new InputError('Enter the event date as YYYY-MM-DD.', 'format', 'eventDate');
   }
-  const [y, m, d] = match.slice(1).map(Number) as [number, number, number];
+  const { y, m, d } = dateParts(v);
   const probe = new Date(Date.UTC(y, m - 1, d));
   if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) {
     throw new InputError('That date does not exist on the calendar.', 'invalid', 'eventDate');
   }
-  const lead = daysBetween(today, v as string);
+  const lead = daysBetween(today, v);
   if (lead < 0) throw new InputError('The event date is in the past.', 'past', 'eventDate');
   if (lead > LIMITS.maxLeadDays) {
     throw new InputError('Plans can be made up to two years ahead.', 'too_far', 'eventDate');
   }
-  return v as string;
+  return v;
 }
 
 /**
@@ -104,13 +108,10 @@ export function validateDate(v: unknown, today: string): string {
  * @param today  YYYY-MM-DD, the planning date (injected for testability)
  */
 export function validatePlanRequest(body: unknown, today: string): PlanRequest {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    throw new InputError('Expected a JSON object.', 'type', 'body');
-  }
-  const b = body as Record<string, unknown>;
+  if (!isRecord(body)) throw new InputError('Expected a JSON object.', 'type', 'body');
 
-  const eventType = b.eventType;
-  if (typeof eventType !== 'string' || !EVENT_TYPES.includes(eventType as EventType)) {
+  const eventType = EVENT_TYPES.find((t) => t === body.eventType);
+  if (!eventType) {
     throw new InputError(
       'Choose an occasion: wedding, birthday or community event.',
       'invalid',
@@ -119,12 +120,12 @@ export function validatePlanRequest(body: unknown, today: string): PlanRequest {
   }
 
   return {
-    eventType: eventType as EventType,
-    eventDate: validateDate(b.eventDate, today),
-    guests: validateGuests(b.guests),
-    budget: validateBudget(b.budget),
-    city: optionalText(b.city, 'city', LIMITS.city),
-    occasion: optionalText(b.occasion, 'occasion', LIMITS.occasion),
-    preferences: optionalText(b.preferences, 'preferences', LIMITS.preferences),
+    eventType,
+    eventDate: validateDate(body.eventDate, today),
+    guests: validateGuests(body.guests),
+    budget: validateBudget(body.budget),
+    city: optionalText(body.city, 'city', LIMITS.city),
+    occasion: optionalText(body.occasion, 'occasion', LIMITS.occasion),
+    preferences: optionalText(body.preferences, 'preferences', LIMITS.preferences),
   };
 }

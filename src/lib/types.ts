@@ -9,9 +9,8 @@
  */
 
 /** The three occasions named in the brief. */
-export type EventType = 'wedding' | 'birthday' | 'community';
-
-export const EVENT_TYPES: readonly EventType[] = ['wedding', 'birthday', 'community'];
+export const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
 
 /** A validated, normalised planning request. Produced only by `validate.ts`. */
 export interface PlanRequest {
@@ -101,8 +100,20 @@ export interface VendorItem {
 
 // ---------------------------------------------------------------- AI output
 
-export type IdeaCategory = 'theme' | 'decor' | 'food' | 'activity' | 'favour' | 'invite' | 'other';
-export type CostTier = 'low' | 'medium' | 'high';
+/** The one definition of each enumeration; the reply schema and its validation read these. */
+export const IDEA_CATEGORIES = [
+  'theme',
+  'decor',
+  'food',
+  'activity',
+  'favour',
+  'invite',
+  'other',
+] as const;
+export type IdeaCategory = (typeof IDEA_CATEGORIES)[number];
+
+export const COST_TIERS = ['low', 'medium', 'high'] as const;
+export type CostTier = (typeof COST_TIERS)[number];
 
 export interface Idea {
   title: string;

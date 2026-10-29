@@ -4,7 +4,7 @@ import { harden } from './lib/headers';
 import { buildPlan, planIcs, todayIso } from './lib/plan';
 import { applyRefinement } from './lib/refine';
 import type { Plan } from './lib/types';
-import { InputError, LIMITS, validatePlanRequest } from './lib/validate';
+import { InputError, isRecord, LIMITS, validatePlanRequest } from './lib/validate';
 
 /**
  * Utsav Planner — Worker entry point.
@@ -117,7 +117,7 @@ app.post('/api/refine', guardApi, async (c) => {
   const today = todayIso();
   const body = await readJson(c);
   const original = validatePlanRequest(body, today);
-  const refine = (body as { refine?: unknown }).refine;
+  const refine = isRecord(body) ? body.refine : undefined;
   const { request, changes } = applyRefinement(original, refine, today);
   const plan = buildPlan(request, today);
   return c.json({ request, changes, plan, ics: planIcs(plan, new Date().toISOString()) });

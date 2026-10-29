@@ -1,4 +1,4 @@
-import { DAY_MS, dateToMs, daysBetween, msToDate } from './dates';
+import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from './dates';
 import { InputError, LIMITS, validateBudget, validateDate, validateGuests } from './validate';
 import type { PlanRequest } from './types';
 
@@ -109,8 +109,8 @@ function nextOccurrence(
 
 /** The same day of the month `n` months after `today`, clamped to that month's length. */
 function addMonths(today: string, n: number): string {
-  const [y, mo, d] = today.split('-').map(Number) as [number, number, number];
-  const month0 = mo - 1 + n;
+  const { y, m, d } = dateParts(today);
+  const month0 = m - 1 + n;
   return nextOccurrence(month0 % 12, d, y + Math.floor(month0 / 12), today);
 }
 
