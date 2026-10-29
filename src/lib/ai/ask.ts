@@ -46,14 +46,20 @@ interface PartResult {
 
 type Answers = Record<Part, PartResult | null>;
 
+/** One model call: which model, which part of which plan, under which nonce and signal. */
+interface ModelCall {
+  model: Model;
+  part: Part;
+  plan: Plan;
+  nonce: string;
+  signal: AbortSignal;
+}
+
+/** The binding's raw reply, unchecked: extractJson reads it. */
 async function callModel(
   env: Env,
-  model: Model,
-  part: Part,
-  plan: Plan,
-  nonce: string,
-  signal: AbortSignal,
-) {
+  { model, part, plan, nonce, signal }: ModelCall,
+): Promise<unknown> {
   return env.AI.run(
     model,
     {
@@ -105,7 +111,10 @@ async function askPart(
   for (const model of MODELS) {
     try {
       const obj = extractJson(
-        await withTimeout((signal) => callModel(env, model, part, plan, nonce, signal), timeoutMs),
+        await withTimeout(
+          (signal) => callModel(env, { model, part, plan, nonce, signal }),
+          timeoutMs,
+        ),
       );
       if (obj && PART_KEYS[part] in obj) return { obj, model };
     } catch {
