@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # `pretypecheck` generates worker-configuration.d.ts with `wrangler types`.
+      # `pretypecheck` and `prelint` generate worker-configuration.d.ts with `wrangler types`.
       - name: Typecheck
         run: npm run typecheck
 
