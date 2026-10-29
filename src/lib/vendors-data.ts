@@ -1,5 +1,5 @@
 import type { EventType } from '../shared/constants';
-import type { BudgetLineId } from './budget';
+import type { BudgetLineId } from './budget-data';
 
 /** The vendor checklists: for each occasion, who to book, paid from which line, and what to ask. */
 

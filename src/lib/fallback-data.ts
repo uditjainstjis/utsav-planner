@@ -1,5 +1,5 @@
 import type { EventType } from '../shared/constants';
-import type { BudgetLineId } from './budget';
+import type { BudgetLineId } from './budget-data';
 import type { Idea } from './types';
 
 /** A generic idea for occasion `E`, drawing on a line of `E`'s own budget. */

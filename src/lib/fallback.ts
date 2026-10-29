@@ -1,5 +1,5 @@
 import { OCCASION_LABEL, rupees } from '../shared/constants';
-import type { BudgetLineId } from './budget';
+import type { BudgetLineId } from './budget-data';
 import { IDEAS } from './fallback-data';
 import type { Personalisation, Plan } from './types';
 

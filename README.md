@@ -109,6 +109,7 @@ src/lib/validate.ts         field-level validation, named errors
 src/lib/dates.ts            calendar-day arithmetic on YYYY-MM-DD strings, in UTC
 src/lib/apportion.ts        largest-remainder split of a total into whole rupees
 src/lib/budget.ts           occasion shares → lines that sum exactly; warnings
+src/lib/budget-data.ts      the budget templates: shares and per-guest floors (data)
 src/lib/timeline.ts         milestones counted back from the date; compression
 src/lib/timeline-data.ts    the milestone templates (data)
 src/lib/ics.ts              RFC 5545 calendar export

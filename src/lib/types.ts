@@ -9,7 +9,7 @@
  */
 
 import type { EventType } from '../shared/constants';
-import type { BudgetLineId } from './budget';
+import type { BudgetLineId } from './budget-data';
 import type { VendorId } from './vendors-data';
 
 /** A validated, normalised planning request: from `validate.ts`, or from `refine/apply.ts` through the same validators. */
