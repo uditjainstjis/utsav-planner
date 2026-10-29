@@ -91,9 +91,13 @@ function oklchToRgb(token: string, tokens: Tokens): [number, number, number] {
   ];
 }
 
+/**
+ * WCAG relative luminance. The input is already *linear* sRGB — the OKLab
+ * matrices above produce linear light — so the sRGB transfer curve, which
+ * linearises gamma-encoded values, must not be applied again here.
+ */
 function luminance([r, g, b]: [number, number, number]): number {
-  const f = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 /** WCAG 2.x contrast ratio, 1–21. */
@@ -123,6 +127,15 @@ describe.each([
     expect(contrast('ink', 'surface-0', tokens)).toBeGreaterThanOrEqual(7);
   });
 
+  it('the focus ring (accent-bright) reaches 3:1 against every surface (WCAG 1.4.11)', () => {
+    for (const bg of SURFACES) {
+      expect(
+        contrast('accent-bright', bg, tokens),
+        `accent-bright on ${bg}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('the AI badge (page colour on accent) reaches AA', () => {
     expect(contrast('surface-0', 'accent', tokens)).toBeGreaterThanOrEqual(4.5);
   });
@@ -139,6 +152,14 @@ describe('the converter itself', () => {
     // oklch(100% 0 0) is white; oklch(0% 0 0) is black.
     expect(contrast('oklch(100% 0 0)', 'oklch(0% 0 0)', {})).toBeCloseTo(21, 0);
     expect(contrast('oklch(50% 0 0)', 'oklch(50% 0 0)', {})).toBeCloseTo(1, 5);
+  });
+
+  it('agrees with published ratios for mid-tones, which a gamma error would distort', () => {
+    // White, black and identical pairs come out right even with the transfer
+    // curve applied twice; mid-tones do not. #ff0000 on white is 4.00:1.
+    expect(contrast('oklch(62.796% 0.25768 29.2339)', 'oklch(100% 0 0)', {})).toBeCloseTo(4, 2);
+    // Grey at OKLab L = 0.6 has linear luminance 0.6³ = 0.216: (1 + 0.05) / (0.216 + 0.05).
+    expect(contrast('oklch(60% 0 0)', 'oklch(100% 0 0)', {})).toBeCloseTo(1.05 / 0.266, 2);
   });
 
   it('found real tokens rather than an empty block', () => {

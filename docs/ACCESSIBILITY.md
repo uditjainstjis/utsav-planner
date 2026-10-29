@@ -11,7 +11,7 @@ hand and is recorded here.
 | Claim                                                                                                                                                   | Where it is enforced                                                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | axe-core finds no WCAG 2.1 A/AA or best-practice violation in the shipped markup, with the shipped stylesheet, in the default, light and dark themes    | `test/axe.dom.test.ts` — runs the real axe engine in jsdom; includes a negative control that must fail                                               |
-| Every text colour reaches **4.5:1** on every surface, in both themes; body text reaches 7:1                                                             | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
+| Every text colour reaches **4.5:1** on every surface, in both themes; body text reaches 7:1; the focus ring reaches 3:1                                 | `test/contrast.dom.test.ts` — converts the OKLCH tokens to sRGB and asserts the WCAG ratio, so a palette change that breaks contrast fails the build |
 | One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                         | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
 | Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend | `test/a11y.test.ts`                                                                                                                                  |
 | Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                             | `test/a11y.test.ts`                                                                                                                                  |
@@ -19,19 +19,24 @@ hand and is recorded here.
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
-| Token                                      | Light theme | Dark theme | Used for                          |
-| ------------------------------------------ | ----------- | ---------- | --------------------------------- |
-| `ink`                                      | 14.36       | 14.78      | body text, headings, values       |
-| `ink-soft`                                 | 11.80       | 6.15       | supporting copy, table notes      |
-| `ink-faint`                                | 10.80       | 4.72       | labels, metadata, counters        |
-| `accent`                                   | 11.63       | 6.26       | links, focus, the AI badge border |
-| `risk-high`                                | 8.67        | 5.94       | budget warnings                   |
-| `risk-low`                                 | 11.53       | 5.31       | "generous budget" note            |
-| page colour on `accent` (the **AI** badge) | 13.74       | 6.34       | AI-authored markers               |
+| Token                                      | Light theme | Dark theme | Needs | Used for                     |
+| ------------------------------------------ | ----------- | ---------- | ----- | ---------------------------- |
+| `ink`                                      | 15.09       | 14.62      | 4.5   | body text, headings, values  |
+| `ink-soft`                                 | 5.58        | 9.68       | 4.5   | supporting copy, table notes |
+| `ink-faint`                                | 4.70        | 8.44       | 4.5   | labels, metadata, counters   |
+| `accent`                                   | 6.65        | 8.79       | 4.5   | links, the AI badge border   |
+| `risk-high`                                | 5.56        | 7.76       | 4.5   | budget warnings              |
+| `risk-low`                                 | 5.70        | 8.59       | 4.5   | "generous budget" note       |
+| page colour on `accent` (the **AI** badge) | 7.16        | 10.15      | 4.5   | AI-authored markers          |
+| `accent-bright`                            | 3.03        | 6.52       | 3     | the focus ring (non-text)    |
 
-The dark theme's `ink-soft` and `ink-faint` were originally 4.20 and 2.90 —
-below AA for the small labels they are used on. They were lifted to 82% and 78%
-lightness and the test above now holds them there.
+These figures were corrected when a defect in the test's converter was found: it
+applied the sRGB transfer curve to colours that were already linear, which
+overstated every light-theme ratio (it reported `ink-soft` at 11.80) and
+understated the dark ones. White, black and identical pairs come out the same
+either way, so the old self-check could not see it; the test now also checks two
+published mid-tone ratios (#ff0000 on white is 4.00:1). The tightest pairs are
+light `ink-faint` on `surface-2` at 4.70 and the light focus ring at 3.03.
 
 ## Design decisions, and why
 
@@ -97,7 +102,7 @@ With VoiceOver on Safari and Chrome (macOS), the full flow — fill the form,
 build, read the budget table, tick a vendor, download the calendar — reads in a
 sensible order with no unlabelled control, no silent state change and no double
 announcement. Keyboard-only use reaches every control with a visible focus ring
-(`:focus-visible` outline in the accent colour, 2px offset).
+(a 2px `:focus-visible` outline in `accent-bright`, offset 3px).
 
 ## Known limits
 
