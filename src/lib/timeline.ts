@@ -273,18 +273,15 @@ export function buildTimeline(eventType: EventType, eventDate: string, today: st
   const scale = leadDays < ideal ? leadDays / ideal : 1;
   const rushed = leadDays < ideal / 2;
   const eventMs = dateToMs(eventDate);
-  const todayMs = dateToMs(today);
 
   const milestones: Milestone[] = steps.map((s) => {
     const daysBefore = Math.round(s.daysBefore * scale);
-    const dueMs = eventMs - daysBefore * DAY_MS;
     return {
       id: s.id,
       title: s.title,
       phase: s.phase,
       daysBefore,
-      dueDate: msToDate(dueMs),
-      overdue: dueMs < todayMs,
+      dueDate: msToDate(eventMs - daysBefore * DAY_MS),
       vendorId: s.vendorId ?? null,
     };
   });

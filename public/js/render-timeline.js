@@ -24,13 +24,11 @@ export function renderTimeline(plan) {
   for (const m of timeline.milestones) {
     const li = cloneTemplate(els.milestoneTpl);
     li.dataset.phase = m.phase;
-    if (m.overdue) li.dataset.overdue = 'true';
     part(li, '.milestone__date', HTMLElement).textContent = fmtDate(m.dueDate);
     part(li, '.milestone__title', HTMLElement).textContent = m.title;
     const bits = [PHASE[m.phase]];
     if (m.daysBefore > 0) bits.push(`${m.daysBefore} day${m.daysBefore === 1 ? '' : 's'} before`);
     if (m.vendorId && vendorName.has(m.vendorId)) bits.push(`books: ${vendorName.get(m.vendorId)}`);
-    if (m.overdue) bits.push('already past — do it first');
     part(li, '.milestone__meta', HTMLElement).textContent = bits.join(' · ');
     els.timelineList.append(li);
   }

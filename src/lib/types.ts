@@ -69,8 +69,6 @@ export interface Milestone {
   daysBefore: number;
   /** ISO date derived from the event date and `daysBefore`. */
   dueDate: string;
-  /** True when `dueDate` is already in the past relative to planning day. */
-  overdue: boolean;
   /** Vendor this milestone books, if any. */
   vendorId: string | null;
 }

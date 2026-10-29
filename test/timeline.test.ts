@@ -27,7 +27,6 @@ describe('buildTimeline', () => {
     expect(t.leadDays).toBe(365);
     expect(t.milestones.at(-1)!.daysBefore).toBe(0);
     expect(t.milestones.at(-1)!.dueDate).toBe('2027-10-23');
-    expect(t.milestones.every((m) => !m.overdue)).toBe(true);
   });
 
   it('lands every milestone on the right calendar day', () => {
@@ -44,7 +43,6 @@ describe('buildTimeline', () => {
     const days = t.milestones.map((m) => m.daysBefore);
     expect(days[0]).toBe(60);
     for (let i = 1; i < days.length; i++) expect(days[i]!).toBeLessThanOrEqual(days[i - 1]!);
-    expect(t.milestones.every((m) => !m.overdue)).toBe(true);
   });
 
   it('does not stretch a template to fill a long runway', () => {
@@ -52,11 +50,10 @@ describe('buildTimeline', () => {
     expect(t.milestones[0]!.daysBefore).toBe(45);
   });
 
-  it('marks nothing overdue when the event is today', () => {
+  it('puts every milestone on the day itself when the event is today', () => {
     const t = buildTimeline('community', TODAY, TODAY);
     expect(t.leadDays).toBe(0);
     expect(t.milestones.every((m) => m.daysBefore === 0)).toBe(true);
-    expect(t.milestones.every((m) => !m.overdue)).toBe(true);
   });
 
   it('is rushed below half the ideal lead and not at or above it', () => {

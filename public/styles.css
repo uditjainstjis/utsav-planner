@@ -996,9 +996,6 @@ textarea[aria-invalid='true'] {
 .milestone[data-phase='event']::before {
   background: var(--accent);
 }
-.milestone[data-overdue='true']::before {
-  border-color: var(--risk-high);
-}
 .milestone__date {
   margin: 0;
   font-size: var(--t-sm);
@@ -1014,9 +1011,6 @@ textarea[aria-invalid='true'] {
   margin: 0.15rem 0 0;
   font-size: var(--t-sm);
   color: var(--ink-faint);
-}
-.milestone[data-overdue='true'] .milestone__meta {
-  color: var(--risk-high);
 }
 
 /* --- vendor checklist --------------------------------------------------- */

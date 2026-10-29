@@ -159,9 +159,9 @@ What is covered, and the property each test holds:
   apportionment), shares sum to one, per-guest arithmetic, every warning
   threshold from both sides, Indian digit grouping.
 - **timeline** — every milestone lands on the right calendar day across month
-  ends and a leap day; proportional compression keeps order; nothing is overdue
-  for a same-day event; the `.ics` is well-formed, CRLF, folded at 75 octets
-  without splitting a multi-byte character, escaped, deterministic.
+  ends and a leap day; proportional compression keeps order; a same-day event
+  puts every milestone on the day; the `.ics` is well-formed, CRLF, folded at 75
+  octets without splitting a multi-byte character, escaped, deterministic.
 - **vendors** — every vendor is paid from a budget line that exists and booked
   by a milestone that exists; checklists are fresh arrays.
 - **validate** — every error code and the field it names; impossible dates are
