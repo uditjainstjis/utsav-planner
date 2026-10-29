@@ -8,6 +8,9 @@
  * and it is validated like any other untrusted input before it is shown.
  */
 
+import type { BudgetLineId } from './budget';
+import type { VendorId } from './vendors';
+
 /** The three occasions named in the brief. */
 export const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -32,7 +35,7 @@ export interface PlanRequest {
 
 export interface BudgetLine {
   /** Stable id, referenced by vendors and ideas: "catering", "venue", … */
-  id: string;
+  id: BudgetLineId;
   label: string;
   /** Fraction of the total this line was allocated (0–1). */
   share: number;
@@ -70,7 +73,7 @@ export interface Milestone {
   /** ISO date derived from the event date and `daysBefore`. */
   dueDate: string;
   /** Vendor this milestone books, if any. */
-  vendorId: string | null;
+  vendorId: VendorId | null;
 }
 
 export interface Timeline {
@@ -84,10 +87,10 @@ export interface Timeline {
 // ---------------------------------------------------------------- vendors
 
 export interface VendorItem {
-  id: string;
+  id: VendorId;
   label: string;
   /** Which budget line pays for this vendor. */
-  budgetLineId: string;
+  budgetLineId: BudgetLineId;
   /** Book-by date, taken from the matching timeline milestone. */
   bookBy: string;
   daysBefore: number;
@@ -119,7 +122,7 @@ export interface Idea {
   category: IdeaCategory;
   costTier: CostTier;
   /** Budget line the idea draws on, or null if it costs nothing. */
-  budgetLineId: string | null;
+  budgetLineId: BudgetLineId | null;
 }
 
 export interface Personalisation {

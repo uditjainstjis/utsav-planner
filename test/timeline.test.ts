@@ -64,7 +64,7 @@ describe('buildTimeline', () => {
   it('exposes the milestone that books a vendor', () => {
     const t = buildTimeline('wedding', '2027-04-01', TODAY);
     expect(bookByFor(t, 'caterer')?.id).toBe('caterer');
-    expect(bookByFor(t, 'no-such-vendor')).toBeNull();
+    expect(bookByFor(t, 'stage')).toBeNull(); // a community event's vendor
   });
 
   it('gives every milestone a unique id and a phase', () => {

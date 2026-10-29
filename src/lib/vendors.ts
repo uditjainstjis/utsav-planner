@@ -1,3 +1,4 @@
+import type { BudgetLineId } from './budget';
 import { bookByFor } from './timeline';
 import type { EventType, Timeline, VendorItem } from './types';
 
@@ -14,14 +15,15 @@ import type { EventType, Timeline, VendorItem } from './types';
  * monsoon), which arrive separately and are merged in the UI.
  */
 
-interface VendorTemplate {
+interface VendorTemplate<E extends EventType> {
   id: string;
   label: string;
-  budgetLineId: string;
+  /** The line of this occasion's own budget that pays the vendor. */
+  budgetLineId: BudgetLineId<E>;
   questions: readonly string[];
 }
 
-const VENDORS: Readonly<Record<EventType, readonly VendorTemplate[]>> = {
+const VENDORS = {
   wedding: [
     {
       id: 'venue',
@@ -212,15 +214,21 @@ const VENDORS: Readonly<Record<EventType, readonly VendorTemplate[]>> = {
       ],
     },
   ],
-};
+} as const satisfies { readonly [E in EventType]: readonly VendorTemplate<E>[] };
+
+/**
+ * A vendor id, read off the checklists: of occasion `E` when `E` is given,
+ * else of any. Timeline steps name the vendor they book by this type.
+ */
+export type VendorId<E extends EventType = EventType> = (typeof VENDORS)[E][number]['id'];
 
 /** Build the vendor checklist with book-by dates taken from the timeline. */
 export function buildVendors(eventType: EventType, timeline: Timeline): VendorItem[] {
   return VENDORS[eventType].map((v) => {
     const m = bookByFor(timeline, v.id);
-    // Every vendor template has a booking milestone in the timeline template
-    // (test/vendors.test.ts holds this for all three occasions), so a missing
-    // one is a programming error, not a runtime condition to paper over.
+    // The types hold every step to a vendor of its own occasion. The other
+    // direction, that every vendor has a step that books it, is held by
+    // test/vendors.test.ts for all three occasions; this throw only guards it.
     if (!m) throw new Error(`no milestone books vendor "${v.id}" for ${eventType}`);
     return {
       id: v.id,

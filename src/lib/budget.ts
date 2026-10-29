@@ -19,7 +19,7 @@ import type { Budget, BudgetFlag, BudgetLine, EventType } from './types';
 
 interface Template {
   /** Shares in allocation order; they sum to 1. */
-  lines: ReadonlyArray<{ id: string; label: string; share: number; scalesWithGuests: boolean }>;
+  lines: readonly { id: string; label: string; share: number; scalesWithGuests: boolean }[];
   /** Minimum sensible rupees per guest, overall and for catering alone. */
   floor: { total: number; catering: number };
 }
@@ -32,7 +32,7 @@ const CONTINGENCY = {
   scalesWithGuests: false,
 } as const;
 
-const TEMPLATES: Readonly<Record<EventType, Template>> = {
+const TEMPLATES = {
   wedding: {
     lines: [
       { id: 'venue', label: 'Venue & mandap', share: 0.22, scalesWithGuests: false },
@@ -92,7 +92,15 @@ const TEMPLATES: Readonly<Record<EventType, Template>> = {
     ],
     floor: { total: 200, catering: 120 },
   },
-};
+} as const satisfies Readonly<Record<EventType, Template>>;
+
+/**
+ * A budget line id, read off the templates: of occasion `E`'s budget when `E`
+ * is given, else of any. Vendors, milestones and ideas name lines by this
+ * type, so a reference to a line the occasion does not have fails to compile.
+ */
+export type BudgetLineId<E extends EventType = EventType> =
+  (typeof TEMPLATES)[E]['lines'][number]['id'];
 
 /**
  * Split `total` along `shares` into whole rupees that sum to exactly `total`.

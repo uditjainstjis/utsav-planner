@@ -1,4 +1,5 @@
 import { OCCASION_LABEL } from '../../public/js/shared.js';
+import type { BudgetLineId } from './budget';
 import type { EventType, Idea, Personalisation, Plan } from './types';
 
 /**
@@ -11,7 +12,12 @@ import type { EventType, Idea, Personalisation, Plan } from './types';
  * rather than written for their wishes.
  */
 
-const IDEAS: Readonly<Record<EventType, readonly Idea[]>> = {
+/** A generic idea for occasion `E`, drawing on a line of `E`'s own budget. */
+type FallbackIdea<E extends EventType> = Omit<Idea, 'budgetLineId'> & {
+  budgetLineId: BudgetLineId<E> | null;
+};
+
+const IDEAS: { readonly [E in EventType]: readonly FallbackIdea<E>[] } = {
   wedding: [
     {
       title: 'Marigold and jasmine, not imported blooms',
@@ -162,7 +168,7 @@ const IDEAS: Readonly<Record<EventType, readonly Idea[]>> = {
 
 const QUESTION = 'What is included, what costs extra, and by when must we confirm?';
 
-const NOTE: Record<string, string> = {
+const NOTE: Readonly<Record<BudgetLineId, string>> = {
   venue:
     'Spend here if the location is the memory; otherwise a simpler space and better food wins.',
   catering: 'Protect this line — guests forgive plain decor, not a thin plate.',
@@ -182,21 +188,16 @@ const NOTE: Record<string, string> = {
 /** Build generic guidance for a plan, with no model involved. */
 export function fallbackPersonalisation(plan: Plan): Personalisation {
   const { request, budget, vendors } = plan;
-  const lineIds = new Set(budget.lines.map((l) => l.id));
-  const ideas = IDEAS[request.eventType].map((i) => ({
-    ...i,
-    budgetLineId: i.budgetLineId && lineIds.has(i.budgetLineId) ? i.budgetLineId : null,
-  }));
   const vendorQuestions: Record<string, string[]> = {};
   for (const v of vendors) vendorQuestions[v.id] = [QUESTION];
   const budgetNotes: Record<string, string> = {};
-  for (const l of budget.lines) budgetNotes[l.id] = NOTE[l.id] ?? 'Spend only what the plan needs.';
+  for (const l of budget.lines) budgetNotes[l.id] = NOTE[l.id];
 
   return {
     summary:
       `A ${OCCASION_LABEL[request.eventType].toLowerCase()} for ${request.guests} guests at about ₹${budget.perGuest.toLocaleString('en-IN')} a head. ` +
       'The ideas below are general starting points; personalised suggestions were unavailable just now.',
-    ideas,
+    ideas: [...IDEAS[request.eventType]],
     vendorQuestions,
     budgetNotes,
     source: 'fallback',

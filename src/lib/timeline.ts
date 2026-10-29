@@ -1,5 +1,6 @@
 import { DAY_MS, dateToMs, daysBetween, msToDate } from './dates';
 import type { EventType, Milestone, Phase, Timeline } from './types';
+import type { VendorId } from './vendors';
 
 /**
  * Timeline construction and calendar export.
@@ -14,15 +15,16 @@ import type { EventType, Milestone, Phase, Timeline } from './types';
  * input, byte-identical file — which is what makes it testable.
  */
 
-interface Step {
+interface Step<E extends EventType> {
   id: string;
   title: string;
   phase: Phase;
   daysBefore: number;
-  vendorId?: string;
+  /** The vendor on this occasion's checklist that this step books. */
+  vendorId?: VendorId<E>;
 }
 
-const STEPS: Readonly<Record<EventType, { ideal: number; steps: readonly Step[] }>> = {
+const STEPS: { readonly [E in EventType]: { ideal: number; steps: readonly Step<E>[] } } = {
   wedding: {
     ideal: 180,
     steps: [
@@ -292,7 +294,7 @@ export function buildTimeline(eventType: EventType, eventDate: string, today: st
 }
 
 /** The milestone that books `vendorId`, or null when none does. */
-export function bookByFor(timeline: Timeline, vendorId: string): Milestone | null {
+export function bookByFor(timeline: Timeline, vendorId: VendorId): Milestone | null {
   return timeline.milestones.find((m) => m.vendorId === vendorId) ?? null;
 }
 

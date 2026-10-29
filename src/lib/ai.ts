@@ -9,7 +9,14 @@ import {
   SYSTEM_PROMPT,
   type Part,
 } from '../prompts/plan';
-import { COST_TIERS, IDEA_CATEGORIES, type Idea, type Personalisation, type Plan } from './types';
+import {
+  COST_TIERS,
+  IDEA_CATEGORIES,
+  type BudgetLine,
+  type Idea,
+  type Personalisation,
+  type Plan,
+} from './types';
 import { isRecord } from './validate';
 
 /**
@@ -153,7 +160,7 @@ export function coercePersonalisation(
   plan: Plan,
   meta: { model: string; cached: boolean },
 ): Personalisation | null {
-  const ideas = coerceIdeas(raw.ideas, lineIdsOf(plan));
+  const ideas = coerceIdeas(raw.ideas, plan.budget.lines);
   if (ideas.length === 0) return null;
   return {
     summary: asString(raw.summary, REPLY_LIMITS.summary),
@@ -181,15 +188,15 @@ function coerceSections(
   };
 }
 
-function coerceIdeas(raw: unknown, lineIds: ReadonlySet<string>): Idea[] {
+function coerceIdeas(raw: unknown, lines: readonly BudgetLine[]): Idea[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .slice(0, REPLY_LIMITS.ideas)
-    .map((i) => coerceIdea(i, lineIds))
+    .map((i) => coerceIdea(i, lines))
     .filter((i): i is Idea => i !== null);
 }
 
-function coerceIdea(raw: unknown, lineIds: ReadonlySet<string>): Idea | null {
+function coerceIdea(raw: unknown, lines: readonly BudgetLine[]): Idea | null {
   if (!isRecord(raw)) return null;
   const title = asString(raw.title, REPLY_LIMITS.ideaTitle);
   const detail = asString(raw.detail, REPLY_LIMITS.ideaDetail);
@@ -200,7 +207,7 @@ function coerceIdea(raw: unknown, lineIds: ReadonlySet<string>): Idea | null {
     detail,
     category: oneOf(raw.category, IDEA_CATEGORIES, 'other'),
     costTier: oneOf(raw.costTier, COST_TIERS, 'medium'),
-    budgetLineId: lineIds.has(lineId) ? lineId : null,
+    budgetLineId: lines.find((l) => l.id === lineId)?.id ?? null,
   };
 }
 
