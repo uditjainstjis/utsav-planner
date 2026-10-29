@@ -187,15 +187,15 @@ npm run check     # Worker types and generated files, typecheck (strict, noUnche
 npm run coverage  # istanbul report
 ```
 
-292 tests across 22 files. 234 run inside **workerd** (the deployed runtime);
-the 58 in the six `*.dom.test.ts` suites (axe, contrast, the shipped assets, and
-the front end's plan form, refine form and AI marks) run in jsdom, because they
-need a DOM or read the shipped files off disk. Coverage of `src/`: 99.45%
-statements, 91.94% branches, 100% functions, 99.58% lines. 27 of 335 branches
-are uncovered, 17 of them in the model-reply handling (`src/lib/ai/`) and the
-refine parser (`src/lib/refine/`), mostly `??` fallbacks and defensive checks.
-The suite is hermetic: the AI binding is a stub, so it runs identically on a
-laptop and on a CI runner holding no credentials.
+348 tests across 25 files. 288 run inside **workerd** (the deployed runtime);
+the 60 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
+the file references, and the front end's plan form, refine form and AI marks)
+run in jsdom, because they need a DOM or read files off disk. Coverage of
+`src/`: 99.46% statements, 92.19% branches, 100% functions, 99.58% lines. 26 of
+333 branches are uncovered, 16 of them in the model-reply handling
+(`src/lib/ai/`) and the refine parser (`src/lib/refine/`), mostly `??` fallbacks
+and defensive checks. The suite is hermetic: the AI binding is a stub, so it
+runs identically on a laptop and on a CI runner holding no credentials.
 
 What is covered, and the property each test holds:
 
@@ -213,8 +213,9 @@ What is covered, and the property each test holds:
   breaks are stripped.
 - **ai** — envelope unwrapping, enum normalisation, id checking, string bounds,
   primary→fallback→deterministic, `sources` per section when one ask fails and
-  the others answer, cache hit and cache bypass on any generic section,
-  schema-constrained call shape.
+  the others answer, a call given up on aborted through its signal, cache hit
+  and cache bypass on any generic section, the cache written through
+  `waitUntil`, schema-constrained call shape.
 - **api** — CSRF gate, cross-site rejection, rate limit by IP (and that it is
   not spent on rejected requests), the full security policy on API responses,
   faults and the front end, no configuration leaked by `/api/health`, no flagged
@@ -224,9 +225,12 @@ What is covered, and the property each test holds:
   plus caching for fonts and `security.txt` only; no `unsafe-*` in the CSP.
 - **refine** — Indian and Western magnitudes (lakh, crore, k, million),
   headcount phrasings, explicit/relative/month-only dates, all three at once, a
-  sentence with no numbers, unchanged values reported as no change, out-of-range
-  or past values named by field, the brief re-bounded across six turns.
-- **guard** — each injection rule, the finding cap, text order, the field named;
+  sentence with no numbers, month names and keywords read only as whole words
+  ("decor", "marquees", "maybe" are not months; the "rs" in "speakers" is not
+  rupees), unchanged values reported as no change, out-of-range or past values
+  named by field, the brief re-bounded across six turns.
+- **guard** — each injection rule, its keywords as whole words ("promptly" is
+  not "prompt"), the finding cap keeping the earliest findings, the field named;
   sentence removal of every match, not only those shown; fence defanging, nonce
   forgery.
 - **app** (jsdom, the real `index.html` and `public/js` modules) — every
@@ -247,6 +251,8 @@ What is covered, and the property each test holds:
   `form.js` sets all of them from `constants.js` when the page starts (the
   **app** suite checks the result); the calendar's name matches the occasion
   label.
+- **references** (jsdom) — every file a comment or a document names exists, so a
+  renamed or split module leaves no stale name behind.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally
