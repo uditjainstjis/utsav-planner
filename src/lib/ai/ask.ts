@@ -88,7 +88,7 @@ async function withTimeout<T>(call: (signal: AbortSignal) => Promise<T>, ms: num
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      const err = new Error(`model call exceeded ${ms}ms`);
+      const err = new DOMException(`model call exceeded ${ms}ms`, 'TimeoutError');
       controller.abort(err);
       reject(err);
     }, ms);
@@ -100,6 +100,16 @@ async function withTimeout<T>(call: (signal: AbortSignal) => Promise<T>, ms: num
   }
 }
 
+/**
+ * One structured line per failed model call, for Workers observability: which
+ * model and part, what kind of failure (`TimeoutError`, the binding's error
+ * name, or `unusable_reply`), and how long it took.
+ */
+function logFailure(model: Model, part: Part, kind: string, started: number): void {
+  // eslint-disable-next-line no-console -- Workers Logs captures and indexes console output
+  console.warn({ event: 'model_call_failed', model, part, kind, elapsedMs: Date.now() - started });
+}
+
 /** One part: primary model, then fallback model, else null. Never throws. */
 async function askPart(
   env: Env,
@@ -109,6 +119,7 @@ async function askPart(
   timeoutMs: number,
 ): Promise<PartResult | null> {
   for (const model of MODELS) {
+    const started = Date.now();
     try {
       const obj = extractJson(
         await withTimeout(
@@ -117,8 +128,10 @@ async function askPart(
         ),
       );
       if (obj && PART_KEYS[part] in obj) return { obj, model };
-    } catch {
-      /* try the next model */
+      logFailure(model, part, 'unusable_reply', started);
+    } catch (err) {
+      // Then try the next model.
+      logFailure(model, part, err instanceof Error ? err.name : typeof err, started);
     }
   }
   return null;

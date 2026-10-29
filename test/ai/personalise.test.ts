@@ -38,6 +38,27 @@ describe('personalise', () => {
     expect(p.model).toBe(FALLBACK_MODEL);
   });
 
+  it('logs one structured line per failed model call', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const run = vi.fn(async (model: string) => {
+      if (model === PRIMARY_MODEL) throw new Error('capacity');
+      return { response: 'I cannot help with that.' };
+    });
+    await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const lines = warn.mock.calls.map((c) => c[0] as Record<string, unknown>);
+    warn.mockRestore();
+    expect(lines).toHaveLength(8);
+    const line = (model: string, kind: string): unknown =>
+      expect.objectContaining({
+        event: 'model_call_failed',
+        model,
+        kind,
+        elapsedMs: expect.any(Number),
+      });
+    expect(lines).toContainEqual(line(PRIMARY_MODEL, 'Error'));
+    expect(lines).toContainEqual(line(FALLBACK_MODEL, 'unusable_reply'));
+  });
+
   it('never throws: both models failing yields labelled deterministic guidance', async () => {
     const run = vi.fn(async () => {
       throw new Error('down');
@@ -73,11 +94,15 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined); // never settles
       return { response: REPLY };
     });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
       timeoutMs: 50,
     });
+    const kinds = warn.mock.calls.map((c) => (c[0] as { kind: string }).kind);
+    warn.mockRestore();
     expect(p.sources.ideas).toBe('model');
     expect(p.model).toBe(FALLBACK_MODEL);
+    expect(kinds).toEqual(Array(4).fill('TimeoutError'));
   });
 
   it('aborts the call it gives up on, so the binding can cancel it', async () => {
