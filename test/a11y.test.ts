@@ -234,10 +234,18 @@ describe('focus and interaction', () => {
 });
 
 describe('live regions', () => {
-  it('announces progress through a single polite status region', () => {
+  it('has exactly four polite status regions: request progress, ideas, vendor count, copy', () => {
+    // docs/ACCESSIBILITY.md names each of these and what it reports. A fifth
+    // would be one more voice talking over the others, so adding one should
+    // be a decision recorded there, not a side effect.
     const live = elements.filter((e) => e.attrs['aria-live'] === 'polite');
-    const status = live.filter((e) => e.attrs.role === 'status');
-    expect(status.length).toBeGreaterThanOrEqual(1);
+    expect(live.map((e) => e.attrs.id).sort()).toEqual([
+      'copy-status',
+      'ideas-status',
+      'progress',
+      'vendor-progress',
+    ]);
+    for (const region of live) expect(region.attrs.role).toBe('status');
   });
 
   it('does not mark the ideas list itself as live, which would flood a screen reader', () => {

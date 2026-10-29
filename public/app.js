@@ -11,8 +11,11 @@
  *     answers in milliseconds; it is rendered immediately. `/api/personalise`
  *     is the model and may take seconds; it fills in afterwards, and if it
  *     fails the plan is still complete.
- *  3. **Announcements are rationed.** One polite status region reports the
- *     stages. Busy controls use `aria-disabled` so focus is never dropped.
+ *  3. **Announcements are rationed.** The stages of a request are announced
+ *     through one hidden polite status region, #progress. Three small visible
+ *     ones report a single result each: the ideas status, the vendor count and
+ *     the copy result. Busy controls use `aria-disabled` so focus is never
+ *     dropped.
  */
 
 /** @typedef {import('../src/lib/types').CostTier} CostTier */

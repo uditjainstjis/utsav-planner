@@ -15,7 +15,7 @@ hand and is recorded here.
 | One `<main>`, one `<h1>`, banner and contentinfo landmarks, no skipped heading level, skip link targets `#main`                                         | `test/a11y.test.ts` — parses the served HTML with HTMLRewriter, the runtime's own parser                                                             |
 | Every input, select and textarea can be named; every `<label for>` and every `aria-describedby`/`aria-labelledby` resolves; every fieldset has a legend | `test/a11y.test.ts`                                                                                                                                  |
 | Every button has a name and an explicit `type`; every link has an href and text; no positive `tabindex`; no inline handlers                             | `test/a11y.test.ts`                                                                                                                                  |
-| Progress is announced through exactly one polite `role="status"` region; errors through `role="alert"`; the result lists themselves are not live        | `test/a11y.test.ts`                                                                                                                                  |
+| Exactly four polite `role="status"` regions, named below; errors through `role="alert"`; the result lists themselves are not live                       | `test/a11y.test.ts`                                                                                                                                  |
 
 ## Measured contrast (WCAG 2.x ratio, worst case over the three surfaces)
 
@@ -56,12 +56,15 @@ error (WCAG 3.3.1, 3.3.3).
 than `disabled`, because disabling the element the user just activated drops
 focus to `<body>` and loses their place.
 
-**Announcements are rationed.** Building a plan produces exactly three polite
-announcements — "building", "plan ready (with counts)", "ideas added (with
-timing)" — through one `role="status"` region. Fourteen milestones and eight
-vendors are ordinary content the user navigates at their own pace, not fourteen
-interruptions. The ideas status and the vendor "n of m booked" counter are their
-own small polite regions because they change on user action.
+**Announcements are rationed.** The stages of a request — "building", "plan
+ready (with counts)", "ideas added (with timing)" — go through one hidden polite
+`role="status"` region, `#progress`. Fourteen milestones and eight vendors are
+ordinary content the user navigates at their own pace, not fourteen
+interruptions. Three small visible regions are also polite `role="status"`, each
+reporting one result where it appears: the ideas status (`#ideas-status`:
+writing, done, or unavailable), the vendor "n of m booked" counter
+(`#vendor-progress`, which changes when a box is ticked), and the copy result
+(`#copy-status`). Four in all, asserted by `test/a11y.test.ts`.
 
 **Focus moves to the result.** After a successful build, focus is placed on the
 "Your plan" heading (`tabindex="-1"`), so a screen-reader user lands at the top

@@ -17,10 +17,12 @@ import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
  * matters: the suite is hermetic, and runs identically on a laptop and on a CI
  * runner that holds no credentials.
  *
- * `dom` exists for one reason: axe-core needs a DOM, and workerd has none. It
- * runs the real axe engine over the real shipped markup so the accessibility
- * claim in the README is enforced by CI instead of asserted by a human who ran
- * it once. See test/axe.test.ts.
+ * `dom` runs in jsdom on Node, for the suites workerd cannot host: axe-core and
+ * public/app.js need a DOM (test/axe.dom.test.ts, test/app.dom.test.ts), and
+ * the contrast and asset checks read the shipped files off disk
+ * (test/contrast.dom.test.ts, test/assets.dom.test.ts). The axe suite runs the
+ * real engine over the real shipped markup, so the accessibility claim in the
+ * README is enforced by CI instead of asserted by a human who ran it once.
  */
 export default defineConfig({
   test: {
