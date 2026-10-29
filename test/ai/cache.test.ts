@@ -59,6 +59,22 @@ describe('personalise and the cache', () => {
     expect(run).toHaveBeenCalledTimes(4);
   });
 
+  it('does not share an entry between briefs that differ only in the date', async () => {
+    const run = vi.fn(async () => ({ response: REPLY }));
+    const req = request();
+    const c = ctx();
+    const first = buildPlan(req, TODAY);
+    // A day later for both the event and the planning day: the lead time is
+    // the same, so only the date the prompt states differs.
+    const later = buildPlan({ ...req, eventDate: '2026-12-08' }, '2026-10-24');
+    expect(later.timeline.leadDays).toBe(first.timeline.leadDays);
+    await personalise(env(run as never), first, c);
+    await c.settled();
+    const second = await personalise(env(run as never), later, c);
+    expect(second.cached).toBe(false);
+    expect(run).toHaveBeenCalledTimes(8);
+  });
+
   it('labels a cache hit with the model that actually wrote the answer', async () => {
     const run = vi.fn(async (model: string) => {
       if (model === PRIMARY_MODEL) throw new Error('capacity');

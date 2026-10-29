@@ -30,21 +30,25 @@ function asCachedReply(v: unknown): CachedReply | null {
     : null;
 }
 
-/** The inputs that fully determine a personalisation, for the cache key. */
+/**
+ * The inputs that fully determine a personalisation, for the cache key: every
+ * request field and the lead time the prompt states (src/prompts/plan.ts), the
+ * prompt version, and both models, since either may write a cached answer.
+ * Budget lines, vendors and the rush flag follow from these.
+ */
 function cacheParts(plan: Plan): string[] {
   const r = plan.request;
   return [
     r.eventType,
+    r.eventDate,
+    String(plan.timeline.leadDays),
     String(r.guests),
     String(r.budget),
     r.city ?? '',
     r.occasion ?? '',
     r.preferences ?? '',
-    // Lead time changes the advice ("this is a rush"); bucket it coarsely so a
-    // plan made a day later still hits.
-    plan.timeline.rushed ? 'rushed' : 'calm',
     PROMPT_VERSION,
-    MODELS[0],
+    ...MODELS,
   ];
 }
 

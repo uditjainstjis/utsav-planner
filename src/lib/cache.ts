@@ -1,10 +1,10 @@
 /**
  * Content-addressed cache for personalisations.
  *
- * A personalisation is a function of (occasion, guests, budget, city, name,
- * wishes, lead-time bucket, prompt version, model). Sample briefs and repeat
- * visits recur exactly, so caching on a content hash removes a large share of
- * inference work. Cache hits are reported to the user and asserted in tests.
+ * A personalisation is a function of (occasion, event date, days until it,
+ * guests, budget, city, name, wishes, prompt version, models): everything the
+ * prompt states. Sample briefs and repeat visits on the same day recur exactly,
+ * so caching on a content hash removes a large share of inference work. Cache hits are reported to the user and asserted in tests.
  *
  * Uses the Workers Cache API rather than KV: it needs no binding, costs
  * nothing, and expires on its own. The trade-off is that it is per-colocation,

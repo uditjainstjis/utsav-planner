@@ -152,11 +152,11 @@ headcount or budget keeps them. No budget, wishes or model output is stored.
 ## 5. Caching
 
 Personalisations are cached in the Workers Cache API for seven days under a
-SHA-256 of the inputs that determine them (occasion, guests, budget, city,
-occasion name, wishes, lead-time bucket, prompt version, model). The cache is
-per-colocation and never leaves Cloudflare. An answer with any generic section
-is never cached, so a model outage is retried on the next request rather than
-remembered.
+SHA-256 of the inputs that determine them (occasion, event date, days until it,
+guests, budget, city, occasion name, wishes, prompt version, both models). The
+cache is per-colocation and never leaves Cloudflare. An answer with any generic
+section is never cached, so a model outage is retried on the next request rather
+than remembered.
 
 ## 6. Supply chain and CI
 
