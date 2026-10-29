@@ -22,12 +22,13 @@ export const MODELS = [
 type Model = (typeof MODELS)[number];
 
 /**
- * Upper bound on one model call. Measured p95 for a part is well under 15 s
- * (docs/EVALUATION.md); a call still running after this is treated as failed
- * so the fallback model — and then deterministic guidance — can answer. The
+ * Upper bound on one model call. Both models answered a part in 7–11 s when
+ * measured (docs/EVALUATION.md); a call still running after this is aborted
+ * and treated as failed, so the fallback model — and then deterministic
+ * guidance — can answer. A part therefore settles within twice this: the
  * user never waits on a hung binding.
  */
-export const MODEL_TIMEOUT_MS = 20_000;
+export const MODEL_TIMEOUT_MS = 15_000;
 
 /** The key each part's reply must carry. */
 const PART_KEYS: Record<Part, string> = {
@@ -45,37 +46,52 @@ interface PartResult {
 
 type Answers = Record<Part, PartResult | null>;
 
-async function callModel(env: Env, model: Model, part: Part, plan: Plan, nonce: string) {
-  return env.AI.run(model, {
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: PROMPT_BUILDERS[part](plan, nonce) },
-    ],
-    response_format: { type: 'json_schema', json_schema: SCHEMAS[part] },
-    max_tokens: MAX_TOKENS[part],
-    // Some variety is wanted — two users with the same brief should not get
-    // identical ideas — but not so much that the schema or the facts drift.
-    temperature: 0.5,
-  });
+async function callModel(
+  env: Env,
+  model: Model,
+  part: Part,
+  plan: Plan,
+  nonce: string,
+  signal: AbortSignal,
+) {
+  return env.AI.run(
+    model,
+    {
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: PROMPT_BUILDERS[part](plan, nonce) },
+      ],
+      response_format: { type: 'json_schema', json_schema: SCHEMAS[part] },
+      max_tokens: MAX_TOKENS[part],
+      // Some variety is wanted — two users with the same brief should not get
+      // identical ideas — but not so much that the schema or the facts drift.
+      temperature: 0.5,
+    },
+    { signal },
+  );
 }
 
-/** Reject after `ms` so a hung call cannot hold a response open. */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`model call exceeded ${ms}ms`));
+/**
+ * Run `call` with a signal that aborts after `ms`, and reject at that moment.
+ * The binding takes the signal (`AiOptions.signal`), so a call given up on is
+ * cancelled rather than left running; the race still rejects on time for a
+ * call that does not honour it.
+ */
+async function withTimeout<T>(call: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error(`model call exceeded ${ms}ms`);
+      controller.abort(err);
+      reject(err);
     }, ms);
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e: unknown) => {
-        clearTimeout(timer);
-        reject(e instanceof Error ? e : new Error(String(e)));
-      },
-    );
   });
+  try {
+    return await Promise.race([call(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** One part: primary model, then fallback model, else null. Never throws. */
@@ -89,7 +105,7 @@ async function askPart(
   for (const model of MODELS) {
     try {
       const obj = extractJson(
-        await withTimeout(callModel(env, model, part, plan, nonce), timeoutMs),
+        await withTimeout((signal) => callModel(env, model, part, plan, nonce, signal), timeoutMs),
       );
       if (obj && PART_KEYS[part] in obj) return { obj, model };
     } catch {

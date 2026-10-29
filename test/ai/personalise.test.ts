@@ -83,6 +83,20 @@ describe('personalise', () => {
     expect(p.model).toBe(FALLBACK_MODEL);
   });
 
+  it('aborts the call it gives up on, so the binding can cancel it', async () => {
+    const signals: AbortSignal[] = [];
+    const run = vi.fn(async (model: string, _input: unknown, opts: { signal: AbortSignal }) => {
+      signals.push(opts.signal);
+      if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined);
+      return { response: REPLY };
+    });
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
+    expect(p.model).toBe(FALLBACK_MODEL);
+    const byModel = (m: string) => signals.filter((_, i) => callsOf(run)[i]![0] === m);
+    expect(byModel(PRIMARY_MODEL).map((s) => s.aborted)).toEqual([true, true, true, true]);
+    expect(byModel(FALLBACK_MODEL).map((s) => s.aborted)).toEqual([false, false, false, false]);
+  });
+
   it('ships deterministic guidance when every model hangs', async () => {
     const run = vi.fn(() => new Promise<never>(() => undefined));
     const started = Date.now();

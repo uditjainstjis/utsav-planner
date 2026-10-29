@@ -11,11 +11,11 @@
 /** @typedef {{ '/api/plan': PlanReply, '/api/refine': RefineReply, '/api/personalise': Personalisation }} Replies */
 
 /**
- * Server-side each model call is capped at 20 s and a part tries two models, so
- * a personalisation can take 40 s; the client allows 45.
+ * Server-side each model call is capped at 15 s and a part tries two models, so
+ * a personalisation can take 30 s; the client allows 35.
  * @type {Record<keyof Replies, number>}
  */
-const TIMEOUT_MS = { '/api/plan': 10_000, '/api/refine': 10_000, '/api/personalise': 45_000 };
+const TIMEOUT_MS = { '/api/plan': 10_000, '/api/refine': 10_000, '/api/personalise': 35_000 };
 
 /** A request the server refused, with the request field it named, if any. */
 export class ApiError extends Error {
