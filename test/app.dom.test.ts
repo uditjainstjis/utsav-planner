@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { fallbackPersonalisation } from '../src/lib/fallback';
 import { buildPlan, todayIso } from '../src/lib/plan';
 import { applyRefinement } from '../src/lib/refine';
-import type { PlanRequest } from '../src/lib/types';
+import type { Personalisation, Plan, PlanRequest } from '../src/lib/types';
 
 /**
  * The front end's request flows, driven through the real markup and modules.
@@ -50,6 +50,45 @@ function stubFetch(...replies: Reply[]): ReturnType<typeof vi.fn> {
   vi.stubGlobal('fetch', fetch);
   return fetch;
 }
+
+/**
+ * A fetch that answers only when told to, so a test chooses the order replies
+ * land in. Calls are numbered from 0 in the order the page makes them.
+ */
+function deferredFetch(): {
+  requested: (call: number) => Promise<void>;
+  answer: (call: number, reply: Reply) => Promise<void>;
+} {
+  const pending: Array<(res: Response) => void> = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise<Response>((resolve) => pending.push(resolve))),
+  );
+  const requested = async (call: number): Promise<void> => {
+    await vi.waitFor(() => {
+      expect(pending[call]).toBeDefined();
+    });
+  };
+  const answer = async (call: number, reply: Reply): Promise<void> => {
+    await requested(call);
+    pending[call]!(
+      new Response(JSON.stringify(reply.body), {
+        status: reply.status,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+  };
+  return { requested, answer };
+}
+
+/** A personalisation a model wrote, its summary naming that model. */
+const byModel = (plan: Plan, model: string): Personalisation => ({
+  ...fallbackPersonalisation(plan),
+  summary: `Summary from ${model}`,
+  source: 'model',
+  model,
+  cached: true,
+});
 
 function $<T extends HTMLElement>(id: string, type: new () => T): T;
 function $(id: string): HTMLElement;
@@ -168,6 +207,20 @@ describe('the plan form', () => {
     expect($('form-error').hidden).toBe(true);
     expect($('event-date').getAttribute('aria-invalid')).toBeNull();
   });
+
+  it('marks nothing as written by the AI when the guidance is generic', async () => {
+    const generic = fallbackPersonalisation(PLAN);
+    stubFetch(ok({ plan: PLAN, ics: '' }), ok(generic));
+
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+
+    const question = Object.values(generic.vendorQuestions)[0]![0]!;
+    expect($('vendor-list').textContent).toContain(question);
+    expect($('vendor-list').querySelectorAll('.ai-mark, .vendor__question--ai')).toHaveLength(0);
+    expect($('budget-body').querySelectorAll('[data-ai]')).toHaveLength(0);
+  });
 });
 
 describe('the sample briefs', () => {
@@ -227,6 +280,52 @@ describe('the refine form', () => {
     expect($('ideas-status').textContent).toMatch(/ideas from m, cached/);
     await vi.waitFor(() => {
       expect($('progress').textContent).toMatch(/ideas rewritten/);
+    });
+  });
+
+  describe('while the first plan’s ideas are still being written', () => {
+    const refined = applyRefinement(REQUEST, '30 guests', TODAY);
+    const plan = buildPlan(refined.request, TODAY);
+
+    /** Build, leave that plan's ideas call (call 1) open, then refine. */
+    async function buildThenRefine(fetch: ReturnType<typeof deferredFetch>): Promise<void> {
+      fill(REQUEST.eventDate);
+      submit();
+      await fetch.answer(0, ok({ plan: PLAN, ics: '' }));
+      await fetch.requested(1);
+      refine('30 guests');
+      await fetch.answer(2, ok({ ...refined, plan, ics: '' }));
+      await fetch.answer(3, ok(byModel(plan, 'fresh')));
+      await refineSettled();
+    }
+
+    it('drops the earlier plan’s ideas when they arrive after the new plan’s', async () => {
+      const fetch = deferredFetch();
+      await buildThenRefine(fetch);
+      const aiQuestions = (): number =>
+        $('vendor-list').querySelectorAll('.vendor__question--ai').length;
+      const fresh = aiQuestions();
+      expect(fresh).toBeGreaterThan(0);
+
+      const stale = { ...byModel(PLAN, 'stale'), vendorQuestions: { caterer: ['Stale?'] } };
+      await fetch.answer(1, ok(stale));
+      await settled();
+
+      expect($('ideas-status').textContent).toMatch(/ideas from fresh/);
+      expect($('ai-summary').textContent).toBe('Summary from fresh');
+      expect(aiQuestions()).toBe(fresh);
+      expect($('vendor-list').textContent).not.toContain('Stale?');
+    });
+
+    it('does not report the earlier plan’s failed ideas against the new plan', async () => {
+      const fetch = deferredFetch();
+      await buildThenRefine(fetch);
+
+      await fetch.answer(1, { status: 500, body: { error: 'boom' } });
+      await settled();
+
+      expect($('ideas-status').textContent).toMatch(/ideas from fresh/);
+      expect($('ideas-status').dataset.state).toBe('ok');
     });
   });
 

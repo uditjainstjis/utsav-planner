@@ -83,7 +83,11 @@ function updateVendorProgress(plan, done) {
   els.vendorProgress.textContent = `${n} of ${plan.vendors.length} booked`;
 }
 
-/** @param {Personalisation} p */
+/**
+ * Add the personalisation's questions under each vendor, marked as the AI's
+ * only when a model wrote the personalisation, as the budget notes are.
+ * @param {Personalisation} p
+ */
 export function renderVendorQuestions(p) {
   for (const li of els.vendorList.querySelectorAll('.vendor')) {
     if (!(li instanceof HTMLElement)) continue;
@@ -91,11 +95,14 @@ export function renderVendorQuestions(p) {
     const ul = part(li, '.vendor__questions', HTMLElement);
     for (const q of extra) {
       const qi = document.createElement('li');
-      qi.className = 'vendor__question--ai';
-      const mark = document.createElement('span');
-      mark.className = 'ai-mark';
-      mark.textContent = 'AI';
-      qi.append(mark, ` ${q}`);
+      if (p.source === 'model') {
+        const mark = document.createElement('span');
+        mark.className = 'ai-mark';
+        mark.textContent = 'AI';
+        qi.className = 'vendor__question--ai';
+        qi.append(mark, ' ');
+      }
+      qi.append(q);
       ul.append(qi);
     }
   }
