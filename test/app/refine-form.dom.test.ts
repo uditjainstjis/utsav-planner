@@ -25,7 +25,6 @@ beforeEach(loadApp);
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  localStorage.clear();
 });
 
 describe('the refine form', () => {

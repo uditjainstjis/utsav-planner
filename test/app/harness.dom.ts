@@ -117,9 +117,9 @@ export async function settled(): Promise<void> {
 }
 
 /**
- * A fresh page and fresh copies of the modules, so no listener or module state
- * carries over between tests. The script tag is dropped: the entry module is
- * imported instead of being fetched by jsdom.
+ * A fresh page, fresh copies of the modules and empty storage, so no listener,
+ * module state or stored tick carries over between tests. The script tag is
+ * dropped: the entry module is imported instead of being fetched by jsdom.
  */
 export async function loadApp(): Promise<void> {
   document.documentElement.innerHTML = html
@@ -129,6 +129,14 @@ export async function loadApp(): Promise<void> {
     'matchMedia',
     vi.fn(() => ({ matches: false })),
   );
+  // Node 25 and later define a localStorage of their own, undefined without
+  // --localstorage-file, and vitest's jsdom globals leave it in place. The page
+  // gets the jsdom window's (vitest's `jsdom` global), emptied like the rest of
+  // a fresh page.
+  const { jsdom } = globalThis as unknown as { jsdom: { window: Window } };
+  const storage = jsdom.window.localStorage;
+  storage.clear();
+  vi.stubGlobal('localStorage', storage);
   vi.resetModules();
   await import(/* @vite-ignore */ APP);
 }
