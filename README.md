@@ -183,7 +183,7 @@ are in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 ## Testing
 
 ```
-npm run check     # Worker types and generated files, typecheck (strict, noUncheckedIndexedAccess; public/js via JSDoc), lint (functions ≤ 40 lines outside tests), format check, tests
+npm run check     # Worker types and generated files, typecheck (strict, noUncheckedIndexedAccess; public/js via JSDoc), lint (type-aware, public/js included; functions ≤ 40 lines outside tests), format check, tests
 npm run coverage  # istanbul report
 ```
 

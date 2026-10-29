@@ -17,7 +17,9 @@ function doneKey(plan) {
  */
 function loadDone(plan) {
   try {
-    return new Set(JSON.parse(localStorage.getItem(doneKey(plan)) || '[]'));
+    /** @type {unknown} */
+    const ids = JSON.parse(localStorage.getItem(doneKey(plan)) || '[]');
+    return new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === 'string') : []);
   } catch {
     return new Set();
   }

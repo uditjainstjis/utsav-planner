@@ -114,7 +114,7 @@ async function submitRefine(state, text) {
 }
 
 export function wireRefine() {
-  els.refineForm.addEventListener('submit', async (ev) => {
+  els.refineForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const current = getCurrent();
     if (!current || isBusy('refine')) return;
@@ -124,6 +124,6 @@ export function wireRefine() {
       showRefineError(MESSAGE.noChange);
       return;
     }
-    await whileBusy('refine', () => submitRefine(current, text));
+    void whileBusy('refine', () => submitRefine(current, text));
   });
 }

@@ -50,7 +50,7 @@ async function submitPlan(body) {
 }
 
 export function wireBuild() {
-  els.form.addEventListener('submit', async (ev) => {
+  els.form.addEventListener('submit', (ev) => {
     ev.preventDefault();
     if (isBusy('plan')) return;
     hideError();
@@ -60,6 +60,6 @@ export function wireBuild() {
       showError(...bad);
       return;
     }
-    await whileBusy('plan', () => submitPlan(body));
+    void whileBusy('plan', () => submitPlan(body));
   });
 }

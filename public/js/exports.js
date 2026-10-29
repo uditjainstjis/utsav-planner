@@ -22,7 +22,9 @@ function download(name, type, text) {
   document.body.append(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 /** @param {string | number} s */
@@ -81,15 +83,19 @@ export function wireExports() {
     const current = getCurrent();
     if (current) download('utsav-timeline.ics', 'text/calendar;charset=utf-8', current.ics);
   });
-  els.printBtn.addEventListener('click', () => window.print());
-  els.copyBtn.addEventListener('click', async () => {
+  els.printBtn.addEventListener('click', () => {
+    window.print();
+  });
+  els.copyBtn.addEventListener('click', () => {
     const current = getCurrent();
     if (!current) return;
-    try {
-      await navigator.clipboard.writeText(planAsText(current));
-      els.copyStatus.textContent = 'Copied the whole plan.';
-    } catch {
-      els.copyStatus.textContent = 'Could not copy — your browser blocked clipboard access.';
-    }
+    navigator.clipboard.writeText(planAsText(current)).then(
+      () => {
+        els.copyStatus.textContent = 'Copied the whole plan.';
+      },
+      () => {
+        els.copyStatus.textContent = 'Could not copy — your browser blocked clipboard access.';
+      },
+    );
   });
 }

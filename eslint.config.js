@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /**
@@ -41,33 +42,16 @@ export default tseslint.config(
     rules: { 'max-lines-per-function': ['error', { max: 40 }] },
   },
   {
-    // Front-end code runs in the browser and is plain JavaScript, typechecked
-    // through JSDoc by tsconfig.app.json rather than linted with type information.
+    // Front-end code runs in the browser and is plain JavaScript, typed through
+    // JSDoc. tsconfig.app.json is the config that types it (DOM lib, checkJs),
+    // so typed linting is pointed there, as for the jsdom tests below.
     files: ['public/**/*.js'],
-    extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        fetch: 'readonly',
-        navigator: 'readonly',
-        localStorage: 'readonly',
-        TextDecoder: 'readonly',
-        requestAnimationFrame: 'readonly',
-        performance: 'readonly',
-        Blob: 'readonly',
-        URL: 'readonly',
-        setTimeout: 'readonly',
-        Intl: 'readonly',
-        AbortSignal: 'readonly',
-        // Element classes the front end checks its lookups against (see public/js/dom.js).
-        HTMLElement: 'readonly',
-        HTMLButtonElement: 'readonly',
-        HTMLFormElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTemplateElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        RadioNodeList: 'readonly',
+      globals: globals.browser,
+      parserOptions: {
+        projectService: false,
+        project: './tsconfig.app.json',
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: { 'no-undef': 'error' },
@@ -76,7 +60,7 @@ export default tseslint.config(
     // The asset generator: plain JavaScript run by Node, outside every tsconfig.
     files: ['scripts/**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
-    languageOptions: { globals: { URL: 'readonly' } },
+    languageOptions: { globals: globals.node },
   },
   {
     // Tests that run in jsdom rather than workerd. They are excluded from the
