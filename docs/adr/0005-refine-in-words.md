@@ -17,8 +17,8 @@ exactly the responsibility ADR 0002 keeps out of its hands.
 
 Add one more turn, `POST /api/refine`, with the same split as everything else:
 
-- **Numbers are parsed deterministically** (`src/lib/refine.ts`): rupee amounts
-  in Indian and Western magnitudes (`12 lakh`, `₹9,50,000`, `1.2 crore`, `50k`,
+- **Numbers are parsed deterministically** (`src/lib/refine/`): rupee amounts in
+  Indian and Western magnitudes (`12 lakh`, `₹9,50,000`, `1.2 crore`, `50k`,
   `2 million`) and headcounts in the ways people say them (`300 guests`,
   `for 120 people`, `headcount 80`, `15 kids`), and dates. The parsed values are
   range-checked with the same limits as the form and applied to the validated

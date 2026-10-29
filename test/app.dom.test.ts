@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { fallbackPersonalisation } from '../src/lib/fallback';
 import { LIMITS, rupees, todayIso } from '../src/shared/constants';
 import { buildPlan } from '../src/lib/plan';
-import { applyRefinement } from '../src/lib/refine';
+import { applyRefinement } from '../src/lib/refine/apply';
 import type { Personalisation, Plan, PlanRequest } from '../src/lib/types';
 
 /**

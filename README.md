@@ -12,7 +12,7 @@ words what you want — and it returns the four things every celebration needs:
 | **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                                                             | Pure date arithmetic; RFC 5545 `.ics` export                                                                 | `src/lib/timeline.ts`                |
 | **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                                                       | Deterministic template tied to the timeline; the model adds questions specific to your wishes                | `src/lib/vendors.ts`                 |
 | **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                                                       | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback               | `src/lib/ai/`, `src/prompts/plan.ts` |
-| **Refine in words** — "budget 12 lakh, 300 guests, move it to March, add a mehndi night": amounts, headcount and dates are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts, headcount and dates; the sentence joins the brief as a labelled adjustment | `src/lib/refine.ts`                  |
+| **Refine in words** — "budget 12 lakh, 300 guests, move it to March, add a mehndi night": amounts, headcount and dates are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts, headcount and dates; the sentence joins the brief as a labelled adjustment | `src/lib/refine/`                    |
 
 Built for **PromptWars Virtual, Challenge 5: Celebration & Event Planner**.
 
@@ -110,7 +110,10 @@ src/lib/budget     shares → whole-rupee lines that sum exactly; warnings
 src/lib/timeline   milestones counted back from the date; compression; .ics
 src/lib/vendors    checklist tied to timeline milestones and budget lines
 src/lib/plan       assembles the deterministic plan; injection screen
-src/lib/refine     reads amounts, headcount and dates from a sentence; applies them
+src/lib/refine/apply    applies a change sentence to a request; lists what changed
+src/lib/refine/dates    reads a date from a sentence
+src/lib/refine/numbers  reads a budget and a headcount from a sentence
+src/lib/refine/wishes   the wishes and the adjustments appended to them
 src/lib/guard      deterministic prompt-injection screen + nonce fence
 src/prompts/plan   the facts block and the four schema-constrained asks
 src/lib/ai/ask    Workers AI calls: four concurrent parts, fallback model, timeout

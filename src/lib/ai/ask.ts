@@ -43,7 +43,7 @@ interface PartResult {
   model: string;
 }
 
-export type Answers = Record<Part, PartResult | null>;
+type Answers = Record<Part, PartResult | null>;
 
 async function callModel(env: Env, model: Model, part: Part, plan: Plan, nonce: string) {
   return env.AI.run(model, {

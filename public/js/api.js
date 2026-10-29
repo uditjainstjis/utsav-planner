@@ -4,7 +4,7 @@
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
 /** @typedef {import('../../src/lib/types').Plan} Plan */
 /** @typedef {import('../../src/lib/types').PlanRequest} PlanRequest */
-/** @typedef {import('../../src/lib/refine').Change} Change */
+/** @typedef {import('../../src/lib/refine/apply').Change} Change */
 
 /** @typedef {{ plan: Plan, ics: string }} PlanReply */
 /** @typedef {PlanReply & { request: PlanRequest, changes: Change[] }} RefineReply */

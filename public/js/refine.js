@@ -13,7 +13,7 @@ import { resetIdeas } from './render-ideas.js';
 import { showPlan } from './render-plan.js';
 import { announce, getCurrent, isBusy, whileBusy } from './state.js';
 
-/** @typedef {import('../../src/lib/refine').Change} Change */
+/** @typedef {import('../../src/lib/refine/apply').Change} Change */
 /** @typedef {import('../../src/lib/types').PlanRequest} PlanRequest */
 /** @typedef {import('./state.js').Current} Current */
 

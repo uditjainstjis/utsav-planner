@@ -4,7 +4,7 @@ import { personalise } from './lib/ai/personalise';
 import { harden } from './lib/headers';
 import { LIMITS, todayIso } from './shared/constants';
 import { buildPlan, planIcs } from './lib/plan';
-import { applyRefinement } from './lib/refine';
+import { applyRefinement } from './lib/refine/apply';
 import type { Plan } from './lib/types';
 import { InputError, isRecord, validatePlanRequest } from './lib/validate';
 

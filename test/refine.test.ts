@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { applyRefinement, assembleWishes, parseDate, splitWishes } from '../src/lib/refine';
+import { applyRefinement } from '../src/lib/refine/apply';
+import { parseDate } from '../src/lib/refine/dates';
+import { assembleWishes, splitWishes } from '../src/lib/refine/wishes';
 import { LIMITS } from '../src/shared/constants';
 import { InputError } from '../src/lib/validate';
 import type { PlanRequest } from '../src/lib/types';
