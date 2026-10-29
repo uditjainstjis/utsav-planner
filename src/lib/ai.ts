@@ -20,8 +20,8 @@ import type { CostTier, Idea, IdeaCategory, Personalisation, Plan } from './type
  * against the plan it was asked about, and anything outside the schema dropped.
  *
  * The four parts of a personalisation — two halves of ideas, vendor questions,
- * budget notes — are requested concurrently, each with its own small schema, because
- * schema-constrained decoding is paid for per output token: three short
+ * budget notes — are requested concurrently, each with its own small schema,
+ * because schema-constrained decoding is paid for per output token: four short
  * replies in parallel finish in the time of the longest, not the sum. Each
  * part tries the primary model, then the fallback model; a part that still
  * fails is filled from deterministic guidance and the plan ships complete.

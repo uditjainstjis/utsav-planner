@@ -4,11 +4,11 @@ import type { Plan } from '../lib/types';
 /**
  * The prompts.
  *
- * Personalisation is three small, independent asks rather than one large one,
+ * Personalisation is four small, independent asks rather than one large one,
  * and they run concurrently (see `src/lib/ai.ts`). The split was measured, not
  * assumed: schema-constrained decoding on Workers AI runs at tens of tokens a
- * second, so one 1,500-token reply took 50–80 s where four replies of 300–450 tokens
- * in parallel take the time of the longest one (docs/EVALUATION.md).
+ * second, so one 1,500-token reply took 50–80 s where four replies of 300–450
+ * tokens in parallel take the time of the longest one (docs/EVALUATION.md).
  *
  * Every ask shares the same facts block. The model is *given* every number and
  * never asked to produce one, and the only free text it sees from the user is

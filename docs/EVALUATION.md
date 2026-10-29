@@ -13,9 +13,11 @@ browser: **65.8 s** on `llama-4-scout`. Schema-constrained decoding on Workers
 AI is paid for per output token, so a long reply is slow regardless of how good
 the model is.
 
-Three small concurrent asks, each with its own schema, finish in the time of the
-longest one rather than the sum. Same prompts, same models, measured from a
-machine outside the deployment:
+Small concurrent asks, each with its own schema, finish in the time of the
+longest one rather than the sum. The split was measured as three parts — ideas,
+vendor questions, budget notes; the ideas part was later halved, which gives the
+four asks the code sends today (ADR 0003). Same prompts, same models, measured
+from a machine outside the deployment:
 
 | Model                                                                   | One call, full schema | Three parallel parts (wall-clock) | Schema-valid                                                                     |
 | ----------------------------------------------------------------------- | --------------------- | --------------------------------- | -------------------------------------------------------------------------------- |
@@ -53,10 +55,10 @@ schema-valid, plan-consistent output on every run:
   by `coercePersonalisation`, so it is safe as a fallback; it is not first
   choice.
 
-Each of the three parts tries the primary and then the fallback independently,
-so a transient failure on one part costs one extra model call, not a blank
-section. If both fail, the part is filled from `src/lib/fallback.ts` and the
-response is labelled `source: "fallback"` so the UI can say so.
+Each of the four parts tries the primary and then the fallback independently, so
+a transient failure on one part costs one extra model call, not a blank section.
+If both fail, the part is filled from `src/lib/fallback.ts` and the response is
+labelled `source: "fallback"` so the UI can say so.
 
 ## 4. What the user sees
 
