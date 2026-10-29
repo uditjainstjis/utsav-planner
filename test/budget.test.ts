@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apportion, buildBudget, budgetLineIds, UNIVERSAL_LINE_IDS } from '../src/lib/budget';
+import { apportion, buildBudget } from '../src/lib/budget';
 import { EVENT_TYPES } from '../src/lib/types';
 
 /**
@@ -53,9 +53,9 @@ describe('buildBudget', () => {
     }
   });
 
-  it.each(EVENT_TYPES)('%s: includes the universal lines with stable ids', (type) => {
-    const ids = budgetLineIds(type);
-    for (const id of UNIVERSAL_LINE_IDS) expect(ids).toContain(id);
+  it.each(EVENT_TYPES)('%s: has unique ids, including the catering line the flags read', (type) => {
+    const ids = buildBudget(type, 100_000, 50).lines.map((l) => l.id);
+    expect(ids).toContain('catering');
     expect(new Set(ids).size).toBe(ids.length);
   });
 

@@ -100,9 +100,6 @@ const TEMPLATES: Readonly<Record<EventType, Template>> = {
   },
 };
 
-/** Ids every occasion shares, so the UI and the prompt can rely on them. */
-export const UNIVERSAL_LINE_IDS = ['venue', 'catering', 'decor', 'contingency'] as const;
-
 /**
  * Split `total` along `shares` into whole rupees that sum to exactly `total`.
  *
@@ -150,36 +147,55 @@ export function buildBudget(eventType: EventType, total: number, guests: number)
   });
 
   const perGuest = Math.round(total / guests);
-  const cateringPerGuest = lines.find((l) => l.id === 'catering')?.perGuest ?? null;
-  const flags: BudgetFlag[] = [];
+  return {
+    currency: 'INR',
+    total,
+    perGuest,
+    lines,
+    flags: flagsFor(eventType, guests, perGuest, lines),
+  };
+}
 
-  if (perGuest < t.floor.total) {
-    flags.push({
-      code: 'tight_total',
-      message:
-        `At ₹${perGuest.toLocaleString('en-IN')} per guest this is tight for a ${eventType}. ` +
-        `Fewer guests, a simpler venue, or a budget nearer ₹${(t.floor.total * guests).toLocaleString('en-IN')} would give room to breathe.`,
-    });
-  } else if (cateringPerGuest !== null && cateringPerGuest < t.floor.catering) {
-    flags.push({
-      code: 'tight_catering',
-      message:
-        `Catering works out to ₹${cateringPerGuest.toLocaleString('en-IN')} a head. ` +
-        `Below about ₹${t.floor.catering} the menu gets thin — consider moving a little from decor or entertainment.`,
-    });
-  } else if (perGuest >= t.floor.total * 6) {
-    flags.push({
+/**
+ * The one warning, if any, a budget earns: thin overall, thin for food, or
+ * comfortable. Every template has a `catering` line, which the second reads.
+ */
+function flagsFor(
+  eventType: EventType,
+  guests: number,
+  perGuest: number,
+  lines: readonly BudgetLine[],
+): BudgetFlag[] {
+  const { floor } = TEMPLATES[eventType];
+  const cateringPerGuest = lines.find((l) => l.id === 'catering')?.perGuest ?? null;
+  if (perGuest < floor.total) {
+    const enough = (floor.total * guests).toLocaleString('en-IN');
+    return [
+      {
+        code: 'tight_total',
+        message:
+          `At ₹${perGuest.toLocaleString('en-IN')} per guest this is tight for a ${eventType}. ` +
+          `Fewer guests, a simpler venue, or a budget nearer ₹${enough} would give room to breathe.`,
+      },
+    ];
+  }
+  if (cateringPerGuest !== null && cateringPerGuest < floor.catering) {
+    return [
+      {
+        code: 'tight_catering',
+        message:
+          `Catering works out to ₹${cateringPerGuest.toLocaleString('en-IN')} a head. ` +
+          `Below about ₹${floor.catering} the menu gets thin — consider moving a little from decor or entertainment.`,
+      },
+    ];
+  }
+  if (perGuest < floor.total * 6) return [];
+  return [
+    {
       code: 'generous',
       message:
         'This budget is comfortable for the headcount. The shares below are a starting point; ' +
         'it is normal to move money towards whatever matters most to you.',
-    });
-  }
-
-  return { currency: 'INR', total, perGuest, lines, flags };
-}
-
-/** The template line ids for an occasion, in allocation order. */
-export function budgetLineIds(eventType: EventType): string[] {
-  return TEMPLATES[eventType].lines.map((l) => l.id);
+    },
+  ];
 }

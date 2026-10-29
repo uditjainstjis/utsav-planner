@@ -232,8 +232,3 @@ export function buildVendors(eventType: EventType, timeline: Timeline): VendorIt
     };
   });
 }
-
-/** Vendor ids for an occasion, for prompt construction and validation. */
-export function vendorIds(eventType: EventType): string[] {
-  return VENDORS[eventType].map((v) => v.id);
-}

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { budgetLineIds } from '../src/lib/budget';
+import { buildBudget } from '../src/lib/budget';
 import { buildTimeline } from '../src/lib/timeline';
 import { EVENT_TYPES } from '../src/lib/types';
-import { buildVendors, vendorIds } from '../src/lib/vendors';
+import { buildVendors } from '../src/lib/vendors';
 
 const TODAY = '2026-10-23';
 
 describe('buildVendors', () => {
   it.each(EVENT_TYPES)('%s: every vendor is paid from a budget line that exists', (type) => {
-    const lines = new Set(budgetLineIds(type));
+    const lines = new Set(buildBudget(type, 100_000, 50).lines.map((l) => l.id));
     for (const v of buildVendors(type, buildTimeline(type, '2027-04-01', TODAY))) {
       expect(lines.has(v.budgetLineId), `${v.id} → ${v.budgetLineId}`).toBe(true);
     }
@@ -29,7 +29,6 @@ describe('buildVendors', () => {
     const vendors = buildVendors(type, buildTimeline(type, '2027-04-01', TODAY));
     const ids = vendors.map((v) => v.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(vendorIds(type)).toEqual(ids);
     for (const v of vendors) {
       expect(v.questions.length).toBeGreaterThan(0);
       for (const q of v.questions) expect(q).toMatch(/\?$/);
