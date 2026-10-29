@@ -6,6 +6,7 @@ import {
   loadApp,
   $,
   ALL_MODEL,
+  deferredFetch,
   fill,
   inDays,
   ok,
@@ -89,6 +90,19 @@ describe('the plan form', () => {
     expect($('results').hidden).toBe(false);
   });
 
+  it('marks the ideas list busy while ideas are written, and not once they are in', async () => {
+    const fetch = deferredFetch();
+    fill(REQUEST.eventDate);
+    submit();
+    await fetch.answer(0, ok({ plan: PLAN, ics: '' }));
+    await fetch.requested(1);
+    expect($('ideas-list').getAttribute('aria-busy')).toBe('true');
+
+    await fetch.answer(1, ok(fallbackPersonalisation(PLAN)));
+    await settled();
+    expect($('ideas-list').getAttribute('aria-busy')).toBe('false');
+  });
+
   it('degrades only the ideas card when the ideas call fails', async () => {
     stubFetch(ok({ plan: PLAN, ics: '' }), { status: 500, body: { error: 'boom' } });
 
@@ -100,6 +114,7 @@ describe('the plan form', () => {
     expect($('form-error').hidden).toBe(true);
     expect($('ideas-status').textContent).toMatch(/could not be written/);
     expect($('ideas-status').dataset.state).toBe('degraded');
+    expect($('ideas-list').getAttribute('aria-busy')).toBe('false');
   });
 
   it('refuses a date more than two years ahead without a round trip', async () => {

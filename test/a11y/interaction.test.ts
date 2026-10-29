@@ -43,6 +43,16 @@ describe('focus and interaction', () => {
     }
   });
 
+  it('lets a keyboard user scroll the budget table, which scrolls sideways on a narrow screen', () => {
+    const wrap = page.elements.find((e) => e.attrs.class === 'table-wrap');
+    expect(wrap?.attrs).toMatchObject({
+      role: 'region',
+      tabindex: '0',
+      'aria-labelledby': 'budget-caption',
+    });
+    expect(page.byTag('caption').map((c) => c.attrs.id)).toEqual(['budget-caption']);
+  });
+
   it('hides decorative graphics from assistive technology', () => {
     const mark = page.elements.find((e) => e.attrs.class === 'brand__mark');
     expect(mark?.attrs['aria-hidden']).toBe('true');

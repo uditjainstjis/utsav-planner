@@ -118,6 +118,33 @@ describe.each([
   });
 });
 
+/** A length a declaration in `body` sets, in CSS pixels (1rem = 16px). */
+function px(body: string, property: string): number {
+  const m = new RegExp(`\\n\\s*${property}: ([\\d.]+)(px|rem);`).exec(body);
+  if (!m?.[1]) throw new Error(`no ${property} length in ${body}`);
+  return Number(m[1]) * (m[2] === 'rem' ? 16 : 1);
+}
+
+describe('the stylesheet’s other WCAG rules', () => {
+  it('gives the vendor checkbox, the buttons and the sample chips a 24px target (2.5.8)', () => {
+    expect(px(rule('.vendor__check'), 'width')).toBeGreaterThanOrEqual(24);
+    expect(px(rule('.vendor__check'), 'height')).toBeGreaterThanOrEqual(24);
+    expect(px(rule('.btn'), 'min-height')).toBeGreaterThanOrEqual(24);
+    expect(px(rule('.chip'), 'min-height')).toBeGreaterThanOrEqual(24);
+  });
+
+  it('marks the chosen occasion in forced colours, where box-shadow is dropped (1.4.11)', () => {
+    expect(css).toMatch(
+      /@media \(forced-colors: active\) \{\s*\.mode:has\(input:checked\) \{\s*border: 3px solid Highlight;/,
+    );
+  });
+
+  it('puts no words in CSS generated content, where a screen reader may not read them (F87)', () => {
+    const generated = [...css.matchAll(/content: '([^']*)'/g)].map((m) => m[1]);
+    expect(generated.filter((c) => /[a-z]/i.test(c ?? ''))).toEqual([]);
+  });
+});
+
 describe('the converter itself', () => {
   it('agrees with known OKLCH values', () => {
     // oklch(100% 0 0) is white; oklch(0% 0 0) is black.

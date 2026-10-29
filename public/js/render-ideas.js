@@ -25,6 +25,8 @@ const CATEGORY = {
 export function setIdeasStatus(text, state) {
   els.ideasStatus.textContent = text;
   els.ideasStatus.dataset.state = state;
+  // Assistive technology holds off reading a list that is being rewritten.
+  els.ideasList.setAttribute('aria-busy', String(state === 'busy'));
 }
 
 /**

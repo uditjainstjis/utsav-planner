@@ -43,6 +43,19 @@ export function cloneTemplate(tpl) {
   return el;
 }
 
+/**
+ * The visible "AI" badge on model-written text. It is a text node, not CSS
+ * generated content, so it is part of what a screen reader reads and what a
+ * copy picks up (WCAG 1.3.1, failure F87).
+ * @returns {HTMLSpanElement}
+ */
+export function aiMark() {
+  const mark = document.createElement('span');
+  mark.className = 'ai-mark';
+  mark.textContent = 'AI';
+  return mark;
+}
+
 export const els = {
   form: $('plan-form', HTMLFormElement),
   occasion: $('occasion', HTMLInputElement),

@@ -50,7 +50,13 @@ describe('the AI marks', () => {
 
   const aiQuestions = (): number =>
     $('vendor-list').querySelectorAll('.vendor__question--ai .ai-mark').length;
-  const aiNotes = (): number => $('budget-body').querySelectorAll('[data-ai]').length;
+  /** Notes marked as the AI's, counted by the badge itself: real text, not CSS content. */
+  const aiNotes = (): number => {
+    const marks = $('budget-body').querySelectorAll('[data-ai] > .ai-mark:first-child');
+    expect(marks).toHaveLength($('budget-body').querySelectorAll('[data-ai]').length);
+    for (const mark of marks) expect(mark.textContent).toBe('AI');
+    return marks.length;
+  };
 
   it('marks the model’s notes but not the generic questions beside them', async () => {
     await buildWith({
@@ -61,6 +67,8 @@ describe('the AI marks', () => {
     expect($('ideas-status').textContent).toMatch(/ideas from m/);
     expect(aiQuestions()).toBe(0);
     expect(aiNotes()).toBe(PLAN.budget.lines.length);
+    const firstNote = $('budget-body').querySelector('.budget__note');
+    expect(firstNote?.textContent).toMatch(/^AI \S/);
   });
 
   it('marks the model’s questions even when the ideas are generic', async () => {

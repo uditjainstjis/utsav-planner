@@ -1,6 +1,6 @@
 // @ts-check
 /** The budget table, and the notes the personalisation adds to it. */
-import { els, part } from './dom.js';
+import { aiMark, els, part } from './dom.js';
 import { percent } from './format.js';
 import { rupees } from './constants.js';
 
@@ -47,10 +47,16 @@ export function renderBudget(plan) {
  * @param {Personalisation} p
  */
 export function renderBudgetNotes(p) {
+  const byModel = p.sources.budgetNotes === 'model';
   for (const tr of els.budgetBody.querySelectorAll('tr')) {
     const note = p.budgetNotes[tr.dataset.line ?? ''];
     const cell = part(tr, '.budget__note', HTMLElement);
-    cell.textContent = note ?? '';
-    if (note && p.sources.budgetNotes === 'model') cell.dataset.ai = 'true';
+    cell.replaceChildren();
+    if (!note) continue;
+    if (byModel) {
+      cell.dataset.ai = 'true';
+      cell.append(aiMark(), ' ');
+    }
+    cell.append(note);
   }
 }

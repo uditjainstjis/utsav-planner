@@ -745,7 +745,10 @@ textarea[aria-invalid='true'] {
   color: var(--ink-soft);
 }
 
-/* Budget warnings. Colour is paired with a glyph (::before) and the words. */
+/* Budget warnings. Colour is paired with a glyph (::before) and the words.
+   The words carry the meaning, so the glyph's alternative text is empty and a
+   screen reader does not read "black up-pointing triangle" before each one;
+   a browser without that syntax keeps the first declaration. */
 .flags {
   display: grid;
   gap: 0.5rem;
@@ -767,6 +770,7 @@ textarea[aria-invalid='true'] {
 }
 .flag::before {
   content: '○';
+  content: '○' / '';
   position: absolute;
   left: 1rem;
   top: 0.7rem;
@@ -779,6 +783,7 @@ textarea[aria-invalid='true'] {
 .flag--tight_total::before,
 .flag--tight_catering::before {
   content: '▲';
+  content: '▲' / '';
   color: var(--risk-high);
 }
 .flag--generous {
@@ -786,6 +791,7 @@ textarea[aria-invalid='true'] {
 }
 .flag--generous::before {
   content: '●';
+  content: '●' / '';
   color: var(--risk-low);
 }
 
@@ -888,20 +894,6 @@ textarea[aria-invalid='true'] {
   color: var(--ink-soft);
   min-width: 18ch;
 }
-.budget__note[data-ai='true']::before {
-  content: 'AI';
-  display: inline-block;
-  margin-right: 0.4em;
-  padding: 0.1em 0.45em;
-  font-size: 0.78em;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1.6;
-  color: var(--surface-0);
-  background: var(--accent);
-  border-radius: 3px;
-  vertical-align: 0.1em;
-}
 
 /* --- timeline ----------------------------------------------------------- */
 .timeline {
@@ -983,10 +975,11 @@ textarea[aria-invalid='true'] {
   column-gap: 0.75rem;
   align-items: start;
 }
+/* 24px: the WCAG 2.5.8 minimum target, without leaning on the spacing exception. */
 .vendor__check {
   grid-area: check;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.5rem;
+  height: 1.5rem;
   margin: 0.15rem 0 0;
   accent-color: var(--accent);
 }
@@ -1132,4 +1125,18 @@ textarea[aria-invalid='true'] {
 }
 .change--wishes {
   background: var(--risk-info-bg);
+}
+
+/* Forced colours (Windows High Contrast) drop box-shadow and repaint every
+   border in one system colour, which would leave the chosen occasion unmarked
+   and the AI badge as bare text. A thicker Highlight border marks the choice,
+   and the badge keeps an outline once its fill is gone (WCAG 1.4.11). Last in
+   the file, so it wins over the rules above. */
+@media (forced-colors: active) {
+  .mode:has(input:checked) {
+    border: 3px solid Highlight;
+  }
+  .ai-mark {
+    border: 1px solid CanvasText;
+  }
 }

@@ -305,9 +305,11 @@
             </button>
           </div>
           <p class="card__lede" id="budget-lede"></p>
-          <div class="table-wrap">
+          <!-- Scrolls sideways on a narrow screen; focusable and named so a
+               keyboard user can scroll it too (WCAG 2.1.1). -->
+          <div class="table-wrap" role="region" tabindex="0" aria-labelledby="budget-caption">
             <table class="budget" id="budget-table">
-              <caption class="visually-hidden">
+              <caption id="budget-caption" class="visually-hidden">
                 Budget split by category
               </caption>
               <thead>

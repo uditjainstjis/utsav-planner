@@ -52,7 +52,7 @@ export async function readPage(): Promise<Page> {
   const elements: Element[] = [];
   const ids = new Set<string>();
   const TAGS =
-    'html,main,header,footer,nav,section,aside,a,button,input,select,textarea,label,img,h1,h2,h3,h4,fieldset,legend,form,template,script,style,p,div,span,ol,ul,li,blockquote,dl';
+    'html,main,header,footer,nav,section,aside,a,button,input,select,textarea,label,img,h1,h2,h3,h4,fieldset,legend,form,template,script,style,p,div,span,ol,ul,li,blockquote,dl,table,caption';
   // An open-element stack, so text accrues to every ancestor rather than only
   // the innermost element. A button whose label sits in a nested <span> has an
   // accessible name, and a checker that misses that reports a false failure.

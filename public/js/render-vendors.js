@@ -1,6 +1,6 @@
 // @ts-check
 /** The vendor checklist: book-by dates, ticks kept on this device, and questions to ask. */
-import { cloneTemplate, els, part } from './dom.js';
+import { aiMark, cloneTemplate, els, part } from './dom.js';
 import { fmtDate, lineLabel } from './format.js';
 
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
@@ -52,11 +52,8 @@ function addQuestions(li, questions, byModel) {
   for (const q of questions) {
     const qi = document.createElement('li');
     if (byModel) {
-      const mark = document.createElement('span');
-      mark.className = 'ai-mark';
-      mark.textContent = 'AI';
       qi.className = 'vendor__question--ai';
-      qi.append(mark, ' ');
+      qi.append(aiMark(), ' ');
     }
     qi.append(q);
     ul.append(qi);
