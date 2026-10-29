@@ -1092,12 +1092,6 @@ textarea[aria-invalid='true'] {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .card__count[data-state='busy']::before {
-    animation: none;
-  }
-}
-
 /* --- refine (the conversational step) ---------------------------------- */
 .refine {
   display: grid;
