@@ -145,8 +145,8 @@ function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T)
  *
  * Every id the model used must belong to the plan it was shown; every string
  * is bounded; every enum is re-checked. A reply with no usable ideas is
- * rejected (returns null) so the caller can try the next model rather than
- * ship an empty section.
+ * rejected (returns null), so the caller ships deterministic ideas rather than
+ * an empty card; a cached entry that fails this is treated as a miss.
  */
 export function coercePersonalisation(
   raw: Record<string, unknown>,
@@ -368,8 +368,8 @@ function mergeAnswers(
 
 /**
  * Personalise a plan: cache, then four concurrent model asks (each with its
- * own fallback model), then deterministic guidance for any part still
- * missing. Never throws; never returns an empty section.
+ * own fallback model), then deterministic guidance for any part no model
+ * answered. Never throws, and always returns ideas.
  */
 export async function personalise(
   env: Env,

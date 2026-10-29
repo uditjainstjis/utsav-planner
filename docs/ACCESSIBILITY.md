@@ -75,8 +75,8 @@ focus to `<body>` and loses their place.
 
 **Announcements are rationed.** The stages of a request — "building", "plan
 ready (with counts)", "ideas added (with timing)" — go through one hidden polite
-`role="status"` region, `#progress`. Fourteen milestones and eight vendors are
-ordinary content the user navigates at their own pace, not fourteen
+`role="status"` region, `#progress`. A wedding's fourteen milestones and eight
+vendors are ordinary content the user navigates at their own pace, not fourteen
 interruptions. Three small visible regions are also polite `role="status"`, each
 reporting one result where it appears: the ideas status (`#ideas-status`:
 writing, done, or unavailable), the vendor "n of m booked" counter

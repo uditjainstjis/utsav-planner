@@ -68,7 +68,7 @@ describe('buildBudget', () => {
     expect(b.perGuest).toBe(2500);
   });
 
-  it('keeps contingency as the last line, so the UI can present it apart', () => {
+  it('keeps contingency as the last line', () => {
     for (const type of EVENT_TYPES) {
       const b = buildBudget(type, 100_000, 50);
       expect(b.lines.at(-1)!.id).toBe('contingency');

@@ -125,7 +125,7 @@ scoped to `/api/*`.
 Threat model and controls in [SECURITY.md](SECURITY.md). In short: content-type
 and `Sec-Fetch-Site` gate (CSRF), per-IP rate limit, bounded and typed inputs,
 deterministic prompt-injection screening that is _shown_ to the user, a nonce
-fence around the only free text, a CSP with no `unsafe-*`, Trusted Types
+fence around the free-text wishes, a CSP with no `unsafe-*`, Trusted Types
 enforced by the browser, `no-store` on every API response, no server-side
 storage, no third-party origin, SHA-pinned Actions, CodeQL, dependency review
 and Dependabot in CI, and `/.well-known/security.txt`.

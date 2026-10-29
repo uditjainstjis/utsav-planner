@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { fenceUntrusted, makeNonce, scanForInjection } from '../src/lib/guard';
 
 /**
- * The free-text "preferences" field is the only place a user can type prose
- * that reaches a model. These tests hold the two controls on it: detection
+ * The free-text "preferences" field (the wishes) is the only long prose a user
+ * sends to a model. These tests hold the two controls on it: detection
  * (so an attempt is shown to the user) and fencing (so it cannot escape the
  * data section of the prompt).
  */

@@ -6,7 +6,8 @@ import type { EventType, Idea, Personalisation, Plan } from './types';
  * A plan must never ship without ideas, questions and notes merely because a
  * model timed out. This module produces sensible, generic guidance from the
  * occasion type and the computed budget — clearly labelled as such in the UI
- * (`source: 'fallback'`) so the user knows the model did not contribute.
+ * (`source: 'fallback'`), so the user knows the ideas are general guidance
+ * rather than written for their wishes.
  */
 
 const IDEAS: Readonly<Record<EventType, readonly Idea[]>> = {

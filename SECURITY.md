@@ -1,9 +1,9 @@
 # Security
 
-Utsav Planner takes four numbers, a date and one free-text field from an
-anonymous visitor, and shows them a plan. That is the whole attack surface, and
-this document describes how each part of it is defended, in the order a request
-meets the controls.
+Utsav Planner takes an occasion, a date, a headcount, a budget, two short labels
+and one free-text field from an anonymous visitor, and shows them a plan. That
+is the whole attack surface, and this document describes how each part of it is
+defended, in the order a request meets the controls.
 
 ## Threat model
 
@@ -59,8 +59,11 @@ character strip is a single character class.
 
 ## 3. The model boundary (`src/lib/guard.ts`, `src/prompts/plan.ts`, `src/lib/ai.ts`)
 
-The wishes field is the only free text a visitor can send, and the only place a
-visitor's words reach a model.
+The wishes field is the only long free text a visitor can send (600 characters,
+and every refinement is folded into it). The occasion name and city also reach
+the model, quoted as labels in the facts block; they are at most 80 and 60
+characters with control characters stripped, and are neither screened nor
+fenced. Everything below applies to the wishes.
 
 **On the way in:**
 

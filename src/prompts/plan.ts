@@ -11,8 +11,9 @@ import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../li
  * tokens in parallel take the time of the longest one (docs/EVALUATION.md).
  *
  * Every ask shares the same facts block. The model is *given* every number and
- * never asked to produce one, and the only free text it sees from the user is
- * fenced in a per-request nonce so it cannot be mistaken for instructions.
+ * never asked to produce one. The user's wishes, the only long free text it
+ * sees, are fenced in a per-request nonce so they cannot be mistaken for
+ * instructions; the occasion name and city are short and quoted as labels.
  *
  * Bump PROMPT_VERSION whenever wording or a schema changes: it is part of the
  * cache key, so stale answers are never served against a new prompt.
@@ -114,7 +115,7 @@ function vendorList(plan: Plan): string {
  * categories, so the two calls run side by side and the user sees all six in
  * the time one takes. The summary rides with the first half.
  */
-export const IDEA_HALVES = {
+const IDEA_HALVES = {
   a: ['theme', 'decor', 'food'],
   b: ['activity', 'favour', 'invite'],
 } as const satisfies Record<'a' | 'b', readonly IdeaCategory[]>;

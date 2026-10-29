@@ -25,6 +25,7 @@ export interface Refinement {
   changes: Change[];
 }
 
+/** Longest change sentence accepted; the change box's maxlength is held to it by a test. */
 export const MAX_REFINE_CHARS = 200;
 
 /** Indian and Western magnitudes, lower-cased, matched after a number. */
