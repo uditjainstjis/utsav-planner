@@ -38,28 +38,31 @@ function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T)
   return allowed.find((a) => a === s) ?? fallback;
 }
 
-/**
- * A validated personalisation from a raw reply, or null when no idea in it is
- * usable, so the caller ships deterministic ideas rather than an empty card
- * (and treats such a cache entry as a miss). The vendor questions and budget
- * notes are taken as {@link withReplySections} takes them.
- */
-export function coercePersonalisation(
-  raw: Record<string, unknown>,
-  plan: Plan,
-  meta: { model: string; cached: boolean },
-): Personalisation | null {
-  const ideas = coerceIdeas(raw.ideas, plan.budget.lines);
-  if (ideas.length === 0) return null;
-  const sections = withReplySections(raw, plan);
-  return {
-    ...sections,
-    summary: asString(raw.summary, REPLY_LIMITS.summary),
-    ideas,
-    sources: { ...sections.sources, ideas: 'model' },
-    model: meta.model,
-    cached: meta.cached,
-  };
+function coerceVendorQuestions(
+  raw: unknown,
+  vendorIds: ReadonlySet<string>,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!isRecord(raw)) return out;
+  for (const [id, qs] of Object.entries(raw)) {
+    if (!vendorIds.has(id) || !Array.isArray(qs)) continue;
+    const clean = qs
+      .map((q) => asString(q, REPLY_LIMITS.question))
+      .filter(Boolean)
+      .slice(0, REPLY_LIMITS.questionsPerVendor);
+    if (clean.length) out[id] = clean;
+  }
+  return out;
+}
+
+function coerceBudgetNotes(raw: unknown, lineIds: ReadonlySet<string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!isRecord(raw)) return out;
+  for (const [id, note] of Object.entries(raw)) {
+    const clean = lineIds.has(id) ? asString(note, REPLY_LIMITS.note) : '';
+    if (clean) out[id] = clean;
+  }
+  return out;
 }
 
 /**
@@ -87,14 +90,6 @@ export function withReplySections(raw: Record<string, unknown>, plan: Plan): Per
   };
 }
 
-function coerceIdeas(raw: unknown, lines: readonly BudgetLine[]): Idea[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .slice(0, REPLY_LIMITS.ideas)
-    .map((i) => coerceIdea(i, lines))
-    .filter((i): i is Idea => i !== null);
-}
-
 function coerceIdea(raw: unknown, lines: readonly BudgetLine[]): Idea | null {
   if (!isRecord(raw)) return null;
   const title = asString(raw.title, REPLY_LIMITS.ideaTitle);
@@ -110,29 +105,34 @@ function coerceIdea(raw: unknown, lines: readonly BudgetLine[]): Idea | null {
   };
 }
 
-function coerceVendorQuestions(
-  raw: unknown,
-  vendorIds: ReadonlySet<string>,
-): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  if (!isRecord(raw)) return out;
-  for (const [id, qs] of Object.entries(raw)) {
-    if (!vendorIds.has(id) || !Array.isArray(qs)) continue;
-    const clean = qs
-      .map((q) => asString(q, REPLY_LIMITS.question))
-      .filter(Boolean)
-      .slice(0, REPLY_LIMITS.questionsPerVendor);
-    if (clean.length) out[id] = clean;
-  }
-  return out;
+function coerceIdeas(raw: unknown, lines: readonly BudgetLine[]): Idea[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, REPLY_LIMITS.ideas)
+    .map((i) => coerceIdea(i, lines))
+    .filter((i): i is Idea => i !== null);
 }
 
-function coerceBudgetNotes(raw: unknown, lineIds: ReadonlySet<string>): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (!isRecord(raw)) return out;
-  for (const [id, note] of Object.entries(raw)) {
-    const clean = lineIds.has(id) ? asString(note, REPLY_LIMITS.note) : '';
-    if (clean) out[id] = clean;
-  }
-  return out;
+/**
+ * A validated personalisation from a raw reply, or null when no idea in it is
+ * usable, so the caller ships deterministic ideas rather than an empty card
+ * (and treats such a cache entry as a miss). The vendor questions and budget
+ * notes are taken as {@link withReplySections} takes them.
+ */
+export function coercePersonalisation(
+  raw: Record<string, unknown>,
+  plan: Plan,
+  meta: { model: string; cached: boolean },
+): Personalisation | null {
+  const ideas = coerceIdeas(raw.ideas, plan.budget.lines);
+  if (ideas.length === 0) return null;
+  const sections = withReplySections(raw, plan);
+  return {
+    ...sections,
+    summary: asString(raw.summary, REPLY_LIMITS.summary),
+    ideas,
+    sources: { ...sections.sources, ideas: 'model' },
+    model: meta.model,
+    cached: meta.cached,
+  };
 }

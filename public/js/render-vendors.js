@@ -35,6 +35,21 @@ function saveDone(plan, set) {
   }
 }
 
+/**
+ * The list a vendor's questions go in.
+ * @param {HTMLElement} li
+ */
+const questionsOf = (li) => part(li, '.vendor__questions', HTMLElement);
+
+/**
+ * @param {Plan} plan
+ * @param {Set<string>} done
+ */
+function updateVendorProgress(plan, done) {
+  const n = plan.vendors.filter((v) => done.has(v.id)).length;
+  els.vendorProgress.textContent = `${n} of ${plan.vendors.length} booked`;
+}
+
 /** @param {Plan} plan */
 export function renderVendors(plan) {
   const { vendors } = plan;
@@ -56,7 +71,7 @@ export function renderVendors(plan) {
     title.textContent = v.label;
     part(li, '.vendor__meta', HTMLElement).textContent =
       `Book by ${fmtDate(v.bookBy)} · paid from ${lineLabel(plan, v.budgetLineId)}`;
-    const ul = part(li, '.vendor__questions', HTMLElement);
+    const ul = questionsOf(li);
     for (const q of v.questions) {
       const qi = document.createElement('li');
       qi.textContent = q;
@@ -75,15 +90,6 @@ export function renderVendors(plan) {
 }
 
 /**
- * @param {Plan} plan
- * @param {Set<string>} done
- */
-function updateVendorProgress(plan, done) {
-  const n = plan.vendors.filter((v) => done.has(v.id)).length;
-  els.vendorProgress.textContent = `${n} of ${plan.vendors.length} booked`;
-}
-
-/**
  * Add the personalisation's questions under each vendor, marked as the AI's
  * only when a model wrote this section.
  * @param {Personalisation} p
@@ -92,7 +98,7 @@ export function renderVendorQuestions(p) {
   for (const li of els.vendorList.querySelectorAll('.vendor')) {
     if (!(li instanceof HTMLElement)) continue;
     const extra = p.vendorQuestions[li.dataset.vendor ?? ''] ?? [];
-    const ul = part(li, '.vendor__questions', HTMLElement);
+    const ul = questionsOf(li);
     for (const q of extra) {
       const qi = document.createElement('li');
       if (p.sources.vendorQuestions === 'model') {

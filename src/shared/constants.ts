@@ -23,10 +23,11 @@ export const LIMITS = {
   refine: 200,
 } as const;
 
-/** What the form and the Worker say about an event date outside the limits. */
-export const DATE_MESSAGE = {
-  past: 'The event date is in the past.',
-  tooFar: 'Plans can be made up to two years ahead.',
+/** What the form and the Worker both say about the same mistake, worded once. */
+export const MESSAGE = {
+  datePast: 'The event date is in the past.',
+  dateTooFar: 'Plans can be made up to two years ahead.',
+  noChange: 'Say what you would like to change.',
 } as const;
 
 /**

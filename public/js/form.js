@@ -7,7 +7,7 @@
 import { els } from './dom.js';
 import { addDays } from './format.js';
 import { SAMPLES } from './samples.js';
-import { DATE_MESSAGE, LIMITS, rangeMessage, rupees, todayIso } from './constants.js';
+import { LIMITS, MESSAGE, rangeMessage, rupees, todayIso } from './constants.js';
 
 /** @typedef {import('./samples.js').Sample} Sample */
 
@@ -50,6 +50,13 @@ const FIELD_FOR = {
 /** @type {HTMLInputElement | HTMLTextAreaElement | null} */
 let invalidField = null;
 
+function clearInvalid() {
+  if (!invalidField) return;
+  invalidField.removeAttribute('aria-invalid');
+  invalidField.setAttribute('aria-describedby', invalidField.dataset.describedby ?? '');
+  invalidField = null;
+}
+
 /**
  * @param {string} message
  * @param {string} [field]  the request field the server or the client named
@@ -67,13 +74,6 @@ export function showError(message, field) {
     invalidField = el;
     el.focus();
   }
-}
-
-function clearInvalid() {
-  if (!invalidField) return;
-  invalidField.removeAttribute('aria-invalid');
-  invalidField.setAttribute('aria-describedby', invalidField.dataset.describedby ?? '');
-  invalidField = null;
 }
 
 export function hideError() {
@@ -96,6 +96,15 @@ export function readForm() {
 }
 
 /**
+ * @param {string} raw
+ * @param {Range} range
+ */
+function outOfRange(raw, { min, max }) {
+  const n = Number(raw);
+  return !raw || !Number.isFinite(n) || n < min || n > max;
+}
+
+/**
  * The mistakes that can be caught without a round trip. A date or a number out
  * of range gets the server's own message, from the same definition.
  * @param {Brief} body
@@ -103,9 +112,9 @@ export function readForm() {
  */
 export function clientValidate(body) {
   if (!body.eventDate) return ['Choose the event date.', 'eventDate'];
-  if (body.eventDate < todayIso()) return [DATE_MESSAGE.past, 'eventDate'];
+  if (body.eventDate < todayIso()) return [MESSAGE.datePast, 'eventDate'];
   if (body.eventDate > addDays(todayIso(), LIMITS.maxLeadDays)) {
-    return [DATE_MESSAGE.tooFar, 'eventDate'];
+    return [MESSAGE.dateTooFar, 'eventDate'];
   }
   if (outOfRange(body.guests, LIMITS.guests)) {
     return [rangeMessage('Guests', LIMITS.guests), 'guests'];
@@ -114,15 +123,6 @@ export function clientValidate(body) {
     return [rangeMessage('Budget', LIMITS.budget), 'budget'];
   }
   return null;
-}
-
-/**
- * @param {string} raw
- * @param {Range} range
- */
-function outOfRange(raw, { min, max }) {
-  const n = Number(raw);
-  return !raw || !Number.isFinite(n) || n < min || n > max;
 }
 
 /** @param {Sample} s */

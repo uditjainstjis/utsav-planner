@@ -37,6 +37,17 @@ export class ApiError extends Error {
 export const messageOf = (err, fallback) => (err instanceof Error && err.message) || fallback;
 
 /**
+ * @param {number} status
+ * @param {unknown} data  the error body, `{ error, code, field }` when the server wrote it
+ */
+function refusal(status, data) {
+  const body = typeof data === 'object' && data !== null ? data : {};
+  const error = 'error' in body && typeof body.error === 'string' ? body.error : '';
+  const field = 'field' in body && typeof body.field === 'string' ? body.field : undefined;
+  return new ApiError(error || `Request failed (${status}).`, field);
+}
+
+/**
  * @template {keyof Replies} P
  * @param {P} path
  * @param {unknown} body
@@ -71,15 +82,4 @@ export async function postJson(path, body) {
   if (!res.ok) throw refusal(res.status, data);
   // A successful reply's shape is the server's contract (src/index.ts).
   return /** @type {Replies[P]} */ (data);
-}
-
-/**
- * @param {number} status
- * @param {unknown} data  the error body, `{ error, code, field }` when the server wrote it
- */
-function refusal(status, data) {
-  const body = typeof data === 'object' && data !== null ? data : {};
-  const error = 'error' in body && typeof body.error === 'string' ? body.error : '';
-  const field = 'field' in body && typeof body.field === 'string' ? body.field : undefined;
-  return new ApiError(error || `Request failed (${status}).`, field);
 }

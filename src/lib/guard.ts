@@ -92,6 +92,12 @@ function matches(text: string): Match[] {
   );
 }
 
+function excerpt(text: string, offset: number, length: number): string {
+  const raw = text.slice(offset, offset + Math.min(length, 120));
+  // Render invisible characters visibly, otherwise the excerpt looks empty.
+  return raw.replace(new RegExp(INVISIBLE, 'g'), '□');
+}
+
 /**
  * Scan untrusted text for content aimed at an AI reader.
  *
@@ -147,12 +153,6 @@ export function withoutInjection(text: string): string {
     at = Math.max(at, to);
   }
   return (kept + text.slice(at)).trim();
-}
-
-function excerpt(text: string, offset: number, length: number): string {
-  const raw = text.slice(offset, offset + Math.min(length, 120));
-  // Render invisible characters visibly, otherwise the excerpt looks empty.
-  return raw.replace(new RegExp(INVISIBLE, 'g'), '□');
 }
 
 /**

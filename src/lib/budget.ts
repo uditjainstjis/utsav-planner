@@ -104,40 +104,6 @@ export type BudgetLineId<E extends EventType = EventType> =
   (typeof TEMPLATES)[E]['lines'][number]['id'];
 
 /**
- * Build the budget for an occasion.
- *
- * @param eventType which template to use
- * @param total     the user's whole-rupee budget (already validated)
- * @param guests    headcount (already validated, ≥ 1)
- */
-export function buildBudget(eventType: EventType, total: number, guests: number): Budget {
-  const t = TEMPLATES[eventType];
-  const amounts = apportion(
-    total,
-    t.lines.map((l) => l.share),
-  );
-  const lines: BudgetLine[] = t.lines.map((l, i) => {
-    const amount = amounts[i] ?? 0;
-    return {
-      id: l.id,
-      label: l.label,
-      share: l.share,
-      amount,
-      perGuest: l.scalesWithGuests ? Math.round(amount / guests) : null,
-    };
-  });
-
-  const perGuest = Math.round(total / guests);
-  return {
-    currency: 'INR',
-    total,
-    perGuest,
-    lines,
-    flags: flagsFor(eventType, guests, perGuest, lines),
-  };
-}
-
-/**
  * The one warning, if any, a budget earns: thin overall, thin for food, or
  * comfortable. Every template has a `catering` line, which the second reads.
  */
@@ -178,4 +144,38 @@ function flagsFor(
         'it is normal to move money towards whatever matters most to you.',
     },
   ];
+}
+
+/**
+ * Build the budget for an occasion.
+ *
+ * @param eventType which template to use
+ * @param total     the user's whole-rupee budget (already validated)
+ * @param guests    headcount (already validated, ≥ 1)
+ */
+export function buildBudget(eventType: EventType, total: number, guests: number): Budget {
+  const t = TEMPLATES[eventType];
+  const amounts = apportion(
+    total,
+    t.lines.map((l) => l.share),
+  );
+  const lines: BudgetLine[] = t.lines.map((l, i) => {
+    const amount = amounts[i] ?? 0;
+    return {
+      id: l.id,
+      label: l.label,
+      share: l.share,
+      amount,
+      perGuest: l.scalesWithGuests ? Math.round(amount / guests) : null,
+    };
+  });
+
+  const perGuest = Math.round(total / guests);
+  return {
+    currency: 'INR',
+    total,
+    perGuest,
+    lines,
+    flags: flagsFor(eventType, guests, perGuest, lines),
+  };
 }

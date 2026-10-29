@@ -5,6 +5,7 @@
  * to the model on the personalise call that follows, exactly as for a fresh brief.
  */
 import { messageOf, postJson } from './api.js';
+import { MESSAGE } from './constants.js';
 import { els } from './dom.js';
 import { updateCount } from './form.js';
 import { fmtDate } from './format.js';
@@ -120,7 +121,7 @@ export function wireRefine() {
     hideRefineError();
     const text = els.refine.value.trim();
     if (!text) {
-      showRefineError('Say what you would like to change.');
+      showRefineError(MESSAGE.noChange);
       return;
     }
     await whileBusy('refine', () => submitRefine(current, text));

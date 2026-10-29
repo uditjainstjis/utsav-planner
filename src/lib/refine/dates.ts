@@ -6,7 +6,7 @@ import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from '../dates';
  */
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const MONTH = '(?<month>jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
+const MONTH = `(?<month>${MONTHS.join('|')})[a-z]*\\.?`;
 /** 2027-03-15 */
 const DATE_ISO_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
 /** 15 March 2027 · 15th Mar · 15 march */

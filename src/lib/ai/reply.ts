@@ -11,10 +11,11 @@ import { isRecord } from '../validate';
 /** Keys a reply part carries. An object with none of them is not a reply. */
 const REPLY_KEYS = ['ideas', 'summary', 'vendorQuestions', 'budgetNotes'];
 
-/** The JSON object in a model reply, or null when there is none. */
-export function extractJson(raw: unknown): Record<string, unknown> | null {
-  if (isRecord(raw)) return fromEnvelope(raw);
-  return typeof raw === 'string' ? parseObject(stripFences(raw)) : null;
+/** `choices[0].message.content`, else `choices[0].text`. */
+function firstChoice(choices: unknown): unknown {
+  const first: unknown = Array.isArray(choices) ? choices[0] : undefined;
+  if (!isRecord(first)) return undefined;
+  return (isRecord(first.message) ? first.message.content : undefined) ?? first.text;
 }
 
 /**
@@ -29,18 +30,20 @@ function fromEnvelope(obj: Record<string, unknown>): Record<string, unknown> | n
   return REPLY_KEYS.some((k) => k in obj) ? obj : null;
 }
 
-/** `choices[0].message.content`, else `choices[0].text`. */
-function firstChoice(choices: unknown): unknown {
-  const first: unknown = Array.isArray(choices) ? choices[0] : undefined;
-  if (!isRecord(first)) return undefined;
-  return (isRecord(first.message) ? first.message.content : undefined) ?? first.text;
-}
-
 function stripFences(text: string): string {
   return text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '');
+}
+
+/** JSON.parse, or undefined (which JSON never produces) when the text is not JSON. */
+function tryParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
 }
 
 /** An object parsed from the text, or from its outermost braces when prose surrounds it. */
@@ -54,11 +57,8 @@ function parseObject(text: string): Record<string, unknown> | null {
   return isRecord(inner) ? inner : null;
 }
 
-/** JSON.parse, or undefined (which JSON never produces) when the text is not JSON. */
-function tryParse(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
+/** The JSON object in a model reply, or null when there is none. */
+export function extractJson(raw: unknown): Record<string, unknown> | null {
+  if (isRecord(raw)) return fromEnvelope(raw);
+  return typeof raw === 'string' ? parseObject(stripFences(raw)) : null;
 }
