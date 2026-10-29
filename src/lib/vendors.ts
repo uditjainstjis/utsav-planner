@@ -1,6 +1,7 @@
 import type { BudgetLineId } from './budget';
 import { bookByFor } from './timeline';
-import type { EventType, Timeline, VendorItem } from './types';
+import type { EventType } from '../shared/constants';
+import type { Timeline, VendorItem } from './types';
 
 /**
  * Vendor checklist.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildBudget } from '../src/lib/budget';
 import { buildTimeline } from '../src/lib/timeline';
-import { EVENT_TYPES } from '../src/lib/types';
+import { EVENT_TYPES } from '../src/shared/constants';
 import { buildVendors } from '../src/lib/vendors';
 
 const TODAY = '2026-10-23';

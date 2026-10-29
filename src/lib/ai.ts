@@ -59,7 +59,7 @@ export interface Env {
  */
 const MODEL_TIMEOUT_MS = 20_000;
 
-/** Bounds on what a model reply may contribute. Request limits live in public/js/shared.js. */
+/** Bounds on what a model reply may contribute. Request limits are in src/shared/constants.ts. */
 export const REPLY_LIMITS = {
   ideas: 8,
   questionsPerVendor: 3,

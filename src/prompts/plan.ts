@@ -1,4 +1,4 @@
-import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
+import { OCCASION_LABEL, rupees } from '../shared/constants';
 import { fenceUntrusted, withoutInjection } from '../lib/guard';
 import { COST_TIERS, IDEA_CATEGORIES, type IdeaCategory, type Plan } from '../lib/types';
 

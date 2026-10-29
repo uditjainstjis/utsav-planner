@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LIMITS, OCCASION_LABEL } from '../public/js/shared.js';
 import { buildPlan, planIcs } from '../src/lib/plan';
-import { LIMITS as SERVER_LIMITS } from '../src/lib/validate';
+import * as source from '../src/shared/constants';
+
+const { LIMITS, OCCASION_LABEL } = source;
 
 /**
  * Invariants about the files actually served from public/.
@@ -63,8 +64,17 @@ describe('the limits the page and the Worker share', () => {
   const attr = (id: string, name: string): number =>
     Number(form.getElementById(id)?.getAttribute(name) ?? Number.NaN);
 
-  it('are the one object the Worker validates against', () => {
-    expect(SERVER_LIMITS).toBe(LIMITS);
+  it('reach the page as src/shared/constants.ts compiled: same values, same wording', async () => {
+    const compiled = await import('../public/js/constants.js');
+    expect(Object.keys(compiled).sort()).toEqual(Object.keys(source).sort());
+    expect(compiled.LIMITS).toEqual(LIMITS);
+    expect(compiled.OCCASION_LABEL).toEqual(OCCASION_LABEL);
+    expect(compiled.rupees(1_200_000)).toBe(source.rupees(1_200_000));
+    expect(compiled.rangeMessage('Guests', LIMITS.guests)).toBe(
+      source.rangeMessage('Guests', LIMITS.guests),
+    );
+    const day = new Date('2026-03-01T23:30:00Z');
+    expect(compiled.todayIso(day)).toBe(source.todayIso(day));
   });
 
   it('match the form controls, so the browser and the server refuse the same input', () => {

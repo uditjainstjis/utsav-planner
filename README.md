@@ -102,6 +102,7 @@ the deployed bundle.
 
 ```
 src/index.ts       Hono router: /api/health, /api/plan, /api/refine, /api/personalise, assets
+src/shared/constants  event types, limits, occasion labels, money, range message, today: for page and Worker
 src/lib/types      the domain types: request, plan, personalisation
 src/lib/validate   field-level validation, named errors
 src/lib/dates      calendar-day arithmetic on YYYY-MM-DD strings, in UTC
@@ -118,8 +119,9 @@ src/lib/headers    CSP, Trusted Types, COOP/COEP/CORP, HSTS, permissions policy
 src/lib/cache      content-addressed Workers Cache API wrapper
 
 public/            static single-page app: index.html, styles.css, _headers, fonts/, js/
+scripts/build-assets.mjs  writes the generated files in public/ from their sources in src/
 public/js/main          entry point: wires the modules below
-public/js/shared        limits, occasion labels, money, range message, today: one copy for page and Worker
+public/js/constants     generated: src/shared/constants.ts compiled, with its .d.ts
 public/js/dom           every element the script touches, looked up once
 public/js/state         the plan on screen, the progress announcer, busy buttons
 public/js/api           the three POST calls, with timeouts and readable errors
@@ -137,6 +139,11 @@ public/js/theme         the light/dark toggle
 Runs on Cloudflare Workers with one runtime dependency (`hono`). Static assets
 are served from the edge without invoking the Worker; `run_worker_first` is
 scoped to `/api/*`.
+
+`public/js/constants.js` is a build output, not a source file: it is compiled
+from `src/shared/constants.ts` by `scripts/build-assets.mjs`, which npm runs
+before typechecking and tests and wrangler runs as its `build.command` before
+`dev` and `deploy`, and it is gitignored so it cannot drift from its source.
 
 ## Security
 
@@ -211,9 +218,10 @@ What is covered, and the property each test holds:
   dropped; the guard notice names the field each finding was in; vendor
   questions and budget notes carry the AI mark exactly when a model wrote that
   section, also when the ideas beside them are generic, and the other way round.
-- **assets** (jsdom) — fonts are content-addressed and preloaded as used; the
-  form's min/max/maxlength, the Worker's limits and the calendar's name all come
-  from the one definition in `public/js/shared.js`.
+- **assets** (jsdom) — fonts are content-addressed and preloaded as used;
+  `public/js/constants.js` exports exactly what `src/shared/constants.ts` does,
+  with the same values and wording; the form's min/max/maxlength and the
+  calendar's name match that definition.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally

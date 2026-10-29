@@ -7,7 +7,7 @@
 import { els } from './dom.js';
 import { addDays } from './format.js';
 import { SAMPLES } from './samples.js';
-import { LIMITS, rangeMessage, todayIso } from './shared.js';
+import { LIMITS, rangeMessage, todayIso } from './constants.js';
 
 /** @typedef {import('./samples.js').Sample} Sample */
 

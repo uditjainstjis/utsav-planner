@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyRefinement, assembleWishes, parseDate, splitWishes } from '../src/lib/refine';
-import { InputError, LIMITS } from '../src/lib/validate';
+import { LIMITS } from '../src/shared/constants';
+import { InputError } from '../src/lib/validate';
 import type { PlanRequest } from '../src/lib/types';
 
 const TODAY = '2026-10-23';

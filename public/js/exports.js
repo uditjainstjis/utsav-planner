@@ -3,7 +3,7 @@
 import { els } from './dom.js';
 import { fmtDate, percent } from './format.js';
 import { TIER } from './render-ideas.js';
-import { OCCASION_LABEL, rupees } from './shared.js';
+import { OCCASION_LABEL, rupees } from './constants.js';
 import { getCurrent } from './state.js';
 
 /** @typedef {import('./state.js').Current} Current */

@@ -1,5 +1,5 @@
 // @ts-check
-/** Share and date formatting, and the calendar arithmetic the form needs. Money is in shared.js. */
+/** Share and date formatting, and the calendar arithmetic the form needs. Money is in constants.js. */
 
 /** @typedef {import('../../src/lib/types').Plan} Plan */
 

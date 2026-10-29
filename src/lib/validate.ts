@@ -1,6 +1,6 @@
-import { LIMITS, rangeMessage } from '../../public/js/shared.js';
+import { EVENT_TYPES, LIMITS, rangeMessage } from '../shared/constants';
 import { dateParts, daysBetween } from './dates';
-import { EVENT_TYPES, type PlanRequest } from './types';
+import type { PlanRequest } from './types';
 
 /**
  * Request validation.
@@ -21,9 +21,6 @@ export class InputError extends Error {
     this.name = 'InputError';
   }
 }
-
-/** The request limits, defined once in public/js/shared.js so the form reads the same numbers. */
-export { LIMITS };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 

@@ -7,5 +7,6 @@
     "checkJs": true,
     "moduleDetection": "force"
   },
-  "include": ["public/js/**/*.js"]
+  "include": ["public/js/**/*.js"],
+  "exclude": ["public/js/constants.js"]
 }

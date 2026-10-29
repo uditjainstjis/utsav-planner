@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { InputError, LIMITS, validateDate, validatePlanRequest } from '../src/lib/validate';
+import { LIMITS } from '../src/shared/constants';
+import { InputError, validateDate, validatePlanRequest } from '../src/lib/validate';
 
 const TODAY = '2026-10-23';
 

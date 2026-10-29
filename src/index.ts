@@ -1,11 +1,11 @@
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { personalise, type Env } from './lib/ai';
 import { harden } from './lib/headers';
-import { todayIso } from '../public/js/shared.js';
+import { LIMITS, todayIso } from './shared/constants';
 import { buildPlan, planIcs } from './lib/plan';
 import { applyRefinement } from './lib/refine';
 import type { Plan } from './lib/types';
-import { InputError, isRecord, LIMITS, validatePlanRequest } from './lib/validate';
+import { InputError, isRecord, validatePlanRequest } from './lib/validate';
 
 /**
  * Utsav Planner — Worker entry point.

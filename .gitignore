@@ -15,3 +15,8 @@ PRATIKRAMAN.md
 JOTTINGS.md
 .impeccable/
 worker-configuration.d.ts
+
+# Generated from src/ by scripts/build-assets.mjs before every test, dev and
+# deploy run, so they cannot drift from their source.
+public/js/constants.js
+public/js/constants.d.ts

@@ -1,4 +1,4 @@
-import { OCCASION_LABEL } from '../../public/js/shared.js';
+import { OCCASION_LABEL } from '../shared/constants';
 import { buildBudget } from './budget';
 import { scanForInjection } from './guard';
 import { buildTimeline, toIcs } from './timeline';

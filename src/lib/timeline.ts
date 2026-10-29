@@ -1,5 +1,6 @@
 import { DAY_MS, dateToMs, daysBetween, msToDate } from './dates';
-import type { EventType, Milestone, Phase, Timeline } from './types';
+import type { EventType } from '../shared/constants';
+import type { Milestone, Phase, Timeline } from './types';
 import type { VendorId } from './vendors';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { apportion, buildBudget } from '../src/lib/budget';
-import { EVENT_TYPES } from '../src/lib/types';
+import { EVENT_TYPES } from '../src/shared/constants';
 
 /**
  * The budget is arithmetic a user will check with a calculator. These tests

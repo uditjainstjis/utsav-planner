@@ -1,6 +1,6 @@
-import { rupees } from '../../public/js/shared.js';
+import { LIMITS, rupees } from '../shared/constants';
 import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from './dates';
-import { InputError, LIMITS, validateBudget, validateDate, validateGuests } from './validate';
+import { InputError, validateBudget, validateDate, validateGuests } from './validate';
 import type { PlanRequest } from './types';
 
 /**

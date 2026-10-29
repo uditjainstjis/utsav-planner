@@ -1,6 +1,7 @@
-import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
+import { OCCASION_LABEL, rupees } from '../shared/constants';
 import type { BudgetLineId } from './budget';
-import type { EventType, Idea, Personalisation, Plan } from './types';
+import type { EventType } from '../shared/constants';
+import type { Idea, Personalisation, Plan } from './types';
 
 /**
  * Deterministic personalisation, for when no model answers.

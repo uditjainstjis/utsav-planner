@@ -4,7 +4,7 @@ import { els } from './dom.js';
 import { renderBudget } from './render-budget.js';
 import { renderTimeline } from './render-timeline.js';
 import { renderVendors } from './render-vendors.js';
-import { rupees } from './shared.js';
+import { rupees } from './constants.js';
 import { setCurrent } from './state.js';
 
 /** @typedef {import('../../src/lib/types').InjectionFinding} InjectionFinding */

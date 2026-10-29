@@ -5,6 +5,12 @@
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
 
+  // Writes the files in public/ that are generated from src/ (see
+  // scripts/build-assets.mjs) before every `wrangler dev` and `wrangler deploy`.
+  "build": {
+    "command": "npm run build",
+  },
+
   // Static single-page app. `run_worker_first` is scoped to the API so asset
   // requests are served straight from the edge without invoking the Worker.
   "assets": {

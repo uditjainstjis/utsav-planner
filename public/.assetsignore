@@ -1,0 +1,2 @@
+# Declarations for the type checker (see scripts/build-assets.mjs), not for browsers.
+*.d.ts

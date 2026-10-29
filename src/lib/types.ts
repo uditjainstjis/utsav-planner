@@ -8,12 +8,9 @@
  * it is shown.
  */
 
+import type { EventType } from '../shared/constants';
 import type { BudgetLineId } from './budget';
 import type { VendorId } from './vendors';
-
-/** The three occasions named in the brief. */
-export const EVENT_TYPES = ['wedding', 'birthday', 'community'] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
 
 /** A validated, normalised planning request: from `validate.ts`, or from `refine.ts` through the same validators. */
 export interface PlanRequest {

@@ -1,5 +1,6 @@
-import { OCCASION_LABEL, rupees } from '../../public/js/shared.js';
-import type { Budget, BudgetFlag, BudgetLine, EventType } from './types';
+import { OCCASION_LABEL, rupees } from '../shared/constants';
+import type { EventType } from '../shared/constants';
+import type { Budget, BudgetFlag, BudgetLine } from './types';
 
 /**
  * Budget allocation.

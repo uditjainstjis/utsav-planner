@@ -1,7 +1,7 @@
 // @ts-check
 /** The four example briefs behind the chips above the form. */
 
-/** @typedef {import('../../src/lib/types').EventType} EventType */
+/** @typedef {import('./constants.js').EventType} EventType */
 
 /**
  * @typedef {object} Sample

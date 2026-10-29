@@ -2,7 +2,7 @@
 /** The budget table, and the notes the personalisation adds to it. */
 import { els, part } from './dom.js';
 import { percent } from './format.js';
-import { rupees } from './shared.js';
+import { rupees } from './constants.js';
 
 /** @typedef {import('../../src/lib/types').Personalisation} Personalisation */
 /** @typedef {import('../../src/lib/types').Plan} Plan */

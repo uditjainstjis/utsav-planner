@@ -15,6 +15,8 @@ export default tseslint.config(
       'worker-configuration.d.ts',
       '.wrangler/**',
       'eslint.config.js',
+      // Compiled from src/shared/constants.ts, which is linted.
+      'public/js/constants.*',
     ],
   },
   js.configs.recommended,
@@ -68,6 +70,12 @@ export default tseslint.config(
       },
     },
     rules: { 'no-undef': 'error' },
+  },
+  {
+    // The asset generator: plain JavaScript run by Node, outside every tsconfig.
+    files: ['scripts/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { URL: 'readonly' } },
   },
   {
     // Tests that run in jsdom rather than workerd. They are excluded from the
