@@ -5,7 +5,7 @@ import { harden } from './lib/headers';
 import { LIMITS, todayIso } from './shared/constants';
 import { buildPlan, planIcs } from './lib/plan';
 import { applyRefinement } from './lib/refine/apply';
-import type { Plan } from './lib/types';
+import type { Plan, PlanRequest } from './lib/types';
 import { InputError, isRecord, validatePlanRequest } from './lib/validate';
 
 /**
@@ -90,10 +90,22 @@ async function readJson(c: Context): Promise<unknown> {
   }
 }
 
-/** Validate a request body into a plan. `today` is read once, so both steps agree on it. */
-async function readPlan(c: Context): Promise<Plan> {
+/**
+ * The request body, validated into a brief. `today` is read once and returned,
+ * so every later step agrees with validation on what day it is.
+ */
+async function readRequest(
+  c: Context,
+): Promise<{ body: unknown; request: PlanRequest; today: string }> {
   const today = todayIso();
-  return buildPlan(validatePlanRequest(await readJson(c), today), today);
+  const body = await readJson(c);
+  return { body, request: validatePlanRequest(body, today), today };
+}
+
+/** The request body as a plan. */
+async function readPlan(c: Context): Promise<Plan> {
+  const { request, today } = await readRequest(c);
+  return buildPlan(request, today);
 }
 
 app.post('/api/plan', guardApi, async (c) => {
@@ -116,9 +128,7 @@ app.post('/api/personalise', guardApi, async (c) => {
  * request the client should send to `/api/personalise` for new ideas.
  */
 app.post('/api/refine', guardApi, async (c) => {
-  const today = todayIso();
-  const body = await readJson(c);
-  const original = validatePlanRequest(body, today);
+  const { body, request: original, today } = await readRequest(c);
   const refine = isRecord(body) ? body.refine : undefined;
   const { request, changes } = applyRefinement(original, refine, today);
   const plan = buildPlan(request, today);
