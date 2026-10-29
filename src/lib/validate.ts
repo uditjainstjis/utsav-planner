@@ -1,4 +1,4 @@
-import { EVENT_TYPES, LIMITS, rangeMessage } from '../shared/constants';
+import { DATE_MESSAGE, EVENT_TYPES, LIMITS, rangeMessage } from '../shared/constants';
 import { dateParts, daysBetween } from './dates';
 import type { PlanRequest } from './types';
 
@@ -82,9 +82,9 @@ export function validateDate(v: unknown, today: string): string {
     throw new InputError('That date does not exist on the calendar.', 'invalid', 'eventDate');
   }
   const lead = daysBetween(today, v);
-  if (lead < 0) throw new InputError('The event date is in the past.', 'past', 'eventDate');
+  if (lead < 0) throw new InputError(DATE_MESSAGE.past, 'past', 'eventDate');
   if (lead > LIMITS.maxLeadDays) {
-    throw new InputError('Plans can be made up to two years ahead.', 'too_far', 'eventDate');
+    throw new InputError(DATE_MESSAGE.tooFar, 'too_far', 'eventDate');
   }
   return v;
 }

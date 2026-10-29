@@ -23,6 +23,12 @@ export const LIMITS = {
   refine: 200,
 } as const;
 
+/** What the form and the Worker say about an event date outside the limits. */
+export const DATE_MESSAGE = {
+  past: 'The event date is in the past.',
+  tooFar: 'Plans can be made up to two years ahead.',
+} as const;
+
 /**
  * What each occasion is called when the brief does not name it: in the copied
  * plan and as the calendar's name.

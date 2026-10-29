@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fallbackPersonalisation } from '../src/lib/fallback';
-import { todayIso } from '../src/shared/constants';
+import { LIMITS, rupees, todayIso } from '../src/shared/constants';
 import { buildPlan } from '../src/lib/plan';
 import { applyRefinement } from '../src/lib/refine';
 import type { Personalisation, Plan, PlanRequest } from '../src/lib/types';
@@ -142,6 +142,24 @@ afterEach(() => {
 });
 
 describe('the plan form', () => {
+  it('takes every bound and the help that states it from the limits the Worker checks', () => {
+    const attr = (id: string, name: string): number => Number($(id).getAttribute(name));
+    expect(attr('guests', 'min')).toBe(LIMITS.guests.min);
+    expect(attr('guests', 'max')).toBe(LIMITS.guests.max);
+    expect(attr('budget', 'min')).toBe(LIMITS.budget.min);
+    expect(attr('budget', 'max')).toBe(LIMITS.budget.max);
+    expect(attr('occasion', 'maxlength')).toBe(LIMITS.occasion);
+    expect(attr('city', 'maxlength')).toBe(LIMITS.city);
+    expect(attr('preferences', 'maxlength')).toBe(LIMITS.preferences);
+    expect(attr('refine', 'maxlength')).toBe(LIMITS.refine);
+    expect($('event-date').getAttribute('max')).toBe(inDays(LIMITS.maxLeadDays));
+    expect($('guests-help').textContent).toBe('1 to 5,000 people.');
+    expect($('budget-help').textContent).toBe(
+      `Whole rupees, ₹1,000 to ${rupees(LIMITS.budget.max)}.`,
+    );
+    expect($('pref-count').textContent).toBe(`0 of ${LIMITS.preferences} characters`);
+  });
+
   it('shows a rejected brief next to its field, even with an earlier plan on screen', async () => {
     const message = 'Plans can be made up to two years ahead.';
     const fetch = stubFetch(

@@ -60,9 +60,7 @@ describe('the shipped fonts', () => {
 });
 
 describe('the limits the page and the Worker share', () => {
-  const form = new DOMParser().parseFromString(indexHtml, 'text/html');
-  const attr = (id: string, name: string): number =>
-    Number(form.getElementById(id)?.getAttribute(name) ?? Number.NaN);
+  const page = new DOMParser().parseFromString(indexHtml, 'text/html');
 
   it('reach the page as src/shared/constants.ts compiled: same values, same wording', async () => {
     const compiled = await import('../public/js/constants.js');
@@ -77,15 +75,15 @@ describe('the limits the page and the Worker share', () => {
     expect(compiled.todayIso(day)).toBe(source.todayIso(day));
   });
 
-  it('match the form controls, so the browser and the server refuse the same input', () => {
-    expect(attr('guests', 'min')).toBe(LIMITS.guests.min);
-    expect(attr('guests', 'max')).toBe(LIMITS.guests.max);
-    expect(attr('budget', 'min')).toBe(LIMITS.budget.min);
-    expect(attr('budget', 'max')).toBe(LIMITS.budget.max);
-    expect(attr('city', 'maxlength')).toBe(LIMITS.city);
-    expect(attr('occasion', 'maxlength')).toBe(LIMITS.occasion);
-    expect(attr('preferences', 'maxlength')).toBe(LIMITS.preferences);
-    expect(attr('refine', 'maxlength')).toBe(LIMITS.refine);
+  it('are stated nowhere in the markup, which gets them from constants.js at startup', () => {
+    for (const el of page.querySelectorAll('input, textarea')) {
+      for (const name of ['min', 'max', 'maxlength']) {
+        expect(el.hasAttribute(name), `#${el.id} carries ${name}`).toBe(false);
+      }
+    }
+    for (const id of ['guests-help', 'budget-help', 'pref-count']) {
+      expect(page.getElementById(id)?.textContent, `#${id}`).toBe('');
+    }
   });
 
   it('name an unnamed occasion the same way in the calendar as on the page', () => {

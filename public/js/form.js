@@ -7,7 +7,7 @@
 import { els } from './dom.js';
 import { addDays } from './format.js';
 import { SAMPLES } from './samples.js';
-import { LIMITS, rangeMessage, todayIso } from './constants.js';
+import { DATE_MESSAGE, LIMITS, rangeMessage, rupees, todayIso } from './constants.js';
 
 /** @typedef {import('./samples.js').Sample} Sample */
 
@@ -96,16 +96,16 @@ export function readForm() {
 }
 
 /**
- * The same field-level messages the server would give, for the mistakes that
- * can be caught without a round trip.
+ * The mistakes that can be caught without a round trip. A date or a number out
+ * of range gets the server's own message, from the same definition.
  * @param {Brief} body
  * @returns {[message: string, field: string] | null}
  */
 export function clientValidate(body) {
   if (!body.eventDate) return ['Choose the event date.', 'eventDate'];
-  if (body.eventDate < todayIso()) return ['The event date is in the past.', 'eventDate'];
+  if (body.eventDate < todayIso()) return [DATE_MESSAGE.past, 'eventDate'];
   if (body.eventDate > addDays(todayIso(), LIMITS.maxLeadDays)) {
-    return ['Plans can be made up to two years ahead.', 'eventDate'];
+    return [DATE_MESSAGE.tooFar, 'eventDate'];
   }
   if (outOfRange(body.guests, LIMITS.guests)) {
     return [rangeMessage('Guests', LIMITS.guests), 'guests'];
@@ -139,10 +139,31 @@ function fillSample(s) {
   els.planBtn.focus();
 }
 
-/** Date bounds, the wishes counter, the sample chips, and each field's own description. */
-export function wireForm() {
+const count = new Intl.NumberFormat('en-IN');
+
+/**
+ * Every bound the controls enforce, and the help that states the numeric ones,
+ * from the limits the Worker validates against. The markup carries none.
+ */
+function applyLimits() {
+  const { guests, budget } = LIMITS;
   els.date.min = todayIso();
   els.date.max = addDays(todayIso(), LIMITS.maxLeadDays);
+  els.guests.min = String(guests.min);
+  els.guests.max = String(guests.max);
+  els.budget.min = String(budget.min);
+  els.budget.max = String(budget.max);
+  els.occasion.maxLength = LIMITS.occasion;
+  els.city.maxLength = LIMITS.city;
+  els.preferences.maxLength = LIMITS.preferences;
+  els.refine.maxLength = LIMITS.refine;
+  els.guestsHelp.textContent = `${count.format(guests.min)} to ${count.format(guests.max)} people.`;
+  els.budgetHelp.textContent = `Whole rupees, ${rupees(budget.min)} to ${rupees(budget.max)}.`;
+}
+
+/** The limits, the wishes counter, the sample chips, and each field's own description. */
+export function wireForm() {
+  applyLimits();
   els.preferences.addEventListener('input', updateCount);
   for (const chip of document.querySelectorAll('[data-sample]')) {
     if (!(chip instanceof HTMLElement)) continue;

@@ -212,19 +212,22 @@ What is covered, and the property each test holds:
 - **guard** — each injection rule, the finding cap, text order, the field named;
   sentence removal of every match, not only those shown; fence defanging, nonce
   forgery.
-- **app** (jsdom, the real `index.html` and `public/js` modules) — a brief the
-  server rejects is shown at its field and focused, also on a second submit with
-  a plan already on screen; an ideas failure degrades only the ideas card; the
-  730-day limit is enforced before any request; a refinement is applied,
-  announced and written back to the form, and a rejected one is shown at the
-  change field; ideas that arrive, or fail, after their plan was replaced are
-  dropped; the guard notice names the field each finding was in; vendor
+- **app** (jsdom, the real `index.html` and `public/js` modules) — every
+  control's bounds and the help stating them come from the shared limits; a
+  brief the server rejects is shown at its field and focused, also on a second
+  submit with a plan already on screen; an ideas failure degrades only the ideas
+  card; the 730-day limit is enforced before any request; a refinement is
+  applied, announced and written back to the form, and a rejected one is shown
+  at the change field; ideas that arrive, or fail, after their plan was replaced
+  are dropped; the guard notice names the field each finding was in; vendor
   questions and budget notes carry the AI mark exactly when a model wrote that
   section, also when the ideas beside them are generic, and the other way round.
 - **assets** (jsdom) — fonts are content-addressed and preloaded as used;
   `public/js/constants.js` exports exactly what `src/shared/constants.ts` does,
-  with the same values and wording; the form's min/max/maxlength and the
-  calendar's name match that definition.
+  with the same values and wording; `index.html` states no `min`, `max` or
+  `maxlength` and leaves the guest and budget help empty, because `form.js` sets
+  all of them from `constants.js` when the page starts (the **app** suite checks
+  the result); the calendar's name matches the occasion label.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally
