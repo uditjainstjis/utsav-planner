@@ -1,6 +1,7 @@
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import type { Env } from './env';
 import { personalise } from './lib/ai/personalise';
+import { workersAi } from './lib/ai/workers-ai';
 import { harden } from './lib/headers';
 import { LIMITS, todayIso } from './shared/constants';
 import { buildPlan, planIcs } from './lib/plan';
@@ -27,9 +28,15 @@ import { InputError, isRecord, validatePlanRequest } from './lib/validate';
  * The client calls the first and renders it, then calls the second and fills
  * in. A user never waits on a model to see their numbers, and a model outage
  * degrades one section rather than the page.
+ *
+ * This file is the composition root: the only module that reads the
+ * bindings, and so the one place a concrete implementation is chosen for an
+ * abstraction — `workersAi(c.env.AI)` for the `TextGenerator` personalisation
+ * depends on. Everything below the routes takes what it needs as arguments.
  */
 
-const app = new Hono<{ Bindings: Env }>();
+type App = { Bindings: Env };
+const app = new Hono<App>();
 
 app.use('*', async (c, next) => {
   await next();
@@ -42,35 +49,61 @@ app.use('*', async (c, next) => {
 });
 
 /**
- * Gate for every POST route: content type, origin, rate limit — in that order.
- *
+ * One admission rule for a POST route: a refusal, or undefined to let the
+ * request through. Each rule checks one thing.
+ */
+type AdmissionRule = (c: Context<App>) => Response | undefined | Promise<Response | undefined>;
+
+/**
  * Requiring `application/json` is the CSRF control: a cross-origin fetch can
  * send `text/plain` without a preflight, but cannot claim JSON without one,
  * and there is no CORS policy here for a preflight to succeed against.
+ */
+const requireJson: AdmissionRule = (c) =>
+  (c.req.header('content-type') ?? '').toLowerCase().startsWith('application/json')
+    ? undefined
+    : c.json(
+        { error: 'Send this request as application/json.', code: 'unsupported_media_type' },
+        415,
+      );
+
+/**
  * `Sec-Fetch-Site` is set by browsers and cannot be forged by page script; it
  * is absent for curl, which is fine — this service holds no credential, so a
- * direct call carries no ambient authority to abuse. The rate limit runs last
- * so a rejected cross-site request never spends the visitor's budget.
+ * direct call carries no ambient authority to abuse.
  */
-const guardApi: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
-  const contentType = (c.req.header('content-type') ?? '').toLowerCase();
-  if (!contentType.startsWith('application/json')) {
-    return c.json(
-      { error: 'Send this request as application/json.', code: 'unsupported_media_type' },
-      415,
-    );
-  }
+const sameOriginOnly: AdmissionRule = (c) => {
   const site = c.req.header('sec-fetch-site');
-  if (site !== undefined && site !== 'same-origin' && site !== 'none') {
-    return c.json({ error: 'Cross-site requests are not accepted.', code: 'cross_origin' }, 403);
-  }
-  const ip = c.req.header('cf-connecting-ip') ?? 'local';
-  const { success } = await c.env.RATE_LIMITER.limit({ key: ip });
-  if (!success) {
-    return c.json(
-      { error: 'Too many requests. Please wait a minute and try again.', code: 'rate_limited' },
-      429,
-    );
+  return site === undefined || site === 'same-origin' || site === 'none'
+    ? undefined
+    : c.json({ error: 'Cross-site requests are not accepted.', code: 'cross_origin' }, 403);
+};
+
+/** The per-IP limit configured in wrangler.jsonc, keyed on the connecting address. */
+const withinRateLimit: AdmissionRule = async (c) => {
+  const { success } = await c.env.RATE_LIMITER.limit({
+    key: c.req.header('cf-connecting-ip') ?? 'local',
+  });
+  return success
+    ? undefined
+    : c.json(
+        { error: 'Too many requests. Please wait a minute and try again.', code: 'rate_limited' },
+        429,
+      );
+};
+
+/**
+ * The rules every POST route passes, in order. The rate limit runs last so a
+ * rejected cross-site request never spends the visitor's budget. A new rule
+ * is a new entry here; the gate below does not change.
+ */
+const ADMISSION: readonly AdmissionRule[] = [requireJson, sameOriginOnly, withinRateLimit];
+
+/** Gate for every POST route: the first refusal answers, else the route runs. */
+const guardApi: MiddlewareHandler<App> = async (c, next) => {
+  for (const rule of ADMISSION) {
+    const refusal = await rule(c);
+    if (refusal) return refusal;
   }
   await next();
   return undefined;
@@ -115,7 +148,7 @@ app.post('/api/personalise', guardApi, async (c) => {
   // Rebuilt server-side from the validated request rather than trusting a
   // plan object the client sends back; the client never gets to tell the
   // model what the numbers are.
-  return c.json(await personalise(c.env, await readPlan(c), c.executionCtx));
+  return c.json(await personalise(workersAi(c.env.AI), await readPlan(c), c.executionCtx));
 });
 
 /**
@@ -152,4 +185,5 @@ app.all('/api/*', (c) => c.json({ error: 'Not found', code: 'not_found' }, 404))
 /** Everything else is the static single-page app. */
 app.get('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 
+/** The Worker: every request, API and static, enters here. */
 export default app;

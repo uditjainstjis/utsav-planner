@@ -1,18 +1,18 @@
-import type { Env } from '../../env';
 import { cacheGet, cachePut, contentKey } from '../cache';
 import { PROMPT_VERSION } from '../../prompts/plan';
 import type { Personalisation, Plan } from '../types';
 import { isRecord } from '../validate';
-import { askAll, mergeAnswers, MODEL_TIMEOUT_MS, MODELS } from './ask';
+import { askAll, mergeAnswers, MODEL_TIMEOUT_MS, MODELS, type TextGenerator } from './ask';
 import { coercePersonalisation, withReplySections } from './coerce';
 
 /**
  * The one generative step: personalising a plan.
  *
- * The model is reached through a Cloudflare binding, so no API key exists in
- * this repository, in CI, or in the deployed bundle. A part no model answers
- * usably is filled from deterministic guidance, labelled as such section by
- * section, and the plan ships complete.
+ * The model is reached through a {@link TextGenerator} the caller supplies:
+ * in production the Workers AI binding (src/lib/ai/workers-ai.ts), so no API
+ * key exists in this repository, in CI, or in the deployed bundle. A part no
+ * model answers usably is filled from deterministic guidance, labelled as
+ * such section by section, and the plan ships complete.
  */
 
 /**
@@ -57,11 +57,12 @@ function cacheParts(plan: Plan): string[] {
  * own fallback model), then deterministic guidance for any section no model
  * answered usably. Never throws, and always returns ideas.
  *
+ * @param generator the model host, e.g. `workersAi(env.AI)`
  * @param ctx the request's execution context: a complete answer is written to
  *   the cache through its `waitUntil`, after the response has gone.
  */
 export async function personalise(
-  env: Env,
+  generator: TextGenerator,
   plan: Plan,
   ctx: Pick<ExecutionContext, 'waitUntil'>,
   options: { timeoutMs?: number } = {},
@@ -71,7 +72,7 @@ export async function personalise(
   const cached = hit && coercePersonalisation(hit.reply, plan, { model: hit.model, cached: true });
   if (cached) return cached;
 
-  const answers = await askAll(env, plan, options.timeoutMs ?? MODEL_TIMEOUT_MS);
+  const answers = await askAll(generator, plan, options.timeoutMs ?? MODEL_TIMEOUT_MS);
   const { reply, model } = mergeAnswers(answers);
   const result = model ? coercePersonalisation(reply, plan, { model, cached: false }) : null;
   // Ideas are the part that makes a personalisation worth the name; without

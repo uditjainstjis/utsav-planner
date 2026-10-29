@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MODELS } from '../../src/lib/ai/ask';
 import { personalise } from '../../src/lib/ai/personalise';
 import { buildPlan } from '../../src/lib/plan';
-import { ctx, env, REPLY, request, TODAY } from './fixtures';
+import { binding, ctx, REPLY, request, TODAY } from './fixtures';
 
 const [PRIMARY_MODEL, FALLBACK_MODEL] = MODELS;
 
@@ -11,11 +11,11 @@ describe('personalise and the cache', () => {
     const run = vi.fn(async () => ({ response: REPLY }));
     const req = request();
     const waitUntil = vi.fn();
-    const first = await personalise(env(run as never), buildPlan(req, TODAY), { waitUntil });
+    const first = await personalise(binding(run as never), buildPlan(req, TODAY), { waitUntil });
     expect(first.cached).toBe(false);
     expect(waitUntil).toHaveBeenCalledTimes(1);
     await waitUntil.mock.calls[0]![0];
-    const second = await personalise(env(run as never), buildPlan(req, TODAY), { waitUntil });
+    const second = await personalise(binding(run as never), buildPlan(req, TODAY), { waitUntil });
     expect(second.cached).toBe(true);
     expect(waitUntil).toHaveBeenCalledTimes(1);
   });
@@ -25,7 +25,7 @@ describe('personalise and the cache', () => {
     const down = vi.fn(async () => {
       throw new Error('down');
     });
-    await personalise(env(down as never), buildPlan(request(), TODAY), { waitUntil });
+    await personalise(binding(down as never), buildPlan(request(), TODAY), { waitUntil });
     expect(waitUntil).not.toHaveBeenCalled();
   });
 
@@ -36,11 +36,11 @@ describe('personalise and the cache', () => {
     const strays = vi.fn(async () => ({
       response: { ...REPLY, vendorQuestions: { unicorn: ['?'] } },
     }));
-    const first = await personalise(env(strays as never), buildPlan(req, TODAY), c);
+    const first = await personalise(binding(strays as never), buildPlan(req, TODAY), c);
     expect(first.sources.vendorQuestions).toBe('fallback');
     await c.settled();
     const good = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(good as never), buildPlan(req, TODAY), c);
+    const p = await personalise(binding(good as never), buildPlan(req, TODAY), c);
     expect(p.cached).toBe(false);
     expect(p.sources.vendorQuestions).toBe('model');
   });
@@ -49,9 +49,9 @@ describe('personalise and the cache', () => {
     const run = vi.fn(async () => ({ response: REPLY }));
     const req = request();
     const c = ctx();
-    const first = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    const first = await personalise(binding(run as never), buildPlan(req, TODAY), c);
     await c.settled();
-    const second = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    const second = await personalise(binding(run as never), buildPlan(req, TODAY), c);
     expect(first.cached).toBe(false);
     expect(second.cached).toBe(true);
     expect(second.model).toBe(PRIMARY_MODEL);
@@ -68,9 +68,9 @@ describe('personalise and the cache', () => {
     // the same, so only the date the prompt states differs.
     const later = buildPlan({ ...req, eventDate: '2026-12-08' }, '2026-10-24');
     expect(later.timeline.leadDays).toBe(first.timeline.leadDays);
-    await personalise(env(run as never), first, c);
+    await personalise(binding(run as never), first, c);
     await c.settled();
-    const second = await personalise(env(run as never), later, c);
+    const second = await personalise(binding(run as never), later, c);
     expect(second.cached).toBe(false);
     expect(run).toHaveBeenCalledTimes(8);
   });
@@ -82,9 +82,9 @@ describe('personalise and the cache', () => {
     });
     const req = request();
     const c = ctx();
-    const first = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    const first = await personalise(binding(run as never), buildPlan(req, TODAY), c);
     await c.settled();
-    const second = await personalise(env(run as never), buildPlan(req, TODAY), c);
+    const second = await personalise(binding(run as never), buildPlan(req, TODAY), c);
     expect(first.model).toBe(FALLBACK_MODEL);
     expect(second.cached).toBe(true);
     expect(second.model).toBe(FALLBACK_MODEL);
@@ -97,10 +97,10 @@ describe('personalise and the cache', () => {
     const bad = vi.fn(async () => {
       throw new Error('down');
     });
-    await personalise(env(bad as never), buildPlan(req, TODAY), c);
+    await personalise(binding(bad as never), buildPlan(req, TODAY), c);
     await c.settled();
     const good = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(good as never), buildPlan(req, TODAY), c);
+    const p = await personalise(binding(good as never), buildPlan(req, TODAY), c);
     expect(p.sources.ideas).toBe('model');
     expect(good).toHaveBeenCalledTimes(4);
   });

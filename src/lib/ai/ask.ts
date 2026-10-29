@@ -1,15 +1,20 @@
-import type { Env } from '../../env';
 import { makeNonce } from '../guard';
 import { MAX_TOKENS, PROMPT_BUILDERS, SCHEMAS, SYSTEM_PROMPT, type Part } from '../../prompts/plan';
 import type { Plan } from '../types';
 import { extractJson } from './reply';
 
 /**
- * Asking Workers AI for the four parts of a personalisation — two halves of
+ * Asking a model for the four parts of a personalisation — two halves of
  * ideas, vendor questions, budget notes — concurrently, each with its own
  * small schema, because schema-constrained decoding is paid for per output
  * token: four short replies in parallel finish in the time of the longest,
  * not the sum. Each part tries the primary model, then the fallback model.
+ *
+ * This module is policy: which models, in what order, under what timeout,
+ * and what counts as an answer. It reaches a model only through the
+ * {@link TextGenerator} it declares, so it names no binding and no SDK; the
+ * Workers AI implementation is src/lib/ai/workers-ai.ts, chosen in
+ * src/index.ts.
  *
  * Model choice was measured, not assumed — see docs/EVALUATION.md.
  */
@@ -19,7 +24,33 @@ export const MODELS = [
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
   '@cf/mistralai/mistral-small-3.1-24b-instruct',
 ] as const;
-type Model = (typeof MODELS)[number];
+/** A model this module may ask: one of {@link MODELS}. */
+export type Model = (typeof MODELS)[number];
+
+/** One schema-constrained generation: everything a model host needs to answer one part. */
+export interface Generation {
+  model: Model;
+  /** The standing instructions, the same for every part. */
+  system: string;
+  /** The part's own prompt: the plan's facts and what to produce. */
+  prompt: string;
+  /** The JSON schema the reply must match. */
+  schema: object;
+  maxTokens: number;
+  temperature: number;
+}
+
+/**
+ * The one dependency personalisation has on a model host, declared here by
+ * the code that needs it. Single responsibility: run one {@link Generation}
+ * and resolve to the host's raw reply, unchecked ({@link extractJson} reads
+ * it). It may reject, and should stop work when `signal` aborts; timeouts,
+ * fallback and validation stay here, so every implementation — the Workers AI
+ * adapter in production, plain fakes in the tests — is substitutable.
+ */
+export interface TextGenerator {
+  generate(generation: Generation, signal: AbortSignal): Promise<unknown>;
+}
 
 /**
  * Upper bound on one model call. Both models answered a part in 7–11 s when
@@ -55,25 +86,23 @@ interface ModelCall {
   signal: AbortSignal;
 }
 
-/** The binding's raw reply, unchecked: extractJson reads it. */
+/** The generator's raw reply, unchecked: extractJson reads it. */
 async function callModel(
-  env: Env,
+  generator: TextGenerator,
   { model, part, plan, nonce, signal }: ModelCall,
 ): Promise<unknown> {
-  return env.AI.run(
-    model,
+  return generator.generate(
     {
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: PROMPT_BUILDERS[part](plan, nonce) },
-      ],
-      response_format: { type: 'json_schema', json_schema: SCHEMAS[part] },
-      max_tokens: MAX_TOKENS[part],
+      model,
+      system: SYSTEM_PROMPT,
+      prompt: PROMPT_BUILDERS[part](plan, nonce),
+      schema: SCHEMAS[part],
+      maxTokens: MAX_TOKENS[part],
       // Some variety is wanted — two users with the same brief should not get
       // identical ideas — but not so much that the schema or the facts drift.
       temperature: 0.5,
     },
-    { signal },
+    signal,
   );
 }
 
@@ -112,7 +141,7 @@ function logFailure(model: Model, part: Part, kind: string, started: number): vo
 
 /** One part: primary model, then fallback model, else null. Never throws. */
 async function askPart(
-  env: Env,
+  generator: TextGenerator,
   part: Part,
   plan: Plan,
   nonce: string,
@@ -123,7 +152,7 @@ async function askPart(
     try {
       const obj = extractJson(
         await withTimeout(
-          (signal) => callModel(env, { model, part, plan, nonce, signal }),
+          (signal) => callModel(generator, { model, part, plan, nonce, signal }),
           timeoutMs,
         ),
       );
@@ -138,10 +167,14 @@ async function askPart(
 }
 
 /** All four parts at once, under one nonce. */
-export async function askAll(env: Env, plan: Plan, timeoutMs: number): Promise<Answers> {
+export async function askAll(
+  generator: TextGenerator,
+  plan: Plan,
+  timeoutMs: number,
+): Promise<Answers> {
   const nonce = makeNonce();
   const ask = (part: Part): Promise<PartResult | null> =>
-    askPart(env, part, plan, nonce, timeoutMs);
+    askPart(generator, part, plan, nonce, timeoutMs);
   const [ideasA, ideasB, vendors, notes] = await Promise.all([
     ask('ideasA'),
     ask('ideasB'),

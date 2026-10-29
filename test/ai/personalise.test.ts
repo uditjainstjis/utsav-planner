@@ -3,7 +3,7 @@ import { MODELS } from '../../src/lib/ai/ask';
 import { personalise } from '../../src/lib/ai/personalise';
 import { fallbackPersonalisation } from '../../src/lib/fallback';
 import { buildPlan } from '../../src/lib/plan';
-import { ctx, env, REPLY, request, TODAY } from './fixtures';
+import { binding, ctx, REPLY, request, TODAY } from './fixtures';
 
 const [PRIMARY_MODEL, FALLBACK_MODEL] = MODELS;
 
@@ -13,7 +13,7 @@ const callsOf = (fn: { mock: { calls: unknown[] } }): Calls => fn.mock.calls as 
 describe('personalise', () => {
   it('uses the primary model when it answers well', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({ ideas: 'model', vendorQuestions: 'model', budgetNotes: 'model' });
     expect(p.model).toBe(PRIMARY_MODEL);
     expect(run).toHaveBeenCalledTimes(4);
@@ -25,7 +25,7 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) throw new Error('capacity');
       return { response: REPLY };
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.model).toBe(FALLBACK_MODEL);
     expect(run).toHaveBeenCalledTimes(8);
   });
@@ -34,7 +34,7 @@ describe('personalise', () => {
     const run = vi.fn(async (model: string) =>
       model === PRIMARY_MODEL ? { response: 'I cannot help with that.' } : { response: REPLY },
     );
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.model).toBe(FALLBACK_MODEL);
   });
 
@@ -44,7 +44,7 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) throw new Error('capacity');
       return { response: 'I cannot help with that.' };
     });
-    await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     const lines = warn.mock.calls.map((c) => c[0] as Record<string, unknown>);
     warn.mockRestore();
     expect(lines).toHaveLength(8);
@@ -63,7 +63,7 @@ describe('personalise', () => {
     const run = vi.fn(async () => {
       throw new Error('down');
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({
       ideas: 'fallback',
       vendorQuestions: 'fallback',
@@ -76,7 +76,7 @@ describe('personalise', () => {
 
   it('ships generic ideas but keeps checked model questions and notes when no idea is usable', async () => {
     const run = vi.fn(async () => ({ response: { ...REPLY, ideas: [] } }));
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     expect(p.sources).toEqual({
       ideas: 'fallback',
       vendorQuestions: 'model',
@@ -95,7 +95,7 @@ describe('personalise', () => {
       return { response: REPLY };
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx(), {
       timeoutMs: 50,
     });
     const kinds = warn.mock.calls.map((c) => (c[0] as { kind: string }).kind);
@@ -112,7 +112,7 @@ describe('personalise', () => {
       if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined);
       return { response: REPLY };
     });
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx(), {
       timeoutMs: 50,
     });
     expect(p.model).toBe(FALLBACK_MODEL);
@@ -124,7 +124,7 @@ describe('personalise', () => {
   it('ships deterministic guidance when every model hangs', async () => {
     const run = vi.fn(() => new Promise<never>(() => undefined));
     const started = Date.now();
-    const p = await personalise(env(run as never), buildPlan(request(), TODAY), ctx(), {
+    const p = await personalise(binding(run as never), buildPlan(request(), TODAY), ctx(), {
       timeoutMs: 50,
     });
     expect(p.sources.ideas).toBe('fallback');
@@ -140,7 +140,7 @@ describe('personalise', () => {
 
   it('labels each section by who wrote it when the vendor ask alone fails', async () => {
     const plan = buildPlan(request(), TODAY);
-    const p = await personalise(env(failing('vendorQuestions') as never), plan, ctx());
+    const p = await personalise(binding(failing('vendorQuestions') as never), plan, ctx());
     expect(p.sources).toEqual({
       ideas: 'model',
       vendorQuestions: 'fallback',
@@ -153,7 +153,7 @@ describe('personalise', () => {
 
   it('labels each section by who wrote it when the notes ask alone fails', async () => {
     const plan = buildPlan(request(), TODAY);
-    const p = await personalise(env(failing('budgetNotes') as never), plan, ctx());
+    const p = await personalise(binding(failing('budgetNotes') as never), plan, ctx());
     expect(p.sources).toEqual({
       ideas: 'model',
       vendorQuestions: 'model',
@@ -164,7 +164,7 @@ describe('personalise', () => {
 
   it('asks for schema-constrained JSON at a modest temperature', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
-    await personalise(env(run as never), buildPlan(request(), TODAY), ctx());
+    await personalise(binding(run as never), buildPlan(request(), TODAY), ctx());
     const opts = callsOf(run)[0]![1];
     expect(opts.response_format).toMatchObject({ type: 'json_schema' });
     expect(opts.temperature).toBeLessThanOrEqual(0.6);

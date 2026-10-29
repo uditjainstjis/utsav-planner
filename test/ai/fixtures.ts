@@ -1,4 +1,6 @@
 import type { Env } from '../../src/env';
+import type { TextGenerator } from '../../src/lib/ai/ask';
+import { workersAi } from '../../src/lib/ai/workers-ai';
 import type { PlanRequest } from '../../src/lib/types';
 
 /** Shared by the ai/ suites: a planning day, fresh requests, and a reply to check. */
@@ -69,13 +71,12 @@ export const REPLY = {
   budgetNotes: { decor: 'One colour, many balloons.', mandap: 'dropped' },
 };
 
-/** An environment whose AI binding is `run`. */
-export function env(run: Env['AI']['run']): Env {
-  return {
-    AI: { run } as unknown as Ai,
-    ASSETS: {} as Fetcher,
-    RATE_LIMITER: { limit: async () => ({ success: true }) },
-  };
+/**
+ * The production generator, the Workers AI adapter, over a binding whose `run`
+ * is `run`: so these suites assert the exact calls the deployed Worker makes.
+ */
+export function binding(run: Env['AI']['run']): TextGenerator {
+  return workersAi({ run } as unknown as Env['AI']);
 }
 
 /**
