@@ -7,8 +7,8 @@ import type { EventType, Idea, Personalisation, Plan } from './types';
  *
  * A plan must never ship without ideas, questions and notes merely because a
  * model timed out. This module produces sensible, generic guidance from the
- * occasion type and the computed budget — clearly labelled as such in the UI
- * (`source: 'fallback'`), so the user knows the ideas are general guidance
+ * occasion type and the computed budget. `sources` labels every section
+ * `fallback`, and the page says so, so the user knows it is general guidance
  * rather than written for their wishes.
  */
 
@@ -196,11 +196,11 @@ export function fallbackPersonalisation(plan: Plan): Personalisation {
   return {
     summary:
       `A ${OCCASION_LABEL[request.eventType].toLowerCase()} for ${request.guests} guests at about ₹${budget.perGuest.toLocaleString('en-IN')} a head. ` +
-      'The ideas below are general starting points; personalised suggestions were unavailable just now.',
+      'The ideas below are general starting points; personalised ideas were unavailable just now.',
     ideas: [...IDEAS[request.eventType]],
     vendorQuestions,
     budgetNotes,
-    source: 'fallback',
+    sources: { ideas: 'fallback', vendorQuestions: 'fallback', budgetNotes: 'fallback' },
     model: null,
     cached: false,
   };

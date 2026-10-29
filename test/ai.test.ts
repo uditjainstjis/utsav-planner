@@ -8,6 +8,7 @@ import {
   PRIMARY_MODEL,
   type Env,
 } from '../src/lib/ai';
+import { fallbackPersonalisation } from '../src/lib/fallback';
 import { buildPlan } from '../src/lib/plan';
 import type { PlanRequest } from '../src/lib/types';
 
@@ -134,7 +135,7 @@ describe('extractJson', () => {
 describe('coercePersonalisation', () => {
   const plan = buildPlan(request(), TODAY);
 
-  it('drops ideas that are not objects and ignores maps that are not objects', () => {
+  it('drops ideas that are not objects; sections that are not maps become the generic ones', () => {
     const q = coercePersonalisation(
       {
         ideas: [null, 'Fossil dig', ['x'], { title: 'Kept', detail: 'An object.' }],
@@ -144,9 +145,29 @@ describe('coercePersonalisation', () => {
       plan,
       { model: PRIMARY_MODEL, cached: false },
     );
+    const generic = fallbackPersonalisation(plan);
     expect(q?.ideas.map((i) => i.title)).toEqual(['Kept']);
-    expect(q?.vendorQuestions).toEqual({});
-    expect(q?.budgetNotes).toEqual({});
+    expect(q?.vendorQuestions).toEqual(generic.vendorQuestions);
+    expect(q?.budgetNotes).toEqual(generic.budgetNotes);
+    expect(q?.sources).toEqual({
+      ideas: 'model',
+      vendorQuestions: 'fallback',
+      budgetNotes: 'fallback',
+    });
+  });
+
+  it('takes the generic section, labelled so, when no entry of the model’s survives', () => {
+    const q = coercePersonalisation(
+      { ...REPLY, vendorQuestions: { unicorn: ['?'] }, budgetNotes: { mandap: 'n' } },
+      plan,
+      { model: PRIMARY_MODEL, cached: false },
+    )!;
+    expect(q.vendorQuestions).toEqual(fallbackPersonalisation(plan).vendorQuestions);
+    expect(q.sources).toEqual({
+      ideas: 'model',
+      vendorQuestions: 'fallback',
+      budgetNotes: 'fallback',
+    });
   });
 
   const p = coercePersonalisation(REPLY, plan, { model: PRIMARY_MODEL, cached: false })!;
@@ -221,7 +242,7 @@ describe('coercePersonalisation', () => {
   });
 
   it('records provenance', () => {
-    expect(p.source).toBe('model');
+    expect(p.sources).toEqual({ ideas: 'model', vendorQuestions: 'model', budgetNotes: 'model' });
     expect(p.model).toBe(PRIMARY_MODEL);
     expect(p.cached).toBe(false);
   });
@@ -235,7 +256,7 @@ describe('personalise', () => {
   it('uses the primary model when it answers well', async () => {
     const run = vi.fn(async () => ({ response: REPLY }));
     const p = await personalise(env(run as never), buildPlan(request(), TODAY));
-    expect(p.source).toBe('model');
+    expect(p.sources).toEqual({ ideas: 'model', vendorQuestions: 'model', budgetNotes: 'model' });
     expect(p.model).toBe(PRIMARY_MODEL);
     expect(run).toHaveBeenCalledTimes(4);
     for (const c of callsOf(run)) expect(c[0]).toBe(PRIMARY_MODEL);
@@ -264,7 +285,11 @@ describe('personalise', () => {
       throw new Error('down');
     });
     const p = await personalise(env(run as never), buildPlan(request(), TODAY));
-    expect(p.source).toBe('fallback');
+    expect(p.sources).toEqual({
+      ideas: 'fallback',
+      vendorQuestions: 'fallback',
+      budgetNotes: 'fallback',
+    });
     expect(p.model).toBeNull();
     expect(p.ideas.length).toBeGreaterThan(0);
     expect(p.summary).toMatch(/unavailable/);
@@ -273,7 +298,12 @@ describe('personalise', () => {
   it('ships generic ideas but keeps checked model questions and notes when no idea is usable', async () => {
     const run = vi.fn(async () => ({ response: { ...REPLY, ideas: [] } }));
     const p = await personalise(env(run as never), buildPlan(request(), TODAY));
-    expect(p.source).toBe('fallback');
+    expect(p.sources).toEqual({
+      ideas: 'fallback',
+      vendorQuestions: 'model',
+      budgetNotes: 'model',
+    });
+    expect(p.model).toBeNull();
     expect(p.ideas.length).toBeGreaterThan(0);
     expect(p.vendorQuestions.caterer).toHaveLength(REPLY_LIMITS.questionsPerVendor);
     expect(p.vendorQuestions.unicorn).toBeUndefined();
@@ -286,7 +316,7 @@ describe('personalise', () => {
       return { response: REPLY };
     });
     const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
-    expect(p.source).toBe('model');
+    expect(p.sources.ideas).toBe('model');
     expect(p.model).toBe(FALLBACK_MODEL);
   });
 
@@ -294,8 +324,53 @@ describe('personalise', () => {
     const run = vi.fn(() => new Promise<never>(() => undefined));
     const started = Date.now();
     const p = await personalise(env(run as never), buildPlan(request(), TODAY), { timeoutMs: 50 });
-    expect(p.source).toBe('fallback');
+    expect(p.sources.ideas).toBe('fallback');
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  /** A model that answers every ask except the ones whose prompt asks for `key`. */
+  const failing = (key: string) =>
+    vi.fn(async (_model: string, input: { messages: { content: string }[] }) => {
+      if (input.messages[1]!.content.includes(`Produce "${key}"`)) throw new Error('down');
+      return { response: REPLY };
+    });
+
+  it('labels each section by who wrote it when the vendor ask alone fails', async () => {
+    const plan = buildPlan(request(), TODAY);
+    const p = await personalise(env(failing('vendorQuestions') as never), plan);
+    expect(p.sources).toEqual({
+      ideas: 'model',
+      vendorQuestions: 'fallback',
+      budgetNotes: 'model',
+    });
+    expect(p.model).toBe(PRIMARY_MODEL);
+    expect(p.vendorQuestions).toEqual(fallbackPersonalisation(plan).vendorQuestions);
+    expect(p.budgetNotes).toEqual({ decor: 'One colour, many balloons.' });
+  });
+
+  it('labels each section by who wrote it when the notes ask alone fails', async () => {
+    const plan = buildPlan(request(), TODAY);
+    const p = await personalise(env(failing('budgetNotes') as never), plan);
+    expect(p.sources).toEqual({
+      ideas: 'model',
+      vendorQuestions: 'model',
+      budgetNotes: 'fallback',
+    });
+    expect(p.budgetNotes).toEqual(fallbackPersonalisation(plan).budgetNotes);
+  });
+
+  it('does not cache an answer with a generic section, so that part is retried', async () => {
+    const req = request();
+    // Every part answers, but no vendor id in the reply is in the plan.
+    const strays = vi.fn(async () => ({
+      response: { ...REPLY, vendorQuestions: { unicorn: ['?'] } },
+    }));
+    const first = await personalise(env(strays as never), buildPlan(req, TODAY));
+    expect(first.sources.vendorQuestions).toBe('fallback');
+    const good = vi.fn(async () => ({ response: REPLY }));
+    const p = await personalise(env(good as never), buildPlan(req, TODAY));
+    expect(p.cached).toBe(false);
+    expect(p.sources.vendorQuestions).toBe('model');
   });
 
   it('serves a repeat request from cache without a model call', async () => {
@@ -306,6 +381,7 @@ describe('personalise', () => {
     expect(first.cached).toBe(false);
     expect(second.cached).toBe(true);
     expect(second.model).toBe(PRIMARY_MODEL);
+    expect(second.sources).toEqual(first.sources);
     expect(run).toHaveBeenCalledTimes(4);
   });
 
@@ -331,7 +407,7 @@ describe('personalise', () => {
     await personalise(env(bad as never), buildPlan(req, TODAY));
     const good = vi.fn(async () => ({ response: REPLY }));
     const p = await personalise(env(good as never), buildPlan(req, TODAY));
-    expect(p.source).toBe('model');
+    expect(p.sources.ideas).toBe('model');
     expect(good).toHaveBeenCalledTimes(4);
   });
 

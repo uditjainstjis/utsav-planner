@@ -32,7 +32,7 @@ Split the two completely.
   screen still runs: its findings are shown to the user, and the sentences it
   flags are removed before the prompt is built.
 - The plan is available in milliseconds and is complete without the model. A
-  model outage degrades one section and is labelled (`source: "fallback"`).
+  model outage degrades the sections it touches, each labelled (`sources`).
 - Testing is straightforward: the deterministic 80% has exhaustive unit tests;
   the generative 20% has tests for the validation gate and for every failure
   path, with the model stubbed.

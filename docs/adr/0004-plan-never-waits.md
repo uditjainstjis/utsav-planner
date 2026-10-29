@@ -17,8 +17,9 @@ Two routes, called in sequence by the client:
    computation, returns in milliseconds, rendered immediately.
 2. `POST /api/personalise` — the model. Rebuilds the plan from the validated
    request (never trusting a client-supplied plan), asks the model, validates,
-   and returns. Rendered when it arrives; if it fails, the deterministic
-   fallback is returned with `source: "fallback"` and the page says so.
+   and returns. Rendered when it arrives; any part that fails is filled from the
+   deterministic fallback, `sources` labels that section `fallback`, and the
+   page says so.
 
 ## Consequences
 

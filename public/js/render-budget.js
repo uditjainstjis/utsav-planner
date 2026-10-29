@@ -36,12 +36,15 @@ export function renderBudget(plan) {
   els.budgetTotalPerGuest.textContent = rupees(budget.perGuest);
 }
 
-/** @param {Personalisation} p */
+/**
+ * Put each line's note in its row, marked as the AI's only when a model wrote this section.
+ * @param {Personalisation} p
+ */
 export function renderBudgetNotes(p) {
   for (const tr of els.budgetBody.querySelectorAll('tr')) {
     const note = p.budgetNotes[tr.dataset.line ?? ''];
     const cell = part(tr, '.budget__note', HTMLElement);
     cell.textContent = note ?? '';
-    if (note && p.source === 'model') cell.dataset.ai = 'true';
+    if (note && p.sources.budgetNotes === 'model') cell.dataset.ai = 'true';
   }
 }

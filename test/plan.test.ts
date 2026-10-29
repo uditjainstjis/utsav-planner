@@ -90,7 +90,7 @@ describe('fallbackPersonalisation', () => {
   it.each(EVENT_TYPES)('%s: covers every vendor and budget line, labelled as fallback', (type) => {
     const plan = buildPlan({ ...REQ, eventType: type, preferences: null }, TODAY);
     const p = fallbackPersonalisation(plan);
-    expect(p.source).toBe('fallback');
+    expect(Object.values(p.sources)).toEqual(['fallback', 'fallback', 'fallback']);
     expect(p.model).toBeNull();
     expect(p.ideas.length).toBeGreaterThanOrEqual(5);
     expect(Object.keys(p.vendorQuestions).sort()).toEqual(plan.vendors.map((v) => v.id).sort());

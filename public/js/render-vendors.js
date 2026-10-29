@@ -85,7 +85,7 @@ function updateVendorProgress(plan, done) {
 
 /**
  * Add the personalisation's questions under each vendor, marked as the AI's
- * only when a model wrote the personalisation, as the budget notes are.
+ * only when a model wrote this section.
  * @param {Personalisation} p
  */
 export function renderVendorQuestions(p) {
@@ -95,7 +95,7 @@ export function renderVendorQuestions(p) {
     const ul = part(li, '.vendor__questions', HTMLElement);
     for (const q of extra) {
       const qi = document.createElement('li');
-      if (p.source === 'model') {
+      if (p.sources.vendorQuestions === 'model') {
         const mark = document.createElement('span');
         mark.className = 'ai-mark';
         mark.textContent = 'AI';

@@ -125,6 +125,9 @@ export interface Idea {
   budgetLineId: BudgetLineId | null;
 }
 
+/** Who wrote a section of a personalisation: a model, or the deterministic fallback. */
+export type Source = 'model' | 'fallback';
+
 export interface Personalisation {
   /** One-paragraph brief back to the user, in their own terms. */
   summary: string;
@@ -133,11 +136,13 @@ export interface Personalisation {
   vendorQuestions: Record<string, string[]>;
   /** A sentence per budget line on where to spend and where to save. */
   budgetNotes: Record<string, string>;
-  /** Who wrote the ideas and summary. `fallback` means no model produced usable
-   *  ideas, so they are generic, deterministic guidance. Vendor questions and
-   *  budget notes come from asks of their own: either kind of personalisation
-   *  may carry the generic ones where that ask failed. */
-  source: 'model' | 'fallback';
+  /**
+   * Who wrote each section; `ideas` covers the summary too. The sections come
+   * from separate asks, so they can differ, and the page marks each one as the
+   * AI's only when its own source is `model`.
+   */
+  sources: { ideas: Source; vendorQuestions: Source; budgetNotes: Source };
+  /** The model that wrote the ideas, or null when they are generic. */
   model: string | null;
   cached: boolean;
 }

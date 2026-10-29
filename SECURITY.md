@@ -95,9 +95,11 @@ folded into them). All three are handled the same way.
 - Every enumeration is re-checked in code even though the schema asked for it.
 - Every `budgetLineId` and every vendor id must belong to the plan the model was
   shown; anything else is nulled or dropped.
-- A reply with no usable ideas is rejected so the next model is tried; if both
-  fail, deterministic guidance is returned and **labelled**
-  `source: "fallback"`.
+- A part whose reply does not parse, or lacks its key, is asked of the fallback
+  model. Ideas with nothing usable left after these checks, or a section of
+  questions or notes with no entry left, are replaced by deterministic guidance,
+  and `sources` **labels each section** with who wrote it, so the page marks as
+  the AI's only what a model wrote.
 
 Nothing a model writes is ever executed, templated, or interpreted as markup.
 

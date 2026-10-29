@@ -41,13 +41,16 @@ export async function loadIdeas(state, request, failed) {
   renderVendorQuestions(p);
   renderIdeas(state.plan, p);
   const secs = ((performance.now() - t0) / 1000).toFixed(1);
-  if (p.source === 'model') {
+  if (p.sources.ideas === 'model') {
     setIdeasStatus(
       `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`,
       'ok',
     );
   } else {
-    setIdeasStatus('The AI was unavailable — showing general ideas instead.', 'degraded');
+    setIdeasStatus(
+      'Personalised ideas were unavailable — showing general ideas instead.',
+      'degraded',
+    );
   }
   return p;
 }

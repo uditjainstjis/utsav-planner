@@ -32,7 +32,8 @@ import { isRecord } from './validate';
  * because schema-constrained decoding is paid for per output token: four short
  * replies in parallel finish in the time of the longest, not the sum. Each
  * part tries the primary model, then the fallback model; a part that still
- * fails is filled from deterministic guidance and the plan ships complete.
+ * fails is filled from deterministic guidance, labelled as such section by
+ * section, and the plan ships complete.
  *
  * Model choice was measured, not assumed — see docs/EVALUATION.md.
  */
@@ -58,7 +59,7 @@ export interface Env {
  */
 const MODEL_TIMEOUT_MS = 20_000;
 
-/** Bounds on what a model reply may contribute. Request limits live in validate.ts. */
+/** Bounds on what a model reply may contribute. Request limits live in public/js/shared.js. */
 export const REPLY_LIMITS = {
   ideas: 8,
   questionsPerVendor: 3,
@@ -153,7 +154,9 @@ function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T)
  * Every id the model used must belong to the plan it was shown; every string
  * is bounded; every enum is re-checked. A reply with no usable ideas is
  * rejected (returns null), so the caller ships deterministic ideas rather than
- * an empty card; a cached entry that fails this is treated as a miss.
+ * an empty card; a cached entry that fails this is treated as a miss. The
+ * vendor questions and budget notes are taken as {@link withReplySections}
+ * takes them.
  */
 export function coercePersonalisation(
   raw: Record<string, unknown>,
@@ -162,29 +165,39 @@ export function coercePersonalisation(
 ): Personalisation | null {
   const ideas = coerceIdeas(raw.ideas, plan.budget.lines);
   if (ideas.length === 0) return null;
+  const sections = withReplySections(raw, plan);
   return {
+    ...sections,
     summary: asString(raw.summary, REPLY_LIMITS.summary),
     ideas,
-    ...coerceSections(raw, plan),
-    source: 'model',
+    sources: { ...sections.sources, ideas: 'model' },
     model: meta.model,
     cached: meta.cached,
   };
 }
 
-const lineIdsOf = (plan: Plan): ReadonlySet<string> => new Set(plan.budget.lines.map((l) => l.id));
-
-/** The vendor questions and budget notes in a raw reply, checked against the plan. */
-function coerceSections(
-  raw: Record<string, unknown>,
-  plan: Plan,
-): Pick<Personalisation, 'vendorQuestions' | 'budgetNotes'> {
+/**
+ * The generic guidance for `plan`, with the reply's vendor questions and its
+ * budget notes in place of the generic ones wherever any entry of that section
+ * survives the checks against the plan, and `sources` saying which.
+ */
+function withReplySections(raw: Record<string, unknown>, plan: Plan): Personalisation {
+  const generic = fallbackPersonalisation(plan);
+  const vendorIds = new Set(plan.vendors.map((v) => v.id));
+  const lineIds = new Set(plan.budget.lines.map((l) => l.id));
+  const questions = coerceVendorQuestions(raw.vendorQuestions, vendorIds);
+  const notes = coerceBudgetNotes(raw.budgetNotes, lineIds);
+  const ownQuestions = Object.keys(questions).length > 0;
+  const ownNotes = Object.keys(notes).length > 0;
   return {
-    vendorQuestions: coerceVendorQuestions(
-      raw.vendorQuestions,
-      new Set(plan.vendors.map((v) => v.id)),
-    ),
-    budgetNotes: coerceBudgetNotes(raw.budgetNotes, lineIdsOf(plan)),
+    ...generic,
+    vendorQuestions: ownQuestions ? questions : generic.vendorQuestions,
+    budgetNotes: ownNotes ? notes : generic.budgetNotes,
+    sources: {
+      ideas: 'fallback',
+      vendorQuestions: ownQuestions ? 'model' : 'fallback',
+      budgetNotes: ownNotes ? 'model' : 'fallback',
+    },
   };
 }
 
@@ -347,28 +360,19 @@ async function askAll(env: Env, plan: Plan, timeoutMs: number): Promise<Answers>
   return { ideasA, ideasB, vendors, notes };
 }
 
-/** A part's object at `key`, else the generic one. Its contents are checked later, by coercePersonalisation. */
-function pick(part: PartResult | null, key: string, generic: object): object {
-  const raw = part?.obj[key];
-  return typeof raw === 'object' && raw !== null ? raw : generic;
-}
-
 /**
  * The answers as one raw reply, unchecked, and the model that wrote its ideas
- * (null when neither idea half answered). A section no model answered is the
- * generic one.
+ * (null when neither idea half answered). A section no model answered is
+ * absent, and its contents are checked later, by coercePersonalisation.
  */
-function mergeAnswers(
-  answers: Answers,
-  generic: Personalisation,
-): { reply: Record<string, unknown>; model: string | null } {
+function mergeAnswers(answers: Answers): { reply: Record<string, unknown>; model: string | null } {
   // Either half alone is still a personalisation; both together is the aim.
   const ideas = mergeIdeas(answers.ideasA, answers.ideasB);
   const reply = {
     summary: ideas?.obj.summary,
     ideas: ideas?.obj.ideas,
-    vendorQuestions: pick(answers.vendors, 'vendorQuestions', generic.vendorQuestions),
-    budgetNotes: pick(answers.notes, 'budgetNotes', generic.budgetNotes),
+    vendorQuestions: answers.vendors?.obj.vendorQuestions,
+    budgetNotes: answers.notes?.obj.budgetNotes,
   };
   return { reply, model: ideas?.model ?? null };
 }
@@ -389,15 +393,18 @@ export async function personalise(
   if (cached) return cached;
 
   const answers = await askAll(env, plan, options.timeoutMs ?? MODEL_TIMEOUT_MS);
-  const generic = fallbackPersonalisation(plan);
-  const { reply, model } = mergeAnswers(answers, generic);
+  const { reply, model } = mergeAnswers(answers);
   const result = model ? coercePersonalisation(reply, plan, { model, cached: false }) : null;
   // Ideas are the part that makes a personalisation worth the name; without
   // them it ships generic ideas, keeping whichever model-written questions and
   // notes pass the same checks.
-  if (!model || !result) return { ...generic, ...coerceSections(reply, plan) };
-  // Only a complete model answer is durable. A fallback must be retried.
-  if (Object.values(answers).every((a) => a !== null)) {
+  if (!model || !result) return withReplySections(reply, plan);
+  // Only a complete model answer is durable: every part answered and every
+  // section the model's. A fallback must be retried.
+  const complete =
+    Object.values(answers).every((a) => a !== null) &&
+    Object.values(result.sources).every((s) => s === 'model');
+  if (complete) {
     const entry: CachedReply = { model, reply };
     await cachePut(key, entry);
   }

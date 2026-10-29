@@ -186,7 +186,8 @@ What is covered, and the property each test holds:
 - **validate** — every error code and the field it names; impossible dates are
   rejected rather than rolled over; control characters are stripped.
 - **ai** — envelope unwrapping, enum normalisation, id checking, string bounds,
-  primary→fallback→deterministic, cache hit and cache bypass on fallback,
+  primary→fallback→deterministic, `sources` per section when one ask fails and
+  the others answer, cache hit and cache bypass on any generic section,
   schema-constrained call shape.
 - **api** — CSRF gate, cross-site rejection, rate limit by IP (and that it is
   not spent on rejected requests), identical security headers on API and assets,
@@ -206,7 +207,9 @@ What is covered, and the property each test holds:
   730-day limit is enforced before any request; a refinement is applied,
   announced and written back to the form, and a rejected one is shown at the
   change field; ideas that arrive, or fail, after their plan was replaced are
-  dropped; vendor questions carry the AI mark only when a model wrote them.
+  dropped; the guard notice names the field each finding was in; vendor
+  questions and budget notes carry the AI mark exactly when a model wrote that
+  section, also when the ideas beside them are generic, and the other way round.
 - **assets** (jsdom) — fonts are content-addressed and preloaded as used; the
   form's min/max/maxlength, the Worker's limits and the calendar's name all come
   from the one definition in `public/js/shared.js`.

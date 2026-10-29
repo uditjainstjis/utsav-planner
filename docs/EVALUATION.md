@@ -57,8 +57,8 @@ schema-valid, plan-consistent output on every run:
 
 Each of the four parts tries the primary and then the fallback independently, so
 a transient failure on one part costs one extra model call, not a blank section.
-If both fail, the part is filled from `src/lib/fallback.ts` and the response is
-labelled `source: "fallback"` so the UI can say so.
+If both fail, the part is filled from `src/lib/fallback.ts`, and the response's
+`sources` labels that section `fallback` so the UI can say so.
 
 ## 4. What the user sees
 

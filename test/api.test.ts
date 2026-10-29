@@ -272,7 +272,7 @@ describe('POST /api/personalise', () => {
     const res = await post('/api/personalise', { ...GOOD, occasion: 'unique-1' });
     expect(res.status).toBe(200);
     const p = await res.json<Personalisation>();
-    expect(p.source).toBe('model');
+    expect(p.sources.ideas).toBe('model');
     // The stub answers every ask with the same two ideas; two halves make four.
     expect(p.ideas).toHaveLength(4);
     expect(Object.keys(p.vendorQuestions)).toEqual(['caterer']);
@@ -290,7 +290,7 @@ describe('POST /api/personalise', () => {
     const res = await post('/api/personalise', { ...GOOD, occasion: 'unique-2' }, env);
     expect(res.status).toBe(200);
     const p = await res.json<Personalisation>();
-    expect(p.source).toBe('fallback');
+    expect(p.sources.ideas).toBe('fallback');
     expect(p.ideas.length).toBeGreaterThan(3);
     expect(Object.keys(p.budgetNotes).length).toBeGreaterThan(3);
   });

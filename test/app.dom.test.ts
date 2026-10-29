@@ -82,11 +82,17 @@ function deferredFetch(): {
   return { requested, answer };
 }
 
+const ALL_MODEL: Personalisation['sources'] = {
+  ideas: 'model',
+  vendorQuestions: 'model',
+  budgetNotes: 'model',
+};
+
 /** A personalisation a model wrote, its summary naming that model. */
 const byModel = (plan: Plan, model: string): Personalisation => ({
   ...fallbackPersonalisation(plan),
   summary: `Summary from ${model}`,
-  source: 'model',
+  sources: ALL_MODEL,
   model,
   cached: true,
 });
@@ -140,7 +146,7 @@ describe('the plan form', () => {
     const message = 'Plans can be made up to two years ahead.';
     const fetch = stubFetch(
       ok({ plan: PLAN, ics: '' }),
-      ok({ ...fallbackPersonalisation(PLAN), source: 'model', model: 'm', cached: true }),
+      ok({ ...fallbackPersonalisation(PLAN), sources: ALL_MODEL, model: 'm', cached: true }),
       { status: 400, body: { error: message, code: 'too_far', field: 'eventDate' } },
     );
 
@@ -236,6 +242,44 @@ describe('the plan form', () => {
     expect($('vendor-list').querySelectorAll('.ai-mark, .vendor__question--ai')).toHaveLength(0);
     expect($('budget-body').querySelectorAll('[data-ai]')).toHaveLength(0);
   });
+
+  /** Build the plan and answer its ideas call with `p`. */
+  async function buildWith(p: Personalisation): Promise<void> {
+    stubFetch(ok({ plan: PLAN, ics: '' }), ok(p));
+    fill(REQUEST.eventDate);
+    submit();
+    await settled();
+  }
+
+  const aiQuestions = (): number =>
+    $('vendor-list').querySelectorAll('.vendor__question--ai .ai-mark').length;
+  const aiNotes = (): number => $('budget-body').querySelectorAll('[data-ai]').length;
+
+  it('marks the model’s notes but not the generic questions beside them', async () => {
+    await buildWith({
+      ...byModel(PLAN, 'm'),
+      sources: { ideas: 'model', vendorQuestions: 'fallback', budgetNotes: 'model' },
+    });
+
+    expect($('ideas-status').textContent).toMatch(/ideas from m/);
+    expect(aiQuestions()).toBe(0);
+    expect(aiNotes()).toBe(PLAN.budget.lines.length);
+  });
+
+  it('marks the model’s questions even when the ideas are generic', async () => {
+    const generic = fallbackPersonalisation(PLAN);
+    await buildWith({
+      ...generic,
+      vendorQuestions: { caterer: ['Is the cake nut-free?'] },
+      sources: { ...generic.sources, vendorQuestions: 'model' },
+    });
+
+    expect($('ideas-status').dataset.state).toBe('degraded');
+    expect($('ideas-status').textContent).toMatch(/general ideas/);
+    expect(aiQuestions()).toBe(1);
+    expect($('vendor-list').textContent).toContain('Is the cake nut-free?');
+    expect(aiNotes()).toBe(0);
+  });
 });
 
 describe('the sample briefs', () => {
@@ -282,7 +326,7 @@ describe('the refine form', () => {
     const plan = buildPlan(refined.request, TODAY);
     await planFirst(
       ok({ ...refined, plan, ics: '' }),
-      ok({ ...fallbackPersonalisation(plan), source: 'model', model: 'm', cached: true }),
+      ok({ ...fallbackPersonalisation(plan), sources: ALL_MODEL, model: 'm', cached: true }),
     );
 
     refine('30 guests');
