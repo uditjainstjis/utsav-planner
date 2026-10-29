@@ -144,11 +144,11 @@ npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; p
 npm run coverage  # istanbul report
 ```
 
-277 tests across 14 files. 217 run inside **workerd** (the deployed runtime);
-the 60 in the four `*.dom.test.ts` suites (axe, contrast, the front end's flows,
+285 tests across 14 files. 219 run inside **workerd** (the deployed runtime);
+the 66 in the four `*.dom.test.ts` suites (axe, contrast, the front end's flows,
 the shipped assets) run in jsdom, because they need a DOM or read the shipped
-files off disk. Coverage of `src/`: 99.42% statements, 90.26% branches, 100%
-functions, 99.56% lines. 33 of 339 branches are uncovered, 21 of them in the
+files off disk. Coverage of `src/`: 99.42% statements, 90.6% branches, 100%
+functions, 99.55% lines. 31 of 330 branches are uncovered, 18 of them in the
 model-reply handling (`ai.ts`) and the refine parser, mostly `??` fallbacks and
 defensive checks. The suite is hermetic: the AI binding is a stub, so it runs
 identically on a laptop and on a CI runner holding no credentials.
@@ -184,7 +184,11 @@ What is covered, and the property each test holds:
   a plan already on screen; an ideas failure degrades only the ideas card; the
   730-day limit is enforced before any request; a refinement is applied,
   announced and written back to the form, and a rejected one is shown at the
-  change field.
+  change field; ideas that arrive, or fail, after their plan was replaced are
+  dropped; vendor questions carry the AI mark only when a model wrote them.
+- **assets** (jsdom) — fonts are content-addressed and preloaded as used; the
+  form's min/max/maxlength, the Worker's limits and the calendar's name all come
+  from the one definition in `public/js/shared.js`.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally
