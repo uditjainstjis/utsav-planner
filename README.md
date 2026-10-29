@@ -135,6 +135,7 @@ scripts/build-assets.mjs    writes the generated files in public/ from src/
 public/                     static single-page app: index.html, styles.css, fonts/, js/
 public/_headers             generated from src/lib/headers.ts
 public/js/constants.js      generated: src/shared/constants.ts compiled, with its .d.ts
+public/js/dates.js          generated: src/lib/dates.ts compiled, with its .d.ts
 public/js/main.js           entry point: wires the modules below
 public/js/dom.js            every element the script touches, looked up once
 public/js/state.js          the plan on screen, the progress announcer, busy buttons
@@ -154,11 +155,12 @@ Runs on Cloudflare Workers with one runtime dependency (`hono`). Static assets
 are served from the edge without invoking the Worker; `run_worker_first` is
 scoped to `/api/*`.
 
-`public/js/constants.js` (with its `.d.ts`) and `public/_headers` are build
-outputs, generated from `src/shared/constants.ts` and `src/lib/headers.ts` by
-`scripts/build-assets.mjs`, which npm runs before typechecking, linting and
-tests and wrangler runs as its `build.command` before `dev` and `deploy`; they
-are gitignored, so they cannot drift from their sources.
+`public/js/constants.js`, `public/js/dates.js` (each with its `.d.ts`) and
+`public/_headers` are build outputs, generated from `src/shared/constants.ts`,
+`src/lib/dates.ts` and `src/lib/headers.ts` by `scripts/build-assets.mjs`, which
+npm runs before typechecking, linting and tests and wrangler runs as its
+`build.command` before `dev` and `deploy`; they are gitignored, so they cannot
+drift from their sources.
 
 ## Security
 
@@ -239,10 +241,12 @@ What is covered, and the property each test holds:
   section, also when the ideas beside them are generic, and the other way round.
 - **assets** (jsdom) — fonts are content-addressed and preloaded as used;
   `public/js/constants.js` exports exactly what `src/shared/constants.ts` does,
-  with the same values and wording; `index.html` states no `min`, `max` or
-  `maxlength` and leaves the guest and budget help empty, because `form.js` sets
-  all of them from `constants.js` when the page starts (the **app** suite checks
-  the result); the calendar's name matches the occasion label.
+  with the same values and wording, and `public/js/dates.js` what
+  `src/lib/dates.ts` does, with the same days; `index.html` states no `min`,
+  `max` or `maxlength` and leaves the guest and budget help empty, because
+  `form.js` sets all of them from `constants.js` when the page starts (the
+  **app** suite checks the result); the calendar's name matches the occasion
+  label.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally

@@ -8,5 +8,5 @@
     "moduleDetection": "force"
   },
   "include": ["public/js/**/*.js"],
-  "exclude": ["public/js/constants.js"]
+  "exclude": ["public/js/constants.js", "public/js/dates.js"]
 }

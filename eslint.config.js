@@ -15,8 +15,9 @@ export default tseslint.config(
       'worker-configuration.d.ts',
       '.wrangler/**',
       'eslint.config.js',
-      // Compiled from src/shared/constants.ts, which is linted.
+      // Compiled from src/shared/constants.ts and src/lib/dates.ts, which are linted.
       'public/js/constants.*',
+      'public/js/dates.*',
     ],
   },
   js.configs.recommended,

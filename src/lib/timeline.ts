@@ -1,4 +1,4 @@
-import { DAY_MS, dateToMs, daysBetween, msToDate } from './dates';
+import { addDays, daysBetween } from './dates';
 import type { EventType } from '../shared/constants';
 import { STEPS } from './timeline-data';
 import type { Milestone, Timeline } from './types';
@@ -28,7 +28,6 @@ export function buildTimeline(eventType: EventType, eventDate: string, today: st
   // runway — early is fine, late is not.
   const scale = leadDays < ideal ? leadDays / ideal : 1;
   const rushed = leadDays < ideal / 2;
-  const eventMs = dateToMs(eventDate);
 
   const milestones: Milestone[] = steps.map((s) => {
     const daysBefore = Math.round(s.daysBefore * scale);
@@ -37,7 +36,7 @@ export function buildTimeline(eventType: EventType, eventDate: string, today: st
       title: s.title,
       phase: s.phase,
       daysBefore,
-      dueDate: msToDate(eventMs - daysBefore * DAY_MS),
+      dueDate: addDays(eventDate, -daysBefore),
       vendorId: s.vendorId ?? null,
     };
   });

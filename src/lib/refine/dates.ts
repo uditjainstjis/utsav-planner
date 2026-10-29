@@ -1,4 +1,4 @@
-import { DAY_MS, dateParts, dateToMs, daysBetween, msToDate } from '../dates';
+import { addDays, dateParts, daysBetween, msToDate } from '../dates';
 
 /**
  * Reading an event date out of a sentence: an explicit date, a month with the
@@ -91,7 +91,7 @@ function relativeDate(text: string, today: string): DateMatch | null {
   const unit = (m.groups.unit ?? '').toLowerCase();
   const iso = unit.startsWith('month')
     ? addMonths(today, n)
-    : msToDate(dateToMs(today) + (unit.startsWith('week') ? n * 7 : n) * DAY_MS);
+    : addDays(today, unit.startsWith('week') ? n * 7 : n);
   return { iso, span: spanOf(m) };
 }
 

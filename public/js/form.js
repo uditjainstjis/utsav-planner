@@ -5,7 +5,7 @@
  * every field again; these checks are a convenience, not a control.
  */
 import { els } from './dom.js';
-import { addDays } from './format.js';
+import { addDays } from './dates.js';
 import { SAMPLES } from './samples.js';
 import { LIMITS, MESSAGE, rangeMessage, rupees, todayIso } from './constants.js';
 

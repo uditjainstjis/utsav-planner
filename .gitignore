@@ -20,4 +20,6 @@ worker-configuration.d.ts
 # test, dev and deploy run, so they cannot drift from their source.
 public/js/constants.js
 public/js/constants.d.ts
+public/js/dates.js
+public/js/dates.d.ts
 public/_headers

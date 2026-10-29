@@ -1,4 +1,4 @@
-import { DAY_MS, dateToMs, msToDate } from './dates';
+import { addDays } from './dates';
 import type { Timeline } from './types';
 
 /**
@@ -46,7 +46,7 @@ export function toIcs(timeline: Timeline, occasion: string, stamp: string): stri
   ];
   for (const m of timeline.milestones) {
     const start = m.dueDate.replace(/-/g, '');
-    const end = msToDate(dateToMs(m.dueDate) + DAY_MS).replace(/-/g, '');
+    const end = addDays(m.dueDate, 1).replace(/-/g, '');
     lines.push(
       'BEGIN:VEVENT',
       `UID:${m.id}-${start}@utsav-planner`,

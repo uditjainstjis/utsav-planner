@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dateToMs, daysBetween, msToDate } from '../src/lib/dates';
+import { addDays, daysBetween } from '../src/lib/dates';
 import { toIcs } from '../src/lib/ics';
 import { bookByFor, buildTimeline } from '../src/lib/timeline';
 import { EVENT_TYPES } from '../src/shared/constants';
@@ -7,10 +7,13 @@ import { EVENT_TYPES } from '../src/shared/constants';
 const TODAY = '2026-10-23';
 
 describe('date arithmetic', () => {
-  it('round-trips a calendar date through UTC milliseconds', () => {
+  it('adds calendar days across a month end, a leap day and a year end', () => {
     for (const d of ['2026-01-01', '2026-02-28', '2028-02-29', '2026-12-31']) {
-      expect(msToDate(dateToMs(d))).toBe(d);
+      expect(addDays(d, 0)).toBe(d);
     }
+    expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2027-03-01', -1)).toBe('2027-02-28');
   });
 
   it('counts whole days, including across a month end and a leap day', () => {

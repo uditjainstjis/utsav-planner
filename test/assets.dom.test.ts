@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildPlan, planIcs } from '../src/lib/plan';
+import * as dates from '../src/lib/dates';
 import * as source from '../src/shared/constants';
 
 const { LIMITS, OCCASION_LABEL } = source;
@@ -55,6 +56,21 @@ describe('the shipped fonts', () => {
       // If this fails, a font was edited without renaming it, and caches will
       // serve the old bytes for a year.
       expect(font).toContain(digest);
+    }
+  });
+});
+
+describe('the date arithmetic the page and the Worker share', () => {
+  it('reaches the page as src/lib/dates.ts compiled: same exports, same days', async () => {
+    const compiled = await import('../public/js/dates.js');
+    expect(Object.keys(compiled).sort()).toEqual(Object.keys(dates).sort());
+    for (const [iso, days] of [
+      ['2026-12-31', 1],
+      ['2028-02-28', 1],
+      ['2026-10-23', 730],
+      ['2027-03-01', -1],
+    ] as const) {
+      expect(compiled.addDays(iso, days)).toBe(dates.addDays(iso, days));
     }
   });
 });

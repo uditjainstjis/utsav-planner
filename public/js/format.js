@@ -1,5 +1,5 @@
 // @ts-check
-/** Share and date formatting, and the calendar arithmetic the form needs. Money is in constants.js. */
+/** Share and date formatting. Money is in constants.js, calendar arithmetic in dates.js. */
 
 /** @typedef {import('../../src/lib/types').Plan} Plan */
 
@@ -23,13 +23,3 @@ const DATE_FMT = new Intl.DateTimeFormat('en-IN', {
 
 /** @param {string} iso */
 export const fmtDate = (iso) => DATE_FMT.format(new Date(`${iso}T00:00:00Z`));
-
-/**
- * @param {string} iso
- * @param {number} days
- */
-export function addDays(iso, days) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
