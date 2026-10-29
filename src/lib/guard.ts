@@ -107,6 +107,7 @@ function excerpt(text: string, offset: number, length: number): string {
  */
 export function scanForInjection(text: string, field: ScreenedField): InjectionFinding[] {
   return matches(text)
+    .sort((a, b) => a.start - b.start)
     .slice(0, MAX_FINDINGS)
     .map(({ rule, start, end }) => ({
       field,
@@ -114,8 +115,7 @@ export function scanForInjection(text: string, field: ScreenedField): InjectionF
       detail: rule.detail,
       excerpt: excerpt(text, start, end - start),
       offset: start,
-    }))
-    .sort((a, b) => a.offset - b.offset);
+    }));
 }
 
 /** Where sentences end: at the full stops and line breaks the rules stop at, and at ! and ?. */
