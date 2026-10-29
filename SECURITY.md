@@ -146,8 +146,8 @@ asserts it states exactly the headers the Worker sets.
 - API responses: `Cache-Control: no-store, no-cache, must-revalidate, private`.
 
 The only persisted client state is the theme preference and the vendor checklist
-ticks, in `localStorage`, keyed by occasion, date and headcount. No budget,
-wishes or model output is stored.
+ticks, in `localStorage`, keyed by occasion type and event date, so a refined
+headcount or budget keeps them. No budget, wishes or model output is stored.
 
 ## 5. Caching
 
