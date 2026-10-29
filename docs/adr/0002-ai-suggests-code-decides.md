@@ -33,8 +33,8 @@ Split the two completely.
   flags are removed before the prompt is built.
 - The plan is available in milliseconds and is complete without the model. A
   model outage degrades the sections it touches, each labelled (`sources`).
-- Testing is straightforward: the deterministic 80% has exhaustive unit tests;
-  the generative 20% has tests for the validation gate and for every failure
+- Testing is straightforward: the deterministic part has exhaustive unit tests;
+  the generative part has tests for the validation gate and for every failure
   path, with the model stubbed.
 - Ideas are less "magical" than a free-form chat would make them feel. That is
   the trade: a number the user can trust over a sentence that sounds confident.

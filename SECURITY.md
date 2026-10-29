@@ -22,7 +22,7 @@ exists in the repository, in CI, or in the deployed bundle.
 
 ## 1. The request gate (`src/index.ts`)
 
-Both `POST` routes run the same three checks, in this order:
+Every `POST` route runs the same three checks, in this order:
 
 1. **`Content-Type: application/json` is required.** This is the CSRF control. A
    cross-origin page can fire a `fetch` with `text/plain` without a preflight —
@@ -47,11 +47,12 @@ Every field is checked for type, bounds and shape, and the error names the field
   years ahead.
 - Guests 1–5,000; budget ₹1,000–₹10,00,00,000; whole numbers after rounding.
 - Text fields are capped (60 / 80 / 600 characters) and stripped of C0/C1
-  control characters.
+  control characters other than tab and line breaks.
 - The JSON body is parsed once; a non-object body is a 400, never an exception.
   Every field inside it is bounded (600-character wishes, 200-character change,
-  80/60-character names), so the largest useful body is about a kilobyte;
-  anything beyond Cloudflare's request limit never reaches the Worker.
+  80-character occasion name, 60-character city), so the largest useful body is
+  about a kilobyte; anything beyond Cloudflare's request limit never reaches the
+  Worker.
 
 There is no regular expression in the validation path that can backtrack
 polynomially: the date pattern is anchored and fixed-width, and the control
@@ -106,17 +107,17 @@ Nothing a model writes is ever executed, templated, or interpreted as markup.
 ### The refine step
 
 `POST /api/refine` accepts one more free-text field, the change (≤200
-characters). It is read by anchored regular expressions for an amount, a
-headcount and a date — fixed alternations and bounded repeats, no nested
-quantifiers, so no input can make them backtrack polynomially — and the parsed
-values go through the same range limits as the form (`validateDate` for the
-date, the guest and budget bounds for the numbers). The sentence is then
-appended to the wishes as a labelled "Adjustment requested" line and re-bounded
-to the wishes limit: at most the three most recent adjustments are kept, older
-ones are dropped first, and the result can never exceed 600 characters, so the
-brief that reaches the model on the next `/api/personalise` call is subject to
-exactly the same screen, removal, fence and validation as a fresh one. The
-refine route itself never calls a model, and `test/api.test.ts` asserts it.
+characters, whitespace collapsed). It is read by regular expressions for an
+amount, a headcount and a date — fixed alternations and no nested quantifiers,
+so no input can make them backtrack catastrophically — and the parsed values go
+through the same range limits as the form (`validateDate` for the date, the
+guest and budget bounds for the numbers). The sentence is then appended to the
+wishes as a labelled "Adjustment requested" line and re-bounded to the wishes
+limit: at most the three most recent adjustments are kept, older ones are
+dropped first, and the result can never exceed 600 characters, so the brief that
+reaches the model on the next `/api/personalise` call is subject to exactly the
+same screen, removal, fence and validation as a fresh one. The refine route
+itself never calls a model, and `test/api.test.ts` asserts it.
 
 ## 4. The page (`src/lib/headers.ts`, `public/_headers`, `public/js/`)
 
@@ -131,13 +132,13 @@ so neither can be hardened without the other.
 - **Trusted Types**: `require-trusted-types-for 'script'; trusted-types 'none'`
   makes the browser refuse every assignment to `innerHTML`, `outerHTML`,
   `insertAdjacentHTML` and `document.write`. The front end writes model output
-  exclusively through `textContent`; this directive turns that convention into
-  something a future commit cannot quietly break.
+  only as text, through `textContent` or `append()` of a string; this directive
+  turns that convention into something a future commit cannot quietly break.
 - **COOP / COEP / CORP** all set; the page loads no cross-origin resource, so
   cross-origin isolation costs nothing and closes a class of side channel.
 - **HSTS** with preload, `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, a
-  `Permissions-Policy` that denies every feature by name,
+  `Permissions-Policy` that denies 25 features by name,
   `Origin-Agent-Cluster: ?1`.
 - API responses: `Cache-Control: no-store, no-cache, must-revalidate, private`.
 
@@ -150,8 +151,9 @@ wishes or model output is stored.
 Personalisations are cached in the Workers Cache API for seven days under a
 SHA-256 of the inputs that determine them (occasion, guests, budget, city,
 occasion name, wishes, lead-time bucket, prompt version, model). The cache is
-per-colocation and never leaves Cloudflare. A fallback answer is never cached,
-so a model outage is retried on the next request rather than remembered.
+per-colocation and never leaves Cloudflare. An answer with any generic section
+is never cached, so a model outage is retried on the next request rather than
+remembered.
 
 ## 6. Supply chain and CI
 

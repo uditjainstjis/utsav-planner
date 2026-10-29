@@ -41,5 +41,6 @@ slow or failed part does not hold the others.
 - The two idea halves are merged in code (`mergeIdeas`). The summary rides with
   the first half; the second asks only for a one-line mood so its schema stays
   identical and its reply short.
-- A cache entry is written only when all four parts came from a model, so a
-  partial answer is never remembered as a complete one.
+- A cache entry is written only when all four parts came from a model and every
+  section survived the checks, so a partial answer is never remembered as a
+  complete one.

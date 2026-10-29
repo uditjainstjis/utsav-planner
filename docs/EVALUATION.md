@@ -81,11 +81,12 @@ deliberately malformed reply.
 
 ## 6. What personalisation looks like
 
-The same prompts, the same model, three sample briefs. Every line below came
-back from `/api/personalise` on the live deployment on 23 Oct 2026 — pasted, not
-paraphrased. The words that could only have come from the brief are the point:
-marigold, dhol and sangeet for Jaipur; nut-free and dinosaurs for a
-five-year-old; clay diyas and seed-bomb favours for an eco-friendly mela.
+The same model, three sample briefs, the prompts as they stood that day. Every
+line below came back from `/api/personalise` on the live deployment on 23 Oct
+2026 — pasted, not paraphrased. The words that could only have come from the
+brief are the point: marigold, dhol and sangeet for Jaipur; nut-free and
+dinosaurs for a five-year-old; clay diyas and seed-bomb favours for an
+eco-friendly mela.
 
 **Jaipur wedding, 250 guests, ₹15,00,000 — "vegetarian only, pastel and
 marigold, live dhol, sangeet"** — summary: _Riya & Arjun's wedding will host 250
@@ -132,9 +133,10 @@ eco-friendly decor to create a memorable experience. The e…_
 - vendor question → caterer: _Biodegradable utensils used?_
 - budget note → catering: _Opt for local food vendors_
 
-When the model is unavailable the section is filled from `src/lib/fallback.ts`
-and labelled "general ideas" in the UI — deliberately generic, so a reader can
-tell the two apart.
+When no model's ideas are usable, the ideas are filled from
+`src/lib/fallback.ts` and the status line says "general ideas"; a section of
+questions or notes filled from it carries no AI mark. The guidance is
+deliberately generic, so a reader can tell the two apart.
 
 ## Reproducing
 

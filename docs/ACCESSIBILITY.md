@@ -69,9 +69,9 @@ error to its `aria-describedby`, moves focus to it, and announces the message
 once through `role="alert"`. Navigating back to the field later re-reads the
 error (WCAG 3.3.1, 3.3.3).
 
-**Busy state never steals focus.** The build button uses `aria-disabled` rather
-than `disabled`, because disabling the element the user just activated drops
-focus to `<body>` and loses their place.
+**Busy state never steals focus.** The build and update buttons use
+`aria-disabled` rather than `disabled`, because disabling the element the user
+just activated drops focus to `<body>` and loses their place.
 
 **Announcements are rationed.** The stages of a request — "building", "plan
 ready (with counts)", "ideas added (with timing)" — go through one hidden polite
@@ -97,16 +97,19 @@ because it is cloned under an h3.
 so a user who returns to confirm a booking does not have to remember which ones
 they had ticked.
 
-**Motion is optional.** The only animation is the small "writing ideas" spinner,
-and it is disabled under `prefers-reduced-motion: reduce`.
+**Motion is optional.** The only animation is the small "writing ideas" spinner;
+everything else that moves is a short transition on hover, press, focus or the
+skip link. Under `prefers-reduced-motion: reduce` the spinner stops and every
+transition is cut to 0.01 ms.
 
 **Print is a first-class output.** A print stylesheet hides the form and the
 chrome and keeps every section on its own page where possible, so "save as PDF"
 produces a plan that can be handed to a parent or a committee.
 
-**Type and zoom.** Body text is 17–18px; the page reflows to a single column
-below 760px with no horizontal scroll; the budget table scrolls within its own
-container at narrow widths rather than breaking the page.
+**Type and zoom.** Body text is 16px, and every size is in `rem` or `em`, so
+text follows the browser's own size setting; the page reflows to a single column
+below 900px and its inner grids below 760px; the budget table scrolls within its
+own container at narrow widths rather than breaking the page.
 
 ## Checked by hand
 

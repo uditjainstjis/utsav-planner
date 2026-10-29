@@ -6,13 +6,13 @@ A GenAI-powered planning assistant for **weddings, birthdays and community
 events**. Tell it the occasion, date, headcount and budget — and in your own
 words what you want — and it returns the four things every celebration needs:
 
-| Deliverable                                                                                                                                                                                                                                                        | How it is produced                                                                                    | Where                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                                                                                                                                                 | Pure arithmetic from occasion-specific shares; lines always sum to the exact total                    | `src/lib/budget.ts`                    |
-| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                                                             | Pure date arithmetic; RFC 5545 `.ics` export                                                          | `src/lib/timeline.ts`                  |
-| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                                                       | Deterministic template tied to the timeline; the model adds questions specific to your wishes         | `src/lib/vendors.ts`                   |
-| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                                                       | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback        | `src/lib/ai.ts`, `src/prompts/plan.ts` |
-| **Refine in words** — "budget 12 lakh, 300 guests, move it to March, add a mehndi night": amounts, headcount and dates are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts, headcount and dates; the rest is a labelled adjustment to the brief | `src/lib/refine.ts`                    |
+| Deliverable                                                                                                                                                                                                                                                        | How it is produced                                                                                           | Where                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| **Budget** — split by category, per-guest figures, warnings when the money is thin                                                                                                                                                                                 | Pure arithmetic from occasion-specific shares; lines always sum to the exact total                           | `src/lib/budget.ts`                    |
+| **Timeline** — dated milestones counted back from the event, compressed when time is short, exportable to any calendar                                                                                                                                             | Pure date arithmetic; RFC 5545 `.ics` export                                                                 | `src/lib/timeline.ts`                  |
+| **Vendor checklist** — who to book, by when, paid from which line, with the questions to ask                                                                                                                                                                       | Deterministic template tied to the timeline; the model adds questions specific to your wishes                | `src/lib/vendors.ts`                   |
+| **Personalised ideas** — theme, decor, food, activities, favours, invitations, each with an honest cost tier and the budget line it draws on                                                                                                                       | Workers AI, JSON-schema constrained, validated against the plan, with a deterministic fallback               | `src/lib/ai.ts`, `src/prompts/plan.ts` |
+| **Refine in words** — "budget 12 lakh, 300 guests, move it to March, add a mehndi night": amounts, headcount and dates are re-read and the whole plan recomputed in code; the wording goes to the model and the ideas are rewritten; every change applied is shown | Deterministic parser for amounts, headcount and dates; the sentence joins the brief as a labelled adjustment | `src/lib/refine.ts`                    |
 
 Built for **PromptWars Virtual, Challenge 5: Celebration & Event Planner**.
 
@@ -31,9 +31,9 @@ twenty five-year-olds with two nut allergies_ and the wrong tool for _whether
   functions with unit tests. The model is **told** those numbers and never asked
   to produce one.
 - The model writes the parts that need taste: a summary in the user's terms, six
-  ideas, a question per vendor, a sentence per budget line. Its reply is
-  schema-constrained, then checked in code against the plan it was shown: every
-  id must exist, every string is bounded, every enumeration re-verified.
+  ideas, one or two questions per vendor, a sentence per budget line. Its reply
+  is schema-constrained, then checked in code against the plan it was shown:
+  every id must exist, every string is bounded, every enumeration re-verified.
 - If the model is unavailable, the plan still ships complete — with generic
   ideas, clearly labelled as such — because `/api/plan` never waits for it.
 
@@ -119,7 +119,7 @@ src/lib/cache      content-addressed Workers Cache API wrapper
 
 public/            static single-page app: index.html, styles.css, _headers, fonts/, js/
 public/js/main          entry point: wires the modules below
-public/js/shared        request limits and occasion labels, imported by the page and the Worker
+public/js/shared        limits, occasion labels, money, range message, today: one copy for page and Worker
 public/js/dom           every element the script touches, looked up once
 public/js/state         the plan on screen, the progress announcer, busy buttons
 public/js/api           the three POST calls, with timeouts and readable errors
@@ -130,7 +130,7 @@ public/js/refine        "Change something": the refine round trip
 public/js/personalise   the ideas call, dropped if its plan was replaced
 public/js/render-*      plan summary, budget, timeline, vendors, ideas
 public/js/exports       CSV, .ics, copy as text, print
-public/js/format        money, share and date formatting
+public/js/format        share and date formatting
 public/js/theme         the light/dark toggle
 ```
 
@@ -159,15 +159,15 @@ are in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 ## Testing
 
 ```
-npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; public/js via JSDoc), lint, format check, tests
+npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; public/js via JSDoc), lint (functions ≤ 40 lines), format check, tests
 npm run coverage  # istanbul report
 ```
 
-285 tests across 14 files. 219 run inside **workerd** (the deployed runtime);
-the 66 in the four `*.dom.test.ts` suites (axe, contrast, the front end's flows,
+301 tests across 14 files. 232 run inside **workerd** (the deployed runtime);
+the 69 in the four `*.dom.test.ts` suites (axe, contrast, the front end's flows,
 the shipped assets) run in jsdom, because they need a DOM or read the shipped
-files off disk. Coverage of `src/`: 99.42% statements, 90.6% branches, 100%
-functions, 99.55% lines. 31 of 330 branches are uncovered, 18 of them in the
+files off disk. Coverage of `src/`: 99.43% statements, 91.81% branches, 100%
+functions, 99.57% lines. 27 of 330 branches are uncovered, 17 of them in the
 model-reply handling (`ai.ts`) and the refine parser, mostly `??` fallbacks and
 defensive checks. The suite is hermetic: the AI binding is a stub, so it runs
 identically on a laptop and on a CI runner holding no credentials.
@@ -184,7 +184,8 @@ What is covered, and the property each test holds:
 - **vendors** — every vendor is paid from a budget line that exists and booked
   by a milestone that exists; checklists are fresh arrays.
 - **validate** — every error code and the field it names; impossible dates are
-  rejected rather than rolled over; control characters are stripped.
+  rejected rather than rolled over; control characters other than tab and line
+  breaks are stripped.
 - **ai** — envelope unwrapping, enum normalisation, id checking, string bounds,
   primary→fallback→deterministic, `sources` per section when one ask fails and
   the others answer, cache hit and cache bypass on any generic section,

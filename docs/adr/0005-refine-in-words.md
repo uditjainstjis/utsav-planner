@@ -27,10 +27,10 @@ Add one more turn, `POST /api/refine`, with the same split as everything else:
   ("Adjustment requested: …") and the client calls `/api/personalise` again, so
   ideas, vendor questions and budget notes are rewritten around it by the model,
   under the same schemas and the same validation.
-- **Every change applied is returned and shown** as chips: "Budget ₹15,00,000 →
-  ₹12,00,000", "Guests 250 → 300", "Ideas rewritten for: add a mehndi night". A
-  number the parser could not read is not changed, and the user can see that it
-  was not.
+- **Every change applied is returned and shown** as chips: "Budget: ₹15,00,000 →
+  ₹12,00,000", "Guests: 250 → 300", "Ideas rewritten for: “add a mehndi night”".
+  A number the parser could not read is not changed, and the user can see that
+  it was not.
 
 ## Consequences
 
@@ -42,7 +42,7 @@ Add one more turn, `POST /api/refine`, with the same split as everything else:
   (`in 3 weeks`) or a month alone (`move it to March`, keeping the day) — and
   nothing else; a city or occasion change is made in the form. Extending it is a
   matter of adding a pattern and a test, not of prompting.
-- Adjustments accumulate in the brief across turns, bounded in length, so the
-  model always sees the history of what the user asked for.
+- Adjustments accumulate in the brief across turns, bounded in length: the model
+  sees the three most recent, and older ones are dropped first.
 - Refining never calls the model itself (`test/api.test.ts` asserts it), so the
   numbers update in milliseconds and the words follow.

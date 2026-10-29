@@ -32,5 +32,5 @@ Two routes, called in sequence by the client:
   work even when the model does not.
 - The client has to coordinate two requests and two states; the front end
   (`public/js/state.js`) keeps a single current plan and renders the AI parts
-  into cells and lists that already exist, so there is no layout shift when they
-  arrive.
+  into cells and lists that already exist, so they fill in place rather than
+  rebuilding the page.
