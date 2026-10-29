@@ -12,10 +12,14 @@ import type { EventType } from '../shared/constants';
 import type { BudgetLineId } from './budget';
 import type { VendorId } from './vendors-data';
 
-/** A validated, normalised planning request: from `validate.ts`, or from `refine.ts` through the same validators. */
+/** A validated, normalised planning request: from `validate.ts`, or from `refine/apply.ts` through the same validators. */
 export interface PlanRequest {
   eventType: EventType;
-  /** ISO calendar date, YYYY-MM-DD, in the user's local calendar. */
+  /**
+   * A calendar date, YYYY-MM-DD, with no time of day or zone. All date code
+   * (src/lib/dates.ts) treats it as a UTC calendar day, and "today" is the
+   * current UTC date, on the server and in the form alike.
+   */
   eventDate: string;
   guests: number;
   /** Total budget in whole rupees. */

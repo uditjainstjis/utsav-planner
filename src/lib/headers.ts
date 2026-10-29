@@ -82,9 +82,9 @@ const PERMISSIONS_POLICY = [
   .map((feature) => `${feature}=()`)
   .join(', ');
 
-type Headers = Readonly<Record<string, string>>;
+type HeaderMap = Readonly<Record<string, string>>;
 
-const SECURITY_HEADERS: Headers = {
+const SECURITY_HEADERS: HeaderMap = {
   'content-security-policy': CSP,
   'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
   'x-content-type-options': 'nosniff',
@@ -99,7 +99,7 @@ const SECURITY_HEADERS: Headers = {
 };
 
 /** Headers for static paths beyond the policy every path gets. */
-const STATIC_RULES: Readonly<Record<string, Headers>> = {
+const STATIC_RULES: Readonly<Record<string, HeaderMap>> = {
   // Font filenames carry a hash of their own bytes (test/assets.dom.test.ts
   // holds it), so a URL never changes meaning and `immutable` is safe.
   '/fonts/*': { 'cache-control': 'public, max-age=31536000, immutable' },
@@ -121,7 +121,7 @@ export function harden(res: Response): Response {
 /** The text of public/_headers: the policy on every path, then {@link STATIC_RULES}. */
 export function headersFile(): string {
   const rules = { '/*': SECURITY_HEADERS, ...STATIC_RULES };
-  const block = ([path, headers]: [string, Headers]): string =>
+  const block = ([path, headers]: [string, HeaderMap]): string =>
     [path, ...Object.entries(headers).map(([name, value]) => `  ${name}: ${value}`)].join('\n');
   return `${Object.entries(rules).map(block).join('\n\n')}\n`;
 }
