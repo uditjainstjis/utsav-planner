@@ -34,9 +34,9 @@ export default tseslint.config(
     },
   },
   {
-    // Shipped code keeps every function to a screen; tests are exempt, since a
-    // describe block is a list of cases, not a unit of logic.
-    files: ['src/**/*.ts', 'public/**/*.js'],
+    // Shipped code and the build script keep every function to a screen. Tests
+    // are exempt, since a describe block is a list of cases, not a unit of logic.
+    files: ['src/**/*.ts', 'public/**/*.js', 'scripts/**/*.mjs'],
     rules: { 'max-lines-per-function': ['error', { max: 40 }] },
   },
   {

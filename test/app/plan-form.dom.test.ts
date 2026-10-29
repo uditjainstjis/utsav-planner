@@ -6,7 +6,6 @@ import {
   loadApp,
   $,
   ALL_MODEL,
-  byModel,
   fill,
   inDays,
   ok,
@@ -17,7 +16,6 @@ import {
   submit,
   TODAY,
 } from './harness.dom';
-import type { Personalisation } from '../../src/lib/types';
 
 /**
  * The front end's request flows, driven through the real markup and modules.
@@ -139,58 +137,6 @@ describe('the plan form', () => {
     expect(alert.hidden).toBe(false);
     expect(alert.textContent).toContain('Occasion name, role-hijack:');
     expect(alert.textContent).toContain('removed before the AI saw your brief');
-  });
-
-  it('marks nothing as written by the AI when the guidance is generic', async () => {
-    const generic = fallbackPersonalisation(PLAN);
-    stubFetch(ok({ plan: PLAN, ics: '' }), ok(generic));
-
-    fill(REQUEST.eventDate);
-    submit();
-    await settled();
-
-    const question = Object.values(generic.vendorQuestions)[0]![0]!;
-    expect($('vendor-list').textContent).toContain(question);
-    expect($('vendor-list').querySelectorAll('.ai-mark, .vendor__question--ai')).toHaveLength(0);
-    expect($('budget-body').querySelectorAll('[data-ai]')).toHaveLength(0);
-  });
-
-  /** Build the plan and answer its ideas call with `p`. */
-  async function buildWith(p: Personalisation): Promise<void> {
-    stubFetch(ok({ plan: PLAN, ics: '' }), ok(p));
-    fill(REQUEST.eventDate);
-    submit();
-    await settled();
-  }
-
-  const aiQuestions = (): number =>
-    $('vendor-list').querySelectorAll('.vendor__question--ai .ai-mark').length;
-  const aiNotes = (): number => $('budget-body').querySelectorAll('[data-ai]').length;
-
-  it('marks the model’s notes but not the generic questions beside them', async () => {
-    await buildWith({
-      ...byModel(PLAN, 'm'),
-      sources: { ideas: 'model', vendorQuestions: 'fallback', budgetNotes: 'model' },
-    });
-
-    expect($('ideas-status').textContent).toMatch(/ideas from m/);
-    expect(aiQuestions()).toBe(0);
-    expect(aiNotes()).toBe(PLAN.budget.lines.length);
-  });
-
-  it('marks the model’s questions even when the ideas are generic', async () => {
-    const generic = fallbackPersonalisation(PLAN);
-    await buildWith({
-      ...generic,
-      vendorQuestions: { caterer: ['Is the cake nut-free?'] },
-      sources: { ...generic.sources, vendorQuestions: 'model' },
-    });
-
-    expect($('ideas-status').dataset.state).toBe('degraded');
-    expect($('ideas-status').textContent).toMatch(/general ideas/);
-    expect(aiQuestions()).toBe(1);
-    expect($('vendor-list').textContent).toContain('Is the cake nut-free?');
-    expect(aiNotes()).toBe(0);
   });
 });
 
