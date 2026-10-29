@@ -49,7 +49,7 @@ export interface Env {
  * so the fallback model — and then deterministic guidance — can answer. The
  * user never waits on a hung binding.
  */
-export const MODEL_TIMEOUT_MS = 20_000;
+const MODEL_TIMEOUT_MS = 20_000;
 
 /** Bounds on what a model reply may contribute. Request limits live in validate.ts. */
 export const REPLY_LIMITS = {
@@ -153,18 +153,31 @@ export function coercePersonalisation(
   plan: Plan,
   meta: { model: string; cached: boolean },
 ): Personalisation | null {
-  const lineIds = new Set(plan.budget.lines.map((l) => l.id));
-  const vendorIds = new Set(plan.vendors.map((v) => v.id));
-  const ideas = coerceIdeas(raw.ideas, lineIds);
+  const ideas = coerceIdeas(raw.ideas, lineIdsOf(plan));
   if (ideas.length === 0) return null;
   return {
     summary: asString(raw.summary, REPLY_LIMITS.summary),
     ideas,
-    vendorQuestions: coerceVendorQuestions(raw.vendorQuestions, vendorIds),
-    budgetNotes: coerceBudgetNotes(raw.budgetNotes, lineIds),
+    ...coerceSections(raw, plan),
     source: 'model',
     model: meta.model,
     cached: meta.cached,
+  };
+}
+
+const lineIdsOf = (plan: Plan): ReadonlySet<string> => new Set(plan.budget.lines.map((l) => l.id));
+
+/** The vendor questions and budget notes in a raw reply, checked against the plan. */
+function coerceSections(
+  raw: Record<string, unknown>,
+  plan: Plan,
+): Pick<Personalisation, 'vendorQuestions' | 'budgetNotes'> {
+  return {
+    vendorQuestions: coerceVendorQuestions(
+      raw.vendorQuestions,
+      new Set(plan.vendors.map((v) => v.id)),
+    ),
+    budgetNotes: coerceBudgetNotes(raw.budgetNotes, lineIdsOf(plan)),
   };
 }
 
@@ -311,10 +324,46 @@ function cacheParts(plan: Plan): string[] {
   ];
 }
 
+type Answers = Record<Part, PartResult | null>;
+
+/** All four parts at once, under one nonce. */
+async function askAll(env: Env, plan: Plan, timeoutMs: number): Promise<Answers> {
+  const nonce = makeNonce();
+  const ask = (part: Part): Promise<PartResult | null> =>
+    askPart(env, part, plan, nonce, timeoutMs);
+  const [ideasA, ideasB, vendors, notes] = await Promise.all([
+    ask('ideasA'),
+    ask('ideasB'),
+    ask('vendors'),
+    ask('notes'),
+  ]);
+  return { ideasA, ideasB, vendors, notes };
+}
+
 /** A part's object at `key`, else the generic one. Its contents are checked later, by coercePersonalisation. */
 function pick(part: PartResult | null, key: string, generic: object): object {
   const raw = part?.obj[key];
   return typeof raw === 'object' && raw !== null ? raw : generic;
+}
+
+/**
+ * The answers as one raw reply, unchecked, and the model that wrote its ideas
+ * (null when neither idea half answered). A section no model answered is the
+ * generic one.
+ */
+function mergeAnswers(
+  answers: Answers,
+  generic: Personalisation,
+): { reply: Record<string, unknown>; model: string | null } {
+  // Either half alone is still a personalisation; both together is the aim.
+  const ideas = mergeIdeas(answers.ideasA, answers.ideasB);
+  const reply = {
+    summary: ideas?.obj.summary,
+    ideas: ideas?.obj.ideas,
+    vendorQuestions: pick(answers.vendors, 'vendorQuestions', generic.vendorQuestions),
+    budgetNotes: pick(answers.notes, 'budgetNotes', generic.budgetNotes),
+  };
+  return { reply, model: ideas?.model ?? null };
 }
 
 /**
@@ -327,54 +376,22 @@ export async function personalise(
   plan: Plan,
   options: { timeoutMs?: number } = {},
 ): Promise<Personalisation> {
-  const timeoutMs = options.timeoutMs ?? MODEL_TIMEOUT_MS;
   const key = await contentKey(cacheParts(plan));
   const hit = asCachedReply(await cacheGet(key));
-  if (hit) {
-    const cached = coercePersonalisation(hit.reply, plan, { model: hit.model, cached: true });
-    if (cached) return cached;
-  }
+  const cached = hit && coercePersonalisation(hit.reply, plan, { model: hit.model, cached: true });
+  if (cached) return cached;
 
-  const nonce = makeNonce();
-  const [ideasA, ideasB, vendors, notes] = await Promise.all([
-    askPart(env, 'ideasA', plan, nonce, timeoutMs),
-    askPart(env, 'ideasB', plan, nonce, timeoutMs),
-    askPart(env, 'vendors', plan, nonce, timeoutMs),
-    askPart(env, 'notes', plan, nonce, timeoutMs),
-  ]);
-  // Either half alone is still a personalisation; both together is the aim.
-  const ideas = mergeIdeas(ideasA, ideasB);
-
+  const answers = await askAll(env, plan, options.timeoutMs ?? MODEL_TIMEOUT_MS);
   const generic = fallbackPersonalisation(plan);
-  const vendorQuestions = pick(vendors, 'vendorQuestions', generic.vendorQuestions);
-  const budgetNotes = pick(notes, 'budgetNotes', generic.budgetNotes);
-
+  const { reply, model } = mergeAnswers(answers, generic);
+  const result = model ? coercePersonalisation(reply, plan, { model, cached: false }) : null;
   // Ideas are the part that makes a personalisation worth the name; without
-  // them the whole thing is labelled as generic guidance.
-  const merged: Record<string, unknown> = {
-    summary: ideas?.obj.summary,
-    ideas: ideas?.obj.ideas,
-    vendorQuestions,
-    budgetNotes,
-  };
-  const result = ideas
-    ? coercePersonalisation(merged, plan, { model: ideas.model, cached: false })
-    : null;
-  if (!ideas || !result) {
-    // Still validate the model-written parts we did get, through the same gate.
-    const partial = coercePersonalisation({ ...merged, ideas: generic.ideas }, plan, {
-      model: '',
-      cached: false,
-    });
-    return {
-      ...generic,
-      vendorQuestions: partial?.vendorQuestions ?? generic.vendorQuestions,
-      budgetNotes: partial?.budgetNotes ?? generic.budgetNotes,
-    };
-  }
+  // them it ships generic ideas, keeping whichever model-written questions and
+  // notes pass the same checks.
+  if (!model || !result) return { ...generic, ...coerceSections(reply, plan) };
   // Only a complete model answer is durable. A fallback must be retried.
-  if (ideasA && ideasB && vendors && notes) {
-    const entry: CachedReply = { model: ideas.model, reply: merged };
+  if (Object.values(answers).every((a) => a !== null)) {
+    const entry: CachedReply = { model, reply };
     await cachePut(key, entry);
   }
   return result;

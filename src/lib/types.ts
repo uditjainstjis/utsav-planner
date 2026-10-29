@@ -132,8 +132,10 @@ export interface Personalisation {
   vendorQuestions: Record<string, string[]>;
   /** A sentence per budget line on where to spend and where to save. */
   budgetNotes: Record<string, string>;
-  /** Where this came from. `fallback` means the model was unavailable and the
-   *  plan shipped with generic, deterministic guidance instead. */
+  /** Who wrote the ideas and summary. `fallback` means no model produced usable
+   *  ideas, so they are generic, deterministic guidance. Vendor questions and
+   *  budget notes come from asks of their own: either kind of personalisation
+   *  may carry the generic ones where that ask failed. */
   source: 'model' | 'fallback';
   model: string | null;
   cached: boolean;

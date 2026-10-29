@@ -270,6 +270,16 @@ describe('personalise', () => {
     expect(p.summary).toMatch(/unavailable/);
   });
 
+  it('ships generic ideas but keeps checked model questions and notes when no idea is usable', async () => {
+    const run = vi.fn(async () => ({ response: { ...REPLY, ideas: [] } }));
+    const p = await personalise(env(run as never), buildPlan(request(), TODAY));
+    expect(p.source).toBe('fallback');
+    expect(p.ideas.length).toBeGreaterThan(0);
+    expect(p.vendorQuestions.caterer).toHaveLength(REPLY_LIMITS.questionsPerVendor);
+    expect(p.vendorQuestions.unicorn).toBeUndefined();
+    expect(p.budgetNotes).toEqual({ decor: 'One colour, many balloons.' });
+  });
+
   it('gives up on a hung primary and uses the fallback within the timeout', async () => {
     const run = vi.fn(async (model: string) => {
       if (model === PRIMARY_MODEL) return new Promise<never>(() => undefined); // never settles
