@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -8,8 +8,9 @@ import { describe, expect, it } from 'vitest';
  * only comments are read: imports are the compiler's to check.
  *
  * The files read are the repository's own: the tree on disk less what
- * .gitignore names (dependencies, generated files, local notes), so the test
- * runs the same from a checkout, an archive or a zip. The files that count as
+ * .gitignore names (dependencies, generated files) and, in a checkout, what
+ * .git/info/exclude names (one machine's local notes), so the test runs the
+ * same from a checkout, an archive or a zip. The files that count as
  * existing include the generated ones (public/js/constants.js and the rest),
  * which the build has written before any test runs.
  */
@@ -30,8 +31,9 @@ function gitignored(pattern: string): RegExp {
   const glob = bare.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*');
   return new RegExp(`${bare.includes('/') ? '^' : '(?:^|/)'}${glob}(?:/|$)`);
 }
-const IGNORED = readFileSync('.gitignore', 'utf8')
-  .split('\n')
+const IGNORED = ['.gitignore', '.git/info/exclude']
+  .filter((f) => existsSync(f))
+  .flatMap((f) => readFileSync(f, 'utf8').split('\n'))
   .filter((line) => line.trim() && !line.startsWith('#'))
   .map((line) => gitignored(line.trim()));
 const ours = onDisk.filter((f) => !IGNORED.some((re) => re.test(f)));
