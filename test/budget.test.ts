@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { apportion, buildBudget } from '../src/lib/budget';
+import { apportion } from '../src/lib/apportion';
+import { buildBudget } from '../src/lib/budget';
 import { EVENT_TYPES } from '../src/shared/constants';
 
 /**

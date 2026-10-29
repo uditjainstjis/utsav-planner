@@ -93,7 +93,7 @@ function fenced(text: string | null, nonce: string): string | null {
 }
 
 /** The facts every ask is built on. Numbers are stated, never requested. */
-export function buildFacts(plan: Plan, nonce: string): string {
+function buildFacts(plan: Plan, nonce: string): string {
   const { request: r, budget, timeline } = plan;
   const name = fenced(r.occasion, nonce);
   const city = fenced(r.city, nonce);

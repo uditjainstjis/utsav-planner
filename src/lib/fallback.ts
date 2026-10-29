@@ -1,6 +1,5 @@
-import { OCCASION_LABEL, rupees } from '../shared/constants';
+import { OCCASION_LABEL, rupees, type EventType } from '../shared/constants';
 import type { BudgetLineId } from './budget';
-import type { EventType } from '../shared/constants';
 import type { Idea, Personalisation, Plan } from './types';
 
 /**
