@@ -139,16 +139,18 @@ are in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 ## Testing
 
 ```
-npm run check     # typecheck (strict + noUncheckedIndexedAccess), lint, format check, tests
+npm run check     # Worker types, typecheck (strict, noUncheckedIndexedAccess; app.js via JSDoc), lint, format check, tests
 npm run coverage  # istanbul report
 ```
 
-250 tests across 13 files, run inside **workerd** (the deployed runtime) for
-everything but the DOM-only axe and contrast suites, which run in jsdom.
-Coverage of `src/`: 99% statements, 100% functions, 86% branches (the uncovered
-branches are defensive arms of the model-reply coercion). The suite is hermetic:
-the AI binding is a stub, so it runs identically on a laptop and on a CI runner
-holding no credentials.
+277 tests across 14 files. 217 run inside **workerd** (the deployed runtime);
+the 60 in the four `*.dom.test.ts` suites (axe, contrast, the front end's flows,
+the shipped assets) run in jsdom, because they need a DOM or read the shipped
+files off disk. Coverage of `src/`: 99.42% statements, 90.26% branches, 100%
+functions, 99.56% lines. 33 of 339 branches are uncovered, 21 of them in the
+model-reply handling (`ai.ts`) and the refine parser, mostly `??` fallbacks and
+defensive checks. The suite is hermetic: the AI binding is a stub, so it runs
+identically on a laptop and on a CI runner holding no credentials.
 
 What is covered, and the property each test holds:
 
@@ -176,6 +178,11 @@ What is covered, and the property each test holds:
   or past values named by field, the brief re-bounded across six turns.
 - **guard** — each injection rule, the finding cap, document order, fence
   defanging, nonce forgery.
+- **app** (jsdom, the real `index.html` and `app.js`) — a brief the server
+  rejects is shown at its field and focused, also on a second submit with a plan
+  already on screen; an ideas failure degrades only the ideas card; the 730-day
+  limit is enforced before any request; a refinement is applied, announced and
+  written back to the form, and a rejected one is shown at the change field.
 - **a11y / axe / contrast** — see above.
 
 ## Running locally

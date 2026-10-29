@@ -112,10 +112,43 @@ describe('extractJson', () => {
     expect(extractJson({ unrelated: true })).toBeNull();
     expect(extractJson('nothing here')).toBeNull();
   });
+
+  it('returns null for text that is JSON but not an object, or braces around non-JSON', () => {
+    expect(extractJson('[{"ideas":[]}]')).toBeNull();
+    expect(extractJson('"{\\"ideas\\":[]}"')).toBeNull();
+    expect(extractJson('Here: {ideas: none} sorry')).toBeNull();
+    expect(extractJson('} backwards {')).toBeNull();
+  });
+
+  it('skips an unusable first choice and falls back to the response field', () => {
+    expect(extractJson({ choices: [null], response: '{"summary":"r"}' })).toEqual({
+      summary: 'r',
+    });
+    expect(extractJson({ choices: ['text'], summary: 's' })).toEqual({
+      choices: ['text'],
+      summary: 's',
+    });
+  });
 });
 
 describe('coercePersonalisation', () => {
   const plan = buildPlan(request(), TODAY);
+
+  it('drops ideas that are not objects and ignores maps that are not objects', () => {
+    const q = coercePersonalisation(
+      {
+        ideas: [null, 'Fossil dig', ['x'], { title: 'Kept', detail: 'An object.' }],
+        vendorQuestions: ['caterer'],
+        budgetNotes: 'decor',
+      },
+      plan,
+      { model: PRIMARY_MODEL, cached: false },
+    );
+    expect(q?.ideas.map((i) => i.title)).toEqual(['Kept']);
+    expect(q?.vendorQuestions).toEqual({});
+    expect(q?.budgetNotes).toEqual({});
+  });
+
   const p = coercePersonalisation(REPLY, plan, { model: PRIMARY_MODEL, cached: false })!;
 
   it('normalises whitespace and keeps the summary bounded', () => {
