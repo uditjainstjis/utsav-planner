@@ -170,6 +170,21 @@ describe('the plan form', () => {
   });
 });
 
+describe('the sample briefs', () => {
+  it('fill every field, including the occasion radio, and hand focus to the build button', () => {
+    const chip = document.querySelector('[data-sample="community"]');
+    expect(chip).toBeInstanceOf(HTMLButtonElement);
+    (chip as HTMLButtonElement).click();
+
+    const checked = document.querySelector('input[name="eventType"]:checked');
+    expect((checked as HTMLInputElement | null)?.value).toBe('community');
+    expect($('event-date', HTMLInputElement).value).toBe(inDays(60));
+    expect($('guests', HTMLInputElement).value).toBe('400');
+    expect($('pref-count').textContent).toMatch(/^\d+ of 600 characters$/);
+    expect(document.activeElement).toBe($('plan-btn'));
+  });
+});
+
 describe('the refine form', () => {
   async function planFirst(...after: Reply[]): Promise<ReturnType<typeof vi.fn>> {
     const fetch = stubFetch(

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Utsav Planner front end.
  *
@@ -14,61 +15,135 @@
  *     stages. Busy controls use `aria-disabled` so focus is never dropped.
  */
 
-const $ = (id) => document.getElementById(id);
+/** @typedef {import('../src/lib/types').CostTier} CostTier */
+/** @typedef {import('../src/lib/types').EventType} EventType */
+/** @typedef {import('../src/lib/types').IdeaCategory} IdeaCategory */
+/** @typedef {import('../src/lib/types').InjectionFinding} InjectionFinding */
+/** @typedef {import('../src/lib/types').Personalisation} Personalisation */
+/** @typedef {import('../src/lib/types').Phase} Phase */
+/** @typedef {import('../src/lib/types').Plan} Plan */
+/** @typedef {import('../src/lib/types').PlanRequest} PlanRequest */
+/** @typedef {import('../src/lib/refine').Change} Change */
+
+/**
+ * The brief as the form holds it: every value a string. clientValidate checks
+ * the common mistakes; the server validates all of it again.
+ * @typedef {object} Brief
+ * @property {string} eventType
+ * @property {string} eventDate
+ * @property {string} guests
+ * @property {string} budget
+ * @property {string} city
+ * @property {string} occasion
+ * @property {string} preferences
+ */
+
+/**
+ * The plan on screen: what exports and refinements act on.
+ * @typedef {object} Current
+ * @property {Plan} plan
+ * @property {string} ics
+ * @property {Personalisation | null} personalisation
+ */
+
+/** @typedef {{ plan: Plan, ics: string }} PlanReply */
+/** @typedef {PlanReply & { request: PlanRequest, changes: Change[] }} RefineReply */
+/** @typedef {{ '/api/plan': PlanReply, '/api/refine': RefineReply, '/api/personalise': Personalisation }} Replies */
+
+/**
+ * The element with this id, checked to be the kind the code expects. Every id
+ * is in index.html, so a miss is a bug and fails loudly at load.
+ * @template {HTMLElement} T
+ * @param {string} id
+ * @param {new () => T} type
+ * @returns {T}
+ */
+function $(id, type) {
+  const el = document.getElementById(id);
+  if (!(el instanceof type)) throw new Error(`#${id} is missing or is not a ${type.name}`);
+  return el;
+}
+
+/**
+ * The element matching `selector` inside a rendered template.
+ * @template {HTMLElement} T
+ * @param {ParentNode} root
+ * @param {string} selector
+ * @param {new () => T} type
+ * @returns {T}
+ */
+function part(root, selector, type) {
+  const el = root.querySelector(selector);
+  if (!(el instanceof type)) throw new Error(`${selector} is missing or is not a ${type.name}`);
+  return el;
+}
+
+/**
+ * A fresh copy of a template's element.
+ * @param {HTMLTemplateElement} tpl
+ * @returns {HTMLElement}
+ */
+function cloneTemplate(tpl) {
+  const el = tpl.content.firstElementChild?.cloneNode(true);
+  if (!(el instanceof HTMLElement)) throw new Error(`#${tpl.id} is empty`);
+  return el;
+}
 
 const els = {
-  form: $('plan-form'),
-  occasion: $('occasion'),
-  city: $('city'),
-  date: $('event-date'),
-  guests: $('guests'),
-  budget: $('budget'),
-  preferences: $('preferences'),
-  prefCount: $('pref-count'),
-  planBtn: $('plan-btn'),
-  formError: $('form-error'),
-  progress: $('progress'),
-  guardAlert: $('guard-alert'),
-  results: $('results'),
-  resultsTitle: $('results-h'),
-  statPerGuest: $('stat-per-guest'),
-  statLead: $('stat-lead'),
-  statMilestones: $('stat-milestones'),
-  statVendors: $('stat-vendors'),
-  flags: $('flags'),
-  refineForm: $('refine-form'),
-  refine: $('refine'),
-  refineBtn: $('refine-btn'),
-  refineError: $('refine-error'),
-  changes: $('changes'),
-  copyBtn: $('copy-btn'),
-  printBtn: $('print-btn'),
-  copyStatus: $('copy-status'),
-  csvBtn: $('csv-btn'),
-  budgetLede: $('budget-lede'),
-  budgetBody: $('budget-body'),
-  budgetTotal: $('budget-total'),
-  budgetTotalPerGuest: $('budget-total-per-guest'),
-  icsBtn: $('ics-btn'),
-  rushed: $('rushed'),
-  timelineList: $('timeline-list'),
-  vendorProgress: $('vendor-progress'),
-  vendorList: $('vendor-list'),
-  ideasStatus: $('ideas-status'),
-  aiSummary: $('ai-summary'),
-  ideasList: $('ideas-list'),
-  themeToggle: $('theme-toggle'),
-  milestoneTpl: $('milestone-tpl'),
-  vendorTpl: $('vendor-tpl'),
-  ideaTpl: $('idea-tpl'),
+  form: $('plan-form', HTMLFormElement),
+  occasion: $('occasion', HTMLInputElement),
+  city: $('city', HTMLInputElement),
+  date: $('event-date', HTMLInputElement),
+  guests: $('guests', HTMLInputElement),
+  budget: $('budget', HTMLInputElement),
+  preferences: $('preferences', HTMLTextAreaElement),
+  prefCount: $('pref-count', HTMLElement),
+  planBtn: $('plan-btn', HTMLButtonElement),
+  formError: $('form-error', HTMLElement),
+  progress: $('progress', HTMLElement),
+  guardAlert: $('guard-alert', HTMLElement),
+  results: $('results', HTMLElement),
+  resultsTitle: $('results-h', HTMLElement),
+  statPerGuest: $('stat-per-guest', HTMLElement),
+  statLead: $('stat-lead', HTMLElement),
+  statMilestones: $('stat-milestones', HTMLElement),
+  statVendors: $('stat-vendors', HTMLElement),
+  flags: $('flags', HTMLElement),
+  refineForm: $('refine-form', HTMLFormElement),
+  refine: $('refine', HTMLInputElement),
+  refineBtn: $('refine-btn', HTMLButtonElement),
+  refineError: $('refine-error', HTMLElement),
+  changes: $('changes', HTMLElement),
+  copyBtn: $('copy-btn', HTMLButtonElement),
+  printBtn: $('print-btn', HTMLButtonElement),
+  copyStatus: $('copy-status', HTMLElement),
+  csvBtn: $('csv-btn', HTMLButtonElement),
+  budgetLede: $('budget-lede', HTMLElement),
+  budgetBody: $('budget-body', HTMLElement),
+  budgetTotal: $('budget-total', HTMLElement),
+  budgetTotalPerGuest: $('budget-total-per-guest', HTMLElement),
+  icsBtn: $('ics-btn', HTMLButtonElement),
+  rushed: $('rushed', HTMLElement),
+  timelineList: $('timeline-list', HTMLElement),
+  vendorProgress: $('vendor-progress', HTMLElement),
+  vendorList: $('vendor-list', HTMLElement),
+  ideasStatus: $('ideas-status', HTMLElement),
+  aiSummary: $('ai-summary', HTMLElement),
+  ideasList: $('ideas-list', HTMLElement),
+  themeToggle: $('theme-toggle', HTMLButtonElement),
+  milestoneTpl: $('milestone-tpl', HTMLTemplateElement),
+  vendorTpl: $('vendor-tpl', HTMLTemplateElement),
+  ideaTpl: $('idea-tpl', HTMLTemplateElement),
 };
 
+/** @type {Record<EventType, string>} */
 const OCCASION = {
   wedding: 'Wedding',
   birthday: 'Birthday',
   community: 'Community event',
 };
 
+/** @type {Record<Phase, string>} */
 const PHASE = {
   foundation: 'Decide',
   booking: 'Book',
@@ -78,12 +153,14 @@ const PHASE = {
 };
 
 /** Cost tiers carry a glyph and a word, never colour alone. */
+/** @type {Record<CostTier, { glyph: string, word: string }>} */
 const TIER = {
   low: { glyph: '●', word: 'Low cost' },
   medium: { glyph: '●●', word: 'Mid cost' },
   high: { glyph: '●●●', word: 'Higher cost' },
 };
 
+/** @type {Record<IdeaCategory, string>} */
 const CATEGORY = {
   theme: 'Theme',
   decor: 'Decor',
@@ -94,6 +171,18 @@ const CATEGORY = {
   other: 'On the day',
 };
 
+/**
+ * @typedef {object} Sample
+ * @property {EventType} eventType
+ * @property {string} occasion
+ * @property {string} city
+ * @property {number} days  how far ahead of today the event falls
+ * @property {number} guests
+ * @property {number} budget
+ * @property {string} preferences
+ */
+
+/** @type {Record<string, Sample>} */
 const SAMPLES = {
   wedding: {
     eventType: 'wedding',
@@ -149,9 +238,15 @@ const LIMITS = {
 };
 
 const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+/** @param {number} n */
 const rupees = (n) => `₹${INR.format(n)}`;
+/** @param {number} share */
 const percent = (share) => `${Math.round(share * 100)}%`;
-/** The name of a budget line, for text that refers to one by id. */
+/**
+ * The name of a budget line, for text that refers to one by id.
+ * @param {Plan} plan
+ * @param {string} id
+ */
 const lineLabel = (plan, id) => plan.budget.lines.find((l) => l.id === id)?.label ?? id;
 const DATE_FMT = new Intl.DateTimeFormat('en-IN', {
   weekday: 'short',
@@ -160,12 +255,14 @@ const DATE_FMT = new Intl.DateTimeFormat('en-IN', {
   year: 'numeric',
   timeZone: 'UTC',
 });
+/** @param {string} iso */
 const fmtDate = (iso) => DATE_FMT.format(new Date(`${iso}T00:00:00Z`));
 
 // ---------------------------------------------------------------- theme
 
 const THEME_KEY = 'utsav:theme';
 
+/** @param {string | null} theme */
 function applyTheme(theme) {
   const root = document.documentElement;
   if (theme) root.setAttribute('data-theme', theme);
@@ -198,6 +295,10 @@ els.themeToggle.addEventListener('click', () => {
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
+/**
+ * @param {string} iso
+ * @param {number} days
+ */
 function addDays(iso, days) {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -213,15 +314,19 @@ function updateCount() {
 }
 els.preferences.addEventListener('input', updateCount);
 
-function currentType() {
-  return els.form.elements.eventType.value;
+/** The occasion picker: three radios sharing one name. */
+function eventTypeRadios() {
+  const radios = els.form.elements.namedItem('eventType');
+  if (!(radios instanceof RadioNodeList)) throw new Error('the eventType radios are missing');
+  return radios;
 }
 
 for (const chip of document.querySelectorAll('[data-sample]')) {
+  if (!(chip instanceof HTMLElement)) continue;
   chip.addEventListener('click', () => {
-    const s = SAMPLES[chip.dataset.sample];
+    const s = SAMPLES[chip.dataset.sample ?? ''];
     if (!s) return;
-    els.form.elements.eventType.value = s.eventType;
+    eventTypeRadios().value = s.eventType;
     els.occasion.value = s.occasion;
     els.city.value = s.city;
     els.date.value = addDays(todayIso(), s.days);
@@ -234,6 +339,7 @@ for (const chip of document.querySelectorAll('[data-sample]')) {
   });
 }
 
+/** @type {Record<string, HTMLInputElement | HTMLTextAreaElement | null>} */
 const FIELD_FOR = {
   eventType: null,
   eventDate: els.date,
@@ -243,13 +349,18 @@ const FIELD_FOR = {
   occasion: els.occasion,
   preferences: els.preferences,
 };
+/** @type {HTMLInputElement | HTMLTextAreaElement | null} */
 let invalidField = null;
 
+/**
+ * @param {string} message
+ * @param {string} [field]  the request field the server or the client named
+ */
 function showError(message, field) {
   els.formError.textContent = message;
   els.formError.hidden = false;
   clearInvalid();
-  const el = FIELD_FOR[field];
+  const el = field ? FIELD_FOR[field] : null;
   if (el) {
     // role="alert" announces once; these two attributes are what a user hears
     // when they navigate back to the control that failed (WCAG 3.3.1).
@@ -274,9 +385,10 @@ for (const el of Object.values(FIELD_FOR)) {
   if (el) el.dataset.describedby = el.getAttribute('aria-describedby') ?? '';
 }
 
+/** @returns {Brief} */
 function readForm() {
   return {
-    eventType: currentType(),
+    eventType: eventTypeRadios().value,
     eventDate: els.date.value,
     guests: els.guests.value,
     budget: els.budget.value,
@@ -290,6 +402,8 @@ function readForm() {
  * Cheap client-side checks that produce the same field-level messages the
  * server would, so the common mistakes are caught without a round trip. The
  * server validates again regardless; this is convenience, not a control.
+ * @param {Brief} body
+ * @returns {[message: string, field: string] | null}
  */
 function clientValidate(body) {
   if (!body.eventDate) return ['Choose the event date.', 'eventDate'];
@@ -306,19 +420,57 @@ function clientValidate(body) {
   return null;
 }
 
+/** @typedef {{ min: number, max: number }} Range */
+
+/**
+ * @param {string} raw
+ * @param {Range} range
+ */
 function outOfRange(raw, { min, max }) {
   const n = Number(raw);
   return !raw || !Number.isFinite(n) || n < min || n > max;
 }
-/** Worded as the server words it, so the message does not change with who caught it. */
+/**
+ * Worded as the server words it, so the message does not change with who caught it.
+ * @param {string} label
+ * @param {Range} range
+ */
 const rangeMessage = (label, { min, max }) =>
   `${label} must be between ${INR.format(min)} and ${INR.format(max)}.`;
 
 // ---------------------------------------------------------------- fetch
 
-/** Server-side the model is capped at 20 s per call; the client allows a little more. */
+/**
+ * Server-side the model is capped at 20 s per call; the client allows a little more.
+ * @type {Record<keyof Replies, number>}
+ */
 const TIMEOUT_MS = { '/api/plan': 10_000, '/api/refine': 10_000, '/api/personalise': 45_000 };
 
+/** A request the server refused, with the request field it named, if any. */
+class ApiError extends Error {
+  /**
+   * @param {string} message
+   * @param {string | undefined} field
+   */
+  constructor(message, field) {
+    super(message);
+    this.name = 'ApiError';
+    this.field = field;
+  }
+}
+
+/**
+ * @param {unknown} err
+ * @param {string} fallback
+ */
+const messageOf = (err, fallback) => (err instanceof Error && err.message) || fallback;
+
+/**
+ * @template {keyof Replies} P
+ * @param {P} path
+ * @param {unknown} body
+ * @returns {Promise<Replies[P]>}
+ */
 async function postJson(path, body) {
   let res;
   try {
@@ -326,10 +478,11 @@ async function postJson(path, body) {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS[path] ?? 15_000),
+      signal: AbortSignal.timeout(TIMEOUT_MS[path]),
     });
   } catch (err) {
-    const timedOut = err && err.name === 'TimeoutError';
+    const timedOut =
+      typeof err === 'object' && err !== null && 'name' in err && err.name === 'TimeoutError';
     throw new Error(
       timedOut
         ? 'That took too long. Please try again.'
@@ -337,25 +490,35 @@ async function postJson(path, body) {
       { cause: err },
     );
   }
+  /** @type {unknown} */
   let data = null;
   try {
     data = await res.json();
   } catch {
     /* non-JSON body; handled below */
   }
-  if (!res.ok) {
-    const err = new Error((data && data.error) || `Request failed (${res.status}).`);
-    err.field = data && data.field;
-    err.status = res.status;
-    throw err;
-  }
-  return data;
+  if (!res.ok) throw refusal(res.status, data);
+  // A successful reply's shape is the server's contract (src/index.ts).
+  return /** @type {Replies[P]} */ (data);
+}
+
+/**
+ * @param {number} status
+ * @param {unknown} data  the error body, `{ error, code, field }` when the server wrote it
+ */
+function refusal(status, data) {
+  const body = typeof data === 'object' && data !== null ? data : {};
+  const error = 'error' in body && typeof body.error === 'string' ? body.error : '';
+  const field = 'field' in body && typeof body.field === 'string' ? body.field : undefined;
+  return new ApiError(error || `Request failed (${status}).`, field);
 }
 
 // ---------------------------------------------------------------- state
 
-let current = null; // { plan, ics, personalisation? }
+/** @type {Current | null} */
+let current = null;
 
+/** @param {string} text */
 function announce(text) {
   els.progress.textContent = '';
   // A repeated identical string is not re-announced; clearing first forces it.
@@ -370,20 +533,32 @@ const BUSY = {
   refine: { btn: els.refineBtn, idle: 'Update the plan', working: 'Updating…' },
 };
 
-/** Busy controls use `aria-disabled`, not `disabled`, so focus is never dropped. */
+/**
+ * Busy controls use `aria-disabled`, not `disabled`, so focus is never dropped.
+ * @param {keyof typeof BUSY} which
+ * @param {boolean} busy
+ */
 function setBusy(which, busy) {
   const { btn, idle, working } = BUSY[which];
   btn.setAttribute('aria-disabled', String(busy));
   btn.textContent = busy ? working : idle;
 }
+/** @param {keyof typeof BUSY} which */
 const isBusy = (which) => BUSY[which].btn.getAttribute('aria-disabled') === 'true';
 
+/**
+ * @param {string} text
+ * @param {'busy' | 'ok' | 'degraded'} state
+ */
 function setIdeasStatus(text, state) {
   els.ideasStatus.textContent = text;
   els.ideasStatus.dataset.state = state;
 }
 
-/** Empty the ideas card and say new ideas are on their way. */
+/**
+ * Empty the ideas card and say new ideas are on their way.
+ * @param {string} status
+ */
 function resetIdeas(status) {
   setIdeasStatus(status, 'busy');
   els.aiSummary.textContent = '';
@@ -392,6 +567,7 @@ function resetIdeas(status) {
 
 // ---------------------------------------------------------------- render: plan
 
+/** @param {InjectionFinding[]} findings */
 function renderGuard(findings) {
   if (!findings.length) {
     els.guardAlert.hidden = true;
@@ -399,9 +575,10 @@ function renderGuard(findings) {
     return;
   }
   const head = document.createElement('p');
-  head.append(document.createElement('strong'));
-  head.firstChild.textContent = 'Your wishes contained text aimed at the AI, not at a planner.';
+  const lead = document.createElement('strong');
+  lead.textContent = 'Your wishes contained text aimed at the AI, not at a planner.';
   head.append(
+    lead,
     ` It was fenced off and ignored, and the plan below was built from the rest. ${findings.length} finding${findings.length === 1 ? '' : 's'}:`,
   );
   const list = document.createElement('ul');
@@ -418,6 +595,7 @@ function renderGuard(findings) {
   els.guardAlert.hidden = false;
 }
 
+/** @param {Plan} plan */
 function renderSummary(plan) {
   const { budget, timeline, vendors } = plan;
   els.statPerGuest.textContent = rupees(budget.perGuest);
@@ -433,6 +611,7 @@ function renderSummary(plan) {
   }
 }
 
+/** @param {Plan} plan */
 function renderBudget(plan) {
   const { budget, request } = plan;
   els.budgetLede.textContent = `${rupees(budget.total)} for ${request.guests} guests — ${rupees(budget.perGuest)} a head. The split is a starting point; move money towards what matters to you.`;
@@ -462,29 +641,35 @@ function renderBudget(plan) {
   els.budgetTotalPerGuest.textContent = rupees(budget.perGuest);
 }
 
+/** @param {Plan} plan */
 function renderTimeline(plan) {
   const { timeline, vendors } = plan;
   const vendorName = new Map(vendors.map((v) => [v.id, v.label]));
   els.rushed.hidden = !timeline.rushed;
   els.timelineList.replaceChildren();
   for (const m of timeline.milestones) {
-    const li = els.milestoneTpl.content.firstElementChild.cloneNode(true);
+    const li = cloneTemplate(els.milestoneTpl);
     li.dataset.phase = m.phase;
     if (m.overdue) li.dataset.overdue = 'true';
-    li.querySelector('.milestone__date').textContent = fmtDate(m.dueDate);
-    li.querySelector('.milestone__title').textContent = m.title;
+    part(li, '.milestone__date', HTMLElement).textContent = fmtDate(m.dueDate);
+    part(li, '.milestone__title', HTMLElement).textContent = m.title;
     const bits = [PHASE[m.phase]];
     if (m.daysBefore > 0) bits.push(`${m.daysBefore} day${m.daysBefore === 1 ? '' : 's'} before`);
     if (m.vendorId && vendorName.has(m.vendorId)) bits.push(`books: ${vendorName.get(m.vendorId)}`);
     if (m.overdue) bits.push('already past — do it first');
-    li.querySelector('.milestone__meta').textContent = bits.join(' · ');
+    part(li, '.milestone__meta', HTMLElement).textContent = bits.join(' · ');
     els.timelineList.append(li);
   }
 }
 
+/** @param {Plan} plan */
 function doneKey(plan) {
   return `utsav:done:${plan.request.eventType}:${plan.request.eventDate}:${plan.request.guests}`;
 }
+/**
+ * @param {Plan} plan
+ * @returns {Set<string>}
+ */
 function loadDone(plan) {
   try {
     return new Set(JSON.parse(localStorage.getItem(doneKey(plan)) || '[]'));
@@ -492,6 +677,10 @@ function loadDone(plan) {
     return new Set();
   }
 }
+/**
+ * @param {Plan} plan
+ * @param {Set<string>} set
+ */
 function saveDone(plan, set) {
   try {
     localStorage.setItem(doneKey(plan), JSON.stringify([...set]));
@@ -500,15 +689,16 @@ function saveDone(plan, set) {
   }
 }
 
+/** @param {Plan} plan */
 function renderVendors(plan) {
   const { vendors } = plan;
   const done = loadDone(plan);
   els.vendorList.replaceChildren();
   for (const v of vendors) {
-    const li = els.vendorTpl.content.firstElementChild.cloneNode(true);
+    const li = cloneTemplate(els.vendorTpl);
     li.dataset.vendor = v.id;
-    const check = li.querySelector('.vendor__check');
-    const title = li.querySelector('.vendor__title');
+    const check = part(li, '.vendor__check', HTMLInputElement);
+    const title = part(li, '.vendor__title', HTMLElement);
     check.id = `vendor-${v.id}`;
     title.id = `vendor-${v.id}-title`;
     check.setAttribute('aria-labelledby', title.id);
@@ -518,9 +708,9 @@ function renderVendors(plan) {
     check.checked = done.has(v.id);
     li.dataset.done = String(check.checked);
     title.textContent = v.label;
-    li.querySelector('.vendor__meta').textContent =
+    part(li, '.vendor__meta', HTMLElement).textContent =
       `Book by ${fmtDate(v.bookBy)} · paid from ${lineLabel(plan, v.budgetLineId)}`;
-    const ul = li.querySelector('.vendor__questions');
+    const ul = part(li, '.vendor__questions', HTMLElement);
     for (const q of v.questions) {
       const qi = document.createElement('li');
       qi.textContent = q;
@@ -538,11 +728,16 @@ function renderVendors(plan) {
   updateVendorProgress(plan, done);
 }
 
+/**
+ * @param {Plan} plan
+ * @param {Set<string>} done
+ */
 function updateVendorProgress(plan, done) {
   const n = plan.vendors.filter((v) => done.has(v.id)).length;
   els.vendorProgress.textContent = `${n} of ${plan.vendors.length} booked`;
 }
 
+/** @param {Plan} plan */
 function renderPlan(plan) {
   renderGuard(plan.guard.injectionFindings);
   renderSummary(plan);
@@ -552,19 +747,36 @@ function renderPlan(plan) {
   els.results.hidden = false;
 }
 
+/**
+ * Put a plan on screen and make it the one exports and refinements act on.
+ * @param {PlanReply} reply
+ * @returns {Current}
+ */
+function showPlan({ plan, ics }) {
+  const state = { plan, ics, personalisation: null };
+  current = state;
+  renderPlan(plan);
+  return state;
+}
+
 // ---------------------------------------------------------------- render: AI
 
+/**
+ * @param {Plan} plan
+ * @param {Personalisation} p
+ */
 function renderPersonalisation(plan, p) {
   for (const tr of els.budgetBody.querySelectorAll('tr')) {
-    const note = p.budgetNotes[tr.dataset.line];
-    const cell = tr.querySelector('.budget__note');
+    const note = p.budgetNotes[tr.dataset.line ?? ''];
+    const cell = part(tr, '.budget__note', HTMLElement);
     cell.textContent = note ?? '';
     if (note && p.source === 'model') cell.dataset.ai = 'true';
   }
 
   for (const li of els.vendorList.querySelectorAll('.vendor')) {
-    const extra = p.vendorQuestions[li.dataset.vendor] ?? [];
-    const ul = li.querySelector('.vendor__questions');
+    if (!(li instanceof HTMLElement)) continue;
+    const extra = p.vendorQuestions[li.dataset.vendor ?? ''] ?? [];
+    const ul = part(li, '.vendor__questions', HTMLElement);
     for (const q of extra) {
       const qi = document.createElement('li');
       qi.className = 'vendor__question--ai';
@@ -579,39 +791,48 @@ function renderPersonalisation(plan, p) {
   els.aiSummary.textContent = p.summary;
   els.ideasList.replaceChildren();
   for (const idea of p.ideas) {
-    const li = els.ideaTpl.content.firstElementChild.cloneNode(true);
+    const li = cloneTemplate(els.ideaTpl);
     li.dataset.tier = idea.costTier;
-    li.querySelector('.idea__category').textContent = CATEGORY[idea.category] ?? 'Idea';
-    li.querySelector('.idea__title').textContent = idea.title;
-    li.querySelector('.idea__detail').textContent = idea.detail;
+    part(li, '.idea__category', HTMLElement).textContent = CATEGORY[idea.category] ?? 'Idea';
+    part(li, '.idea__title', HTMLElement).textContent = idea.title;
+    part(li, '.idea__detail', HTMLElement).textContent = idea.detail;
     const tier = TIER[idea.costTier];
     const foot = [`${tier.glyph} ${tier.word}`];
     if (idea.budgetLineId) foot.push(`from ${lineLabel(plan, idea.budgetLineId)}`);
-    li.querySelector('.idea__foot').textContent = foot.join(' · ');
+    part(li, '.idea__foot', HTMLElement).textContent = foot.join(' · ');
     els.ideasList.append(li);
   }
 }
 
 /**
- * Ask the model for ideas about `request` and fill them in under `plan`. The
- * plan is already on screen, so a rejection here is the caller's to report as
- * an ideas failure only.
+ * Ask the model for ideas about `request` and fill them in under the plan in
+ * `state`. The plan is already on screen, so a failure here degrades only the
+ * ideas card, with `failed` as its status.
+ * @param {Current} state
+ * @param {Brief | PlanRequest} request
+ * @param {string} failed
+ * @returns {Promise<Personalisation | null>}
  */
-async function loadIdeas(plan, request) {
-  const t0 = performance.now();
-  const p = await postJson('/api/personalise', request);
-  current.personalisation = p;
-  renderPersonalisation(plan, p);
-  const secs = ((performance.now() - t0) / 1000).toFixed(1);
-  if (p.source === 'model') {
-    setIdeasStatus(
-      `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`,
-      'ok',
-    );
-  } else {
-    setIdeasStatus('The AI was unavailable — showing general ideas instead.', 'degraded');
+async function loadIdeas(state, request, failed) {
+  try {
+    const t0 = performance.now();
+    const p = await postJson('/api/personalise', request);
+    state.personalisation = p;
+    renderPersonalisation(state.plan, p);
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    if (p.source === 'model') {
+      setIdeasStatus(
+        `${p.ideas.length} ideas from ${p.model}${p.cached ? ', cached' : `, ${secs}s`}`,
+        'ok',
+      );
+    } else {
+      setIdeasStatus('The AI was unavailable — showing general ideas instead.', 'degraded');
+    }
+    return p;
+  } catch {
+    setIdeasStatus(failed, 'degraded');
+    return null;
   }
-  return p;
 }
 
 // ---------------------------------------------------------------- flow
@@ -624,46 +845,61 @@ els.form.addEventListener('submit', async (ev) => {
   const body = readForm();
   const bad = clientValidate(body);
   if (bad) {
-    showError(bad[0], bad[1]);
+    showError(...bad);
     return;
   }
 
   setBusy('plan', true);
-  announce('Building your plan.');
-  const started = performance.now();
   try {
-    let planned;
-    try {
-      planned = await postJson('/api/plan', body);
-    } catch (err) {
-      // Any rejection of the brief belongs next to the field that failed, even
-      // when an earlier plan is still on screen.
-      showError(err.message || 'Something went wrong. Please try again.', err.field);
-      announce('The plan could not be built.');
-      return;
-    }
-    const { plan, ics } = planned;
-    current = { plan, ics, personalisation: null };
-    renderPlan(plan);
-    resetIdeas('Writing ideas for your wishes…');
-    announce(
-      `Plan ready: ${plan.budget.lines.length} budget lines, ${plan.timeline.milestones.length} milestones, ${plan.vendors.length} vendors. Personalised ideas are being written.`,
-    );
-    els.resultsTitle.focus();
-
-    const p = await loadIdeas(plan, body);
-    announce(
-      `${p.ideas.length} ideas added. Whole plan ready in ${((performance.now() - started) / 1000).toFixed(1)} seconds.`,
-    );
-  } catch {
-    setIdeasStatus('Ideas could not be written just now. The rest of the plan stands.', 'degraded');
+    await submitPlan(body);
   } finally {
     setBusy('plan', false);
   }
 });
 
+/**
+ * Numbers first, then words: build and show the plan, then fill in ideas. A
+ * rejected brief is shown next to the field the server named, even when an
+ * earlier plan is still on screen.
+ * @param {Brief} body
+ */
+async function submitPlan(body) {
+  announce('Building your plan.');
+  const started = performance.now();
+  let reply;
+  try {
+    reply = await postJson('/api/plan', body);
+  } catch (err) {
+    showError(
+      messageOf(err, 'Something went wrong. Please try again.'),
+      err instanceof ApiError ? err.field : undefined,
+    );
+    announce('The plan could not be built.');
+    return;
+  }
+  const state = showPlan(reply);
+  const { plan } = reply;
+  resetIdeas('Writing ideas for your wishes…');
+  announce(
+    `Plan ready: ${plan.budget.lines.length} budget lines, ${plan.timeline.milestones.length} milestones, ${plan.vendors.length} vendors. Personalised ideas are being written.`,
+  );
+  els.resultsTitle.focus();
+
+  const p = await loadIdeas(
+    state,
+    body,
+    'Ideas could not be written just now. The rest of the plan stands.',
+  );
+  if (p) {
+    announce(
+      `${p.ideas.length} ideas added. Whole plan ready in ${((performance.now() - started) / 1000).toFixed(1)} seconds.`,
+    );
+  }
+}
+
 // ---------------------------------------------------------------- refine
 
+/** @type {Record<Change['field'], string>} */
 const CHANGE_LABEL = {
   budget: 'Budget',
   guests: 'Guests',
@@ -671,6 +907,7 @@ const CHANGE_LABEL = {
   wishes: 'Ideas rewritten for',
 };
 
+/** @param {Change[]} changes */
 function renderChanges(changes) {
   els.changes.replaceChildren();
   for (const c of changes) {
@@ -684,6 +921,31 @@ function renderChanges(changes) {
   }
 }
 
+/**
+ * The numeric changes in words, for the announcement: "Budget ₹12,00,000, Guests 300".
+ * @param {Change[]} changes
+ */
+function describeChanges(changes) {
+  return changes
+    .filter((c) => c.field !== 'wishes')
+    .map((c) => `${CHANGE_LABEL[c.field]} ${c.field === 'date' ? fmtDate(c.to) : c.to}`)
+    .join(', ');
+}
+
+/**
+ * Keep the form truthful about the brief now in force, so rebuilding from the
+ * form carries every refinement rather than silently dropping them.
+ * @param {PlanRequest} request
+ */
+function writeBack(request) {
+  els.guests.value = String(request.guests);
+  els.budget.value = String(request.budget);
+  els.date.value = request.eventDate;
+  els.preferences.value = request.preferences ?? '';
+  updateCount();
+}
+
+/** @param {string} message */
 function showRefineError(message) {
   els.refineError.textContent = message;
   els.refineError.hidden = false;
@@ -698,11 +960,6 @@ function hideRefineError() {
   els.refine.setAttribute('aria-describedby', 'refine-help');
 }
 
-/**
- * The conversational step. The server re-runs the numbers it can read from the
- * sentence and returns the exact changes; the wording goes to the model on the
- * personalise call that follows, exactly as for a fresh brief.
- */
 els.refineForm.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   if (!current || isBusy('refine')) return;
@@ -713,49 +970,56 @@ els.refineForm.addEventListener('submit', async (ev) => {
     return;
   }
   setBusy('refine', true);
-  announce('Updating your plan.');
   try {
-    const body = { ...current.plan.request, refine: text };
-    let refined;
-    try {
-      refined = await postJson('/api/refine', body);
-    } catch (err) {
-      // Any rejection of the change itself belongs next to the change field.
-      showRefineError(err.message || 'That change could not be applied.');
-      announce('The change could not be applied.');
-      return;
-    }
-    const { request, changes, plan, ics } = refined;
-    current = { plan, ics, personalisation: null };
-    renderPlan(plan);
-    renderChanges(changes);
-    // Keep the form truthful about the brief now in force, so rebuilding from
-    // the form carries every refinement rather than silently dropping them.
-    els.guests.value = String(request.guests);
-    els.budget.value = String(request.budget);
-    els.date.value = request.eventDate;
-    els.preferences.value = request.preferences ?? '';
-    updateCount();
-    els.refine.value = '';
-    resetIdeas('Rewriting ideas for the change…');
-    const applied = changes
-      .filter((c) => c.field !== 'wishes')
-      .map((c) => `${CHANGE_LABEL[c.field]} ${c.field === 'date' ? fmtDate(c.to) : c.to}`)
-      .join(', ');
-    announce(`Plan updated${applied ? `: ${applied}` : ''}. Ideas are being rewritten.`);
-    els.resultsTitle.focus();
-
-    const p = await loadIdeas(plan, request);
-    announce(`${p.ideas.length} ideas rewritten.`);
-  } catch {
-    setIdeasStatus('Ideas could not be rewritten just now. The updated plan stands.', 'degraded');
+    await submitRefine(current, text);
   } finally {
     setBusy('refine', false);
   }
 });
 
+/**
+ * The conversational step. The server re-runs the numbers it can read from the
+ * sentence and returns the exact changes; the wording goes to the model on the
+ * personalise call that follows, exactly as for a fresh brief.
+ * @param {Current} state  the plan being refined
+ * @param {string} text
+ */
+async function submitRefine(state, text) {
+  announce('Updating your plan.');
+  let reply;
+  try {
+    reply = await postJson('/api/refine', { ...state.plan.request, refine: text });
+  } catch (err) {
+    // Any rejection of the change itself belongs next to the change field.
+    showRefineError(messageOf(err, 'That change could not be applied.'));
+    announce('The change could not be applied.');
+    return;
+  }
+  const { request, changes } = reply;
+  const next = showPlan(reply);
+  renderChanges(changes);
+  writeBack(request);
+  els.refine.value = '';
+  resetIdeas('Rewriting ideas for the change…');
+  const applied = describeChanges(changes);
+  announce(`Plan updated${applied ? `: ${applied}` : ''}. Ideas are being rewritten.`);
+  els.resultsTitle.focus();
+
+  const p = await loadIdeas(
+    next,
+    request,
+    'Ideas could not be rewritten just now. The updated plan stands.',
+  );
+  if (p) announce(`${p.ideas.length} ideas rewritten.`);
+}
+
 // ---------------------------------------------------------------- exports
 
+/**
+ * @param {string} name
+ * @param {string} type
+ * @param {string} text
+ */
 function download(name, type, text) {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
@@ -768,12 +1032,14 @@ function download(name, type, text) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** @param {string | number} s */
 const csvCell = (s) => `"${String(s).replace(/"/g, '""')}"`;
 
 els.csvBtn.addEventListener('click', () => {
   if (!current) return;
   const { budget } = current.plan;
   const notes = current.personalisation?.budgetNotes ?? {};
+  /** @type {(string | number)[][]} */
   const rows = [['Category', 'Share', 'Amount (INR)', 'Per guest (INR)', 'Note']];
   for (const l of budget.lines) {
     rows.push([l.label, percent(l.share), l.amount, l.perGuest ?? '', notes[l.id] ?? '']);
@@ -793,8 +1059,8 @@ els.icsBtn.addEventListener('click', () => {
 
 els.printBtn.addEventListener('click', () => window.print());
 
-function planAsText() {
-  const { plan, personalisation: p } = current;
+/** @param {Current} state */
+function planAsText({ plan, personalisation: p }) {
   const r = plan.request;
   const out = [];
   out.push(
@@ -828,7 +1094,7 @@ function planAsText() {
 els.copyBtn.addEventListener('click', async () => {
   if (!current) return;
   try {
-    await navigator.clipboard.writeText(planAsText());
+    await navigator.clipboard.writeText(planAsText(current));
     els.copyStatus.textContent = 'Copied the whole plan.';
   } catch {
     els.copyStatus.textContent = 'Could not copy — your browser blocked clipboard access.';

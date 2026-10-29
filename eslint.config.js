@@ -32,7 +32,8 @@ export default tseslint.config(
     },
   },
   {
-    // Front-end code runs in the browser and is plain JavaScript.
+    // Front-end code runs in the browser and is plain JavaScript, typechecked
+    // through JSDoc by tsconfig.app.json rather than linted with type information.
     files: ['public/**/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
@@ -50,6 +51,14 @@ export default tseslint.config(
         setTimeout: 'readonly',
         Intl: 'readonly',
         AbortSignal: 'readonly',
+        // Element classes app.js checks its lookups against (see `$` there).
+        HTMLElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLTemplateElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        RadioNodeList: 'readonly',
       },
     },
     rules: { 'no-undef': 'error' },
