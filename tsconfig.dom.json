@@ -4,6 +4,6 @@
     "lib": ["es2023", "dom", "dom.iterable"],
     "types": ["node"]
   },
-  "include": ["test/**/*.dom.test.ts", "test/**/*.dom.ts", "src/vite-env.d.ts"],
+  "include": ["test/**/*.dom.test.ts", "test/**/*.dom.ts", "test/vite-env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
