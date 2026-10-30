@@ -38,7 +38,7 @@
     "wrangler": "^4.131.1"
   },
   "dependencies": {
-    "hono": "^4.13.7"
+    "hono": "^4.13.14"
   },
   "private": true,
   "engines": {
