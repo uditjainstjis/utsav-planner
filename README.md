@@ -240,15 +240,13 @@ npm run coverage  # istanbul report
 the 67 in the seven `*.dom.test.ts` suites (axe, contrast, the shipped assets,
 the file references, and the front end's plan form, refine form and AI marks)
 run in jsdom, because they need a DOM or read files off disk. Coverage of
-`src/`: **100% statements, 100% lines, 100% functions, 96.39% branches**
-(569/569, 496/496, 167/167, 321/333). The 12 uncovered branches are ten `??`
-fallbacks that `noUncheckedIndexedAccess` requires on array and regex-group
-reads no input leaves empty, and two defensive checks: the request body is
-re-checked as an object after validation has already required one, and a
-validator fault that is not an input error is passed on rather than relabelled.
-The suite is hermetic: the model is reached through a stubbed binding or a fake
-`TextGenerator`, so it runs identically on a laptop and on a CI runner holding
-no credentials.
+`src/`: **100% statements, 100% lines, 100% functions, 99.35% branches**
+(565/565, 492/492, 167/167, 310/312). The two uncovered branches are defensive
+checks no request can reach: the request body is re-checked as an object after
+validation has already required one, and a validator fault that is not an input
+error is passed on rather than relabelled. The suite is hermetic: the model is
+reached through a stubbed binding or a fake `TextGenerator`, so it runs
+identically on a laptop and on a CI runner holding no credentials.
 
 What is covered, and the property each test holds:
 

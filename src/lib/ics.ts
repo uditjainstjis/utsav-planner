@@ -18,21 +18,24 @@ function icsText(s: string): string {
 
 /** Fold a content line at 75 octets, as RFC 5545 §3.1 requires. */
 function fold(line: string): string {
-  const bytes = new TextEncoder().encode(line);
-  if (bytes.length <= 75) return line;
+  const encoder = new TextEncoder();
   const out: string[] = [];
-  let i = 0;
-  let first = true;
-  while (i < bytes.length) {
-    const take = first ? 75 : 74;
-    // Never split inside a multi-byte sequence.
-    let end = Math.min(i + take, bytes.length);
-    while (end < bytes.length && ((bytes[end] ?? 0) & 0xc0) === 0x80) end--;
-    out.push((first ? '' : ' ') + new TextDecoder().decode(bytes.subarray(i, end)));
-    i = end;
-    first = false;
+  let current = '';
+  let size = 0;
+  // Walk whole characters, so a fold never lands inside a multi-byte sequence.
+  for (const ch of line) {
+    const bytes = encoder.encode(ch).length;
+    const limit = out.length === 0 ? 75 : 74;
+    if (size + bytes > limit) {
+      out.push(current);
+      current = '';
+      size = 0;
+    }
+    current += ch;
+    size += bytes;
   }
-  return out.join('\r\n');
+  out.push(current);
+  return out.join('\r\n ');
 }
 
 /**

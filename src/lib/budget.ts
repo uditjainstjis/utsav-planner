@@ -30,7 +30,7 @@ function flagsFor(
   lines: readonly BudgetLine[],
 ): BudgetFlag[] {
   const { floor } = TEMPLATES[eventType];
-  const cateringPerGuest = lines.find((l) => l.id === 'catering')?.perGuest ?? null;
+  const cateringPerGuest = lines.find((l) => l.id === 'catering')?.perGuest;
   if (perGuest < floor.total) {
     return [
       {
@@ -41,7 +41,7 @@ function flagsFor(
       },
     ];
   }
-  if (cateringPerGuest !== null && cateringPerGuest < floor.catering) {
+  if (typeof cateringPerGuest === 'number' && cateringPerGuest < floor.catering) {
     return [
       {
         code: 'tight_catering',
@@ -71,20 +71,15 @@ function flagsFor(
  */
 export function buildBudget(eventType: EventType, total: number, guests: number): Budget {
   const t = TEMPLATES[eventType];
-  const amounts = apportion(
-    total,
-    t.lines.map((l) => l.share),
-  );
-  const lines: BudgetLine[] = t.lines.map((l, i) => {
-    const amount = amounts[i] ?? 0;
-    return {
-      id: l.id,
-      label: l.label,
-      share: l.share,
+  const lines: BudgetLine[] = apportion<(typeof t.lines)[number]>(total, t.lines).map(
+    ({ item, amount }) => ({
+      id: item.id,
+      label: item.label,
+      share: item.share,
       amount,
-      perGuest: l.scalesWithGuests ? Math.round(amount / guests) : null,
-    };
-  });
+      perGuest: item.scalesWithGuests ? Math.round(amount / guests) : null,
+    }),
+  );
 
   const perGuest = Math.round(total / guests);
   return {

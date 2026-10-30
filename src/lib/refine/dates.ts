@@ -15,7 +15,7 @@ const MONTH =
   '(?<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|' +
   'sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\b\\.?';
 /** 2027-03-15 */
-const DATE_ISO_RE = /\b(\d{4}-\d{2}-\d{2})\b/;
+const DATE_ISO_RE = /\b\d{4}-\d{2}-\d{2}\b/;
 /** 15 March 2027 · 15th Mar · 15 march */
 const DATE_DMY_RE = new RegExp(
   `\\b(?<day>\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH},?(?:\\s+(?<year>\\d{4}))?\\b`,
@@ -29,7 +29,7 @@ const DATE_MDY_RE = new RegExp(
 /** "move it to March", "in April" — month only, keep the current day of month */
 const MONTH_ONLY_RE = new RegExp(`\\b(?:to|in|for|on)\\s+${MONTH}\\b(?!\\s*\\d)`, 'i');
 /** "in 3 weeks", "in 10 days", "in 2 months" */
-const RELATIVE_RE = /\bin\s+(?<n>\d{1,2})\s+(?<unit>days?|weeks?|months?)\b/i;
+const RELATIVE_RE = /\bin\s+(?<n>\d{1,2})\s+(?:days?|weeks?|months?)\b/i;
 
 /** A date read from the sentence, and where in the sentence it was. */
 interface DateMatch {
@@ -69,7 +69,7 @@ function addMonths(today: string, n: number): string {
 
 function isoDate(text: string): DateMatch | null {
   const m = DATE_ISO_RE.exec(text);
-  return m ? { iso: m[1] ?? '', span: spanOf(m) } : null;
+  return m ? { iso: m[0], span: spanOf(m) } : null;
 }
 
 /** A day and a month in either order ("15 March", "March 15"), with an optional year. */
@@ -87,10 +87,9 @@ function relativeDate(text: string, today: string): DateMatch | null {
   const m = RELATIVE_RE.exec(text);
   if (!m?.groups) return null;
   const n = Number(m.groups.n);
-  const unit = (m.groups.unit ?? '').toLowerCase();
-  const iso = unit.startsWith('month')
+  const iso = /month/i.test(m[0])
     ? addMonths(today, n)
-    : addDays(today, unit.startsWith('week') ? n * 7 : n);
+    : addDays(today, /week/i.test(m[0]) ? n * 7 : n);
   return { iso, span: spanOf(m) };
 }
 

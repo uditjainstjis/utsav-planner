@@ -11,10 +11,16 @@ import { EVENT_TYPES } from '../src/shared/constants';
  */
 
 describe('apportion', () => {
+  const split = (total: number, shares: number[]): number[] =>
+    apportion(
+      total,
+      shares.map((share) => ({ share })),
+    ).map((p) => p.amount);
+
   it('returns whole numbers that sum exactly to the total', () => {
     const shares = [0.22, 0.33, 0.12, 0.08, 0.08, 0.05, 0.02, 0.05, 0.05];
     for (const total of [1000, 1001, 12345, 99_999, 1_000_000, 7_777_777]) {
-      const parts = apportion(total, shares);
+      const parts = split(total, shares);
       expect(parts.every(Number.isInteger)).toBe(true);
       expect(parts.reduce((a, b) => a + b, 0)).toBe(total);
     }
@@ -22,7 +28,7 @@ describe('apportion', () => {
 
   it('never moves any line more than one rupee from its exact share', () => {
     const shares = [0.5, 0.25, 0.25];
-    const parts = apportion(1001, shares);
+    const parts = split(1001, shares);
     parts.forEach((p, i) => {
       expect(Math.abs(p - 1001 * (shares[i] ?? 0))).toBeLessThan(1);
     });
@@ -30,11 +36,11 @@ describe('apportion', () => {
 
   it('gives the leftover rupee to the line that lost the most to flooring', () => {
     // 10 * 0.33 = 3.3, 10 * 0.33 = 3.3, 10 * 0.34 = 3.4 → floors 3,3,3, one left
-    expect(apportion(10, [0.33, 0.33, 0.34])).toEqual([3, 3, 4]);
+    expect(split(10, [0.33, 0.33, 0.34])).toEqual([3, 3, 4]);
   });
 
   it('handles a total smaller than the number of lines', () => {
-    expect(apportion(2, [0.5, 0.3, 0.2]).reduce((a, b) => a + b, 0)).toBe(2);
+    expect(split(2, [0.5, 0.3, 0.2]).reduce((a, b) => a + b, 0)).toBe(2);
   });
 });
 
